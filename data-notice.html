@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Prototype data-use and privacy information for the AcreForge rural-property planning demo.">
+<title>Data &amp; privacy notice – AcreForge prototype</title>
+<style>
+body{margin:0;background:#101820;color:#e8eef5;font:16px/1.65 Segoe UI,Arial,sans-serif}
+main{max-width:800px;margin:auto;padding:32px 18px 56px}
+h1,h2{line-height:1.2}
+h1{margin-bottom:8px}
+h2{margin-top:30px}
+.muted{color:#9fb3c8}
+.notice{background:#18242f;border:1px solid #6b5730;border-radius:10px;padding:16px}
+a{color:#9bc2ff}
+li{margin:8px 0}
+</style>
+</head>
+<body>
+<main>
+<p><a href="./">← Back to the prototype</a></p>
+<h1>Data &amp; privacy notice</h1>
+<p class="muted">AcreForge is an uncleared working name. This page describes the current prototype, not a complete commercial privacy policy or legal advice. Last updated October 24, 2026.</p>
+
+<section class="notice">
+<strong>Do not enter sensitive information.</strong> This prototype is not designed for confidential property, financial, contact, or account data. Review any project before exporting or publishing it.
+</section>
+
+<h2>Project information saved in your browser</h2>
+<p>The planner and Home Builder save project content in local storage in the browser profile you are using. This can include project names, planning assumptions, objects, dimensions, notes, map coordinates, parcel geometry you import, drawn map overlays, and home layouts. Theme and edit-mode preferences are also stored locally. The app does not provide cloud sync or user accounts in its interface. Anyone with access to this browser profile or device may be able to access its saved data.</p>
+<p>You can use the app's export and import tools to make or transfer project files. Exported files are not protected by this site; store and share them carefully. Clearing browser storage or using a different browser/profile may make local projects unavailable.</p>
+
+<h2>Map and network requests</h2>
+<p>The site is hosted by Netlify. When your browser requests the site, Netlify and the network providers involved may process technical request information such as your IP address, browser, and requested files under their own policies. See <a href="https://www.netlify.com/privacy/" target="_blank" rel="noopener">Netlify's privacy statement</a>.</p>
+<p>When you open the terrain map, the browser requests map imagery from the U.S. Geological Survey and elevation tiles from AWS Terrain Tiles. Those services receive the network requests needed to return the map tiles, which can reveal the geographic area being viewed along with ordinary request metadata. See the <a href="https://www.usgs.gov/privacy" target="_blank" rel="noopener">USGS privacy policy</a> and <a href="https://aws.amazon.com/privacy/" target="_blank" rel="noopener">AWS privacy notice</a>.</p>
+<p>The optional <strong>Mapped features</strong> control is off until you enable it. If enabled, the app sends the visible map bounds—not your full saved project—to the public OpenStreetMap Overpass API to request nearby mapped features. The bounds identify the small area currently displayed. See the <a href="https://osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener">OpenStreetMap Foundation privacy policy</a>.</p>
+<p>The app does not request device geolocation. It uses map coordinates that you select or provide through an import or map link. Map and public-data coverage can be incomplete or inaccurate.</p>
+
+<h2>Public project exports</h2>
+<p>The separate public-export feature creates a project JSON file intended to be placed beside the site files on its host. If you do that, the file and its contents become available to people who can reach the published site. A view-only link is not access control. Check the file for names, coordinates, parcel details, notes, and other information you do not want to disclose before publishing.</p>
+
+<h2>Accounts, payments, and related services</h2>
+<p>The current site interface does not offer account sign-in, paid plans, or checkout. No payment link or fundraiser is presented here. However, Stripe webhook code remains in the deployment source and may be active only if separately configured with server-side settings. That configuration and any related provider records or logs have not been audited for this notice. The operator should verify the hosting configuration before making claims about whether Stripe or Supabase process any information.</p>
+
+<h2>Analytics, advertising, and contact</h2>
+<p>The application source does not include a configured analytics or advertising script. This statement does not cover technical logs maintained by the site host or services listed above. This prototype currently does not publish a verified business identity or dedicated privacy-contact address. Do not submit sensitive information or expect this prototype to provide a formal data-request process.</p>
+
+<h2>Questions and future changes</h2>
+<p>This notice may need substantial revision before commercial use, especially if accounts, payments, analytics, cloud storage, support forms, or other data collection are added. A commercially launched service should identify its operator and provide an appropriate contact channel and complete, jurisdiction-aware privacy disclosures.</p>
+<p><a href="support.html">View prototype and payment status</a></p>
+</main>
+</body>
+</html>
