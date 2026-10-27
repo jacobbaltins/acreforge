@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://jacobbaltins.github.io/acreforge/sitemap.xml
