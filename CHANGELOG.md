@@ -1,5 +1,6 @@
 # Changelog
 
+- Accessibility: improved contrast for site-plan palette badges and active Lot Builder tools.
 ## Unreleased
 - Accessibility: unlabeled form controls now get accessible names automatically.
 - Mobile: the ? Guide button no longer covers the bottom navigation.

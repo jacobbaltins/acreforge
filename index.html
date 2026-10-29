@@ -858,6 +858,9 @@ wireEvents();if(state._recoveryWarning){setTimeout(()=>alert(state._recoveryWarn
 })();
 </script>
 <script>
+(()=>{const s=document.createElement("style");s.textContent=".palette-glyph{color:#ecf2ee!important}#hb .hbb.on{color:#fff!important}";document.head.appendChild(s)})();
+</script>
+<script>
 (()=>{const lab=()=>{document.querySelectorAll("input,select,textarea").forEach(e=>{if(e.type==="hidden"||e.getAttribute("aria-label")||e.getAttribute("aria-labelledby")||e.title||(e.id&&document.querySelector('label[for="'+e.id+'"]'))||e.closest("label"))return;
 let t="";const p=e.previousElementSibling;if(p&&!/^(INPUT|SELECT|TEXTAREA)$/.test(p.tagName))t=p.textContent.trim();if(t.length>50)t="";
 if(!t){const c=e.parentElement;if(c){const cl=c.cloneNode(true);cl.querySelectorAll("input,select,textarea,button").forEach(x=>x.remove());t=cl.textContent.trim();if(t.length>50)t=""}}
