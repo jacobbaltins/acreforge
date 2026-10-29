@@ -169,4 +169,5 @@
 
 - Creeks & rivers: draw streams, creeks, rivers and canals as natural meandering channels with banks, in 2D and 3D (Water tool).
 - Bridges: roads that cross water get bridge decks and rails automatically, in 2D and 3D.
-- Real map snippet: capture USGS aerial imagery of your land as an underlay layer in 2D and 3D (adjustable opacity).
+- Real map snippet: capture USGS aerial imagery of your land as an optional underlay in 2D and 3D (hidden until you turn Show on; adjustable opacity).
+- Match real features: copy real roads, houses, other buildings, trees, bushes, scrub and waterways from OpenStreetMap into your plan as editable items.
