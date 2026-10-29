@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Mobile: the ? Guide button no longer covers the bottom navigation.
 - About page: pricing cards now say DXF export and PDF download are available (no longer 'planned').
 - First-run quick start guide (shown once, reopen with the ? Guide button).
 - Site Designer: new one-click **Download PDF** button (letter landscape, title block) next to Print sheet.
