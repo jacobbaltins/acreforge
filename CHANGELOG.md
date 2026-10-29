@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Lot Builder: added a letter-landscape print-ready floor-plan PDF with room labels, areas, dimensions, and a planning title block; DXF now includes room labels.
 - Lot Builder: DXF exports now declare CAD layers and lay out multiple floors side by side for easier review.
 - Lot Builder: DXF export now includes door openings, swing leaves, and window lines on separate layers.
 - Business guide: added an in-app download link to the family business launch guide.
