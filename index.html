@@ -857,5 +857,15 @@ const pr=render;render=function(){pr.apply(this,arguments);if(activePage==="home
 wireEvents();if(state._recoveryWarning){setTimeout(()=>alert(state._recoveryWarning),200)}render();
 })();
 </script>
+<script>
+(()=>{const KEY="acreforge-guide-seen";
+const steps=[["Design","Site Designer: drag objects from “Add an object” onto your land. Use Fit plan, grids and Rotate."],["Build","Buildings and Lot Builder: draw floor plans, add levels, then “Place on site plan”."],["Check","Financials, Compliance and Scenarios estimate cost and flag issues. Numbers are concept-level only."],["Share","Download PDF, Print sheet or Export DXF from the Site Designer. Export a backup JSON often."]];
+function open(){if(document.getElementById("afGuide"))return;const o=document.createElement("div");o.id="afGuide";o.setAttribute("role","dialog");o.setAttribute("aria-modal","true");o.setAttribute("aria-label","Quick start guide");
+o.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:16px";
+o.innerHTML='<div style="background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:10px;max-width:520px;width:100%;padding:22px;font:14px/1.5 Segoe UI,Arial,sans-serif"><h2 style="margin:0 0 4px;font-size:20px">Welcome to AcreForge</h2><p style="margin:0 0 12px;color:#9ca3af">Plan land and estates in four steps. Everything saves in this browser only.</p><ol style="margin:0 0 14px;padding-left:20px">'+steps.map(s=>"<li style='margin-bottom:8px'><b>"+s[0]+".</b> "+s[1]+"</li>").join("")+'</ol><p style="margin:0 0 14px;color:#9ca3af;font-size:12px">Concept planning only, not a survey. Verify with licensed professionals and your county.</p><button id="afGuideGo" style="background:#2563eb;color:#fff;border:0;border-radius:6px;padding:8px 16px;font:inherit;cursor:pointer">Start planning</button></div>';
+document.body.appendChild(o);const close=()=>{o.remove();try{localStorage.setItem(KEY,"1")}catch(e){}};o.querySelector("#afGuideGo").onclick=close;o.addEventListener("click",e=>{if(e.target===o)close()});document.addEventListener("keydown",function k(e){if(e.key==="Escape"&&document.getElementById("afGuide")){close();document.removeEventListener("keydown",k)}});o.querySelector("#afGuideGo").focus()}
+const h=document.createElement("button");h.textContent="? Guide";h.setAttribute("aria-label","Open quick start guide");h.style.cssText="position:fixed;right:14px;bottom:14px;z-index:9999;background:#1f2937;color:#e5e7eb;border:1px solid #4b5563;border-radius:16px;padding:5px 12px;font:12px Segoe UI,Arial,sans-serif;cursor:pointer";h.onclick=open;document.body.appendChild(h);
+let seen=false;try{seen=!!localStorage.getItem(KEY)}catch(e){}if(!seen)setTimeout(open,500)})();
+</script>
 </body>
 </html>
