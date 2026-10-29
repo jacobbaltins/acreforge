@@ -166,3 +166,5 @@
 - Added versioned local storage, recovery snapshot, legacy `st3` migration, accessibility labels/focus handling, responsive layout, reduced-motion behavior, and the full planning disclaimer.
 
 - 3D realism: soil slab edge under the land, tree contact shadows, leaf dapple, time-of-day color grade and vignette.
+
+- Creeks & rivers: draw streams, creeks, rivers and canals as natural meandering channels with banks, in 2D and 3D (Water tool).
