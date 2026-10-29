@@ -600,9 +600,12 @@ $("content").addEventListener("click",e=>{const b=e.target.closest("[data-mg]");
 })();
 (()=>{const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const layerOf=it=>String(it.type||it.category||it.name||"OBJECT").toUpperCase().replace(/[^A-Z0-9]+/g,"_").slice(0,30)||"OBJECT";
-function dxf(){const L=[];const add=(c,v)=>L.push(String(c),String(v));add(0,"SECTION");add(2,"HEADER");add(9,"$INSUNITS");add(70,2);add(0,"ENDSEC");add(0,"SECTION");add(2,"ENTITIES");
-const b=state.project&&state.project.parcelBoundary;if(b&&b.polygons)b.polygons.forEach(poly=>(Array.isArray(poly[0][0])?poly:[poly]).forEach(r=>{add(0,"LWPOLYLINE");add(8,"PARCEL");add(90,r.length);add(70,1);r.forEach(p=>{add(10,p[0].toFixed(3));add(20,(-p[1]).toFixed(3))})}));
-items().forEach(it=>{const pts=footprintPoints(it);add(0,"LWPOLYLINE");add(8,layerOf(it));add(90,pts.length);add(70,1);pts.forEach(p=>{add(10,p[0].toFixed(3));add(20,(-p[1]).toFixed(3))});const c=pts.reduce((a,p)=>[a[0]+p[0]/pts.length,a[1]+p[1]/pts.length],[0,0]);add(0,"TEXT");add(8,"LABELS");add(10,c[0].toFixed(3));add(20,(-c[1]).toFixed(3));add(40,Math.max(4,Math.min(it.w,it.h)*.12).toFixed(2));add(1,String(it.name||"").replace(/[\r\n]/g," "))});
+function dxf(){const L=[];const add=(c,v)=>L.push(String(c),String(v));add(0,"SECTION");add(2,"HEADER");add(9,"$ACADVER");add(1,"AC1009");add(9,"$INSUNITS");add(70,2);add(0,"ENDSEC");
+const layers=["PARCEL","LABELS",...new Set(items().map(layerOf))].filter((v,i,a)=>a.indexOf(v)===i);
+add(0,"SECTION");add(2,"TABLES");add(0,"TABLE");add(2,"LAYER");add(70,layers.length);layers.forEach((n,i)=>{add(0,"LAYER");add(2,n);add(70,0);add(62,(i%7)+1);add(6,"CONTINUOUS")});add(0,"ENDTAB");add(0,"ENDSEC");
+const pl=(ly,pp)=>{add(0,"POLYLINE");add(8,ly);add(66,1);add(70,1);pp.forEach(p=>{add(0,"VERTEX");add(8,ly);add(10,p[0].toFixed(3));add(20,(-p[1]).toFixed(3))});add(0,"SEQEND");add(8,ly)};add(0,"SECTION");add(2,"ENTITIES");
+const b=state.project&&state.project.parcelBoundary;if(b&&b.polygons)b.polygons.forEach(poly=>(Array.isArray(poly[0][0])?poly:[poly]).forEach(r=>{pl("PARCEL",r)}));
+items().forEach(it=>{const pts=footprintPoints(it);pl(layerOf(it),pts);const c=pts.reduce((a,p)=>[a[0]+p[0]/pts.length,a[1]+p[1]/pts.length],[0,0]);add(0,"TEXT");add(8,"LABELS");add(10,c[0].toFixed(3));add(20,(-c[1]).toFixed(3));add(40,Math.max(4,Math.min(it.w,it.h)*.12).toFixed(2));add(1,String(it.name||"").replace(/[\r\n]/g," "))});
 add(0,"ENDSEC");add(0,"EOF");return L.join("\r\n")}
 function download(name,type,data){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
 function sheet(){const svg=document.getElementById("siteMap");if(!svg){alert("Open the flat plan first.");return}const s=svg.cloneNode(true);s.removeAttribute("style");s.setAttribute("width","100%");s.setAttribute("height","100%");s.querySelector("#dragGhost")?.remove();
