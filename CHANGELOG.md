@@ -171,6 +171,7 @@
 - Bridges: roads that cross water get bridge decks and rails automatically, in 2D and 3D.
 - Real map snippet: capture USGS aerial imagery of your land as an optional underlay in 2D and 3D (hidden until you turn Show on; adjustable opacity).
 - Match real features now also brings in real ponds, lakes and reservoirs as editable pond items (the Pond item is already in the palette for drawing your own).
+- Irrigation canals are costed at $55/ft excavated and added to the build cost (ponds were already costed; creeks and rivers are natural, no cost)
 - Quick-start guide steps have "Take me there" buttons that jump to the right tab
 - 3D preview has a time-of-day sky gradient, sun/moon glow and horizon haze
 - New starter projects now default to 200 acres (saved projects keep their acreage)
