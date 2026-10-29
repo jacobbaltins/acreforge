@@ -41,13 +41,14 @@ For the most reliable local run, extract the ZIP and serve the complete folder w
 npx serve .
 ```
 
-## Deploy to Netlify
+## Deploy to GitHub Pages
 
-1. Extract `acreforge.zip`.
-2. Drag the extracted folder into Netlify Drop, or create a Netlify site from a Git repository containing these files.
-3. No build command is needed. Set the publish directory to the folder containing `index.html`.
+Live site: https://jacobbaltins.github.io/acreforge/
 
-The included `netlify.toml` configures the static publish directory, function directory, and response headers. A Stripe webhook source file remains in `netlify/functions`; it is not a checkout flow, and its server-side configuration has not been audited.
+1. Push these files to the `main` branch of the repository root.
+2. In Settings > Pages, serve from `main` and `/`. No build step is needed (`.nojekyll` is included).
+
+GitHub Pages is static only, so there are no server functions.
 
 ## Contents
 
@@ -59,7 +60,6 @@ The included `netlify.toml` configures the static publish directory, function di
 - `support.html` — prototype and payment status.
 - `data-notice.html` — factual prototype data-use and privacy notice.
 - `CAMPAIGN.md` — unpublished fundraising planning draft.
-- `netlify.toml` — static-host defaults.
 - `acreforge.zip` — deployable archive of the above files (excluding itself); regenerate it after changing the app or documentation.
 
 ## Data and privacy
@@ -85,10 +85,10 @@ Use **Terrain** in the Site Designer to sculpt elevation (shown in the isometric
 
 ## Publishing publicly
 1. Click **Public export** (edit mode) and save published-project.json next to index.html.
-2. Drag the folder (not the ZIP) onto Netlify Deploys.
+2. Commit and push the folder contents to GitHub Pages.
 3. Visitors see a view-only copy; open your-site/?edit=1 once on your own browser to edit. This is a convenience link, not security. Anyone who knows it can edit their own copy, but nobody can change the published one.
 
 
 ## Accounts and payments
 
-Paid plans, account sign-in, and payment processing are currently disabled. Do not add payment URLs, account credentials, customer email allowlists, or secret keys to `index.html`: browser code is public, and local license flags are not secure access control. The included Stripe webhook is not a complete production billing system by itself. Before accepting payments, implement and test server-side checkout/entitlements, cancellation and refund handling, customer support, and truthful pricing disclosures; have the resulting flow and legal terms reviewed for the jurisdictions where you sell.
+Paid plans, account sign-in, and payment processing are currently disabled. Do not add payment URLs, account credentials, customer email allowlists, or secret keys to `index.html`: browser code is public, and local license flags are not secure access control. Before accepting payments, implement and test server-side checkout/entitlements, cancellation and refund handling, customer support, and truthful pricing disclosures; have the resulting flow and legal terms reviewed for the jurisdictions where you sell.
