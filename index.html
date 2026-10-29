@@ -393,7 +393,8 @@ const project=(x,y,z=0)=>{const dx=x-w/2,dy=y-h/2,rx=dx*cos-dy*sin,ry=dx*sin+dy*
 const poly=(pts,color)=>{ctx.beginPath();pts.forEach((p,n)=>n?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.strokeStyle="#ffffff20";ctx.lineWidth=1;ctx.stroke()};
 const objectWorld=(i,x,y)=>{const angle=num(i.rotation,0)*Math.PI/180,dx=x-(i.x+i.w/2),dy=y-(i.y+i.h/2);return[i.x+i.w/2+dx*Math.cos(angle)-dy*Math.sin(angle),i.y+i.h/2+dx*Math.sin(angle)+dy*Math.cos(angle)]};
 const projectObject=(i,x,y,z=0)=>{const[wx,wy]=objectWorld(i,x,y);return project(wx,wy,terrainElev(wx,wy)*terrainExag+z)};
-const ground=[[0,0],[w,0],[w,h],[0,h]].map(p=>project(p[0],p[1]));if(terrainData()&&terrainData().show!==false)drawTerrainMesh(ctx,project,w,h,sin,cos);else poly(ground,groundPreset().base);drawGroundTexture(ctx,project,w,h);drawRoadNet3d(ctx,project,scale,w,h);drawSceneShadows(ctx,project);
+const ground=[[0,0],[w,0],[w,h],[0,h]].map(p=>project(p[0],p[1]));{const slab=Math.max(10,Math.max(w,h)*.025),soil=groundPreset().base,corners=[[0,0],[w,0],[w,h],[0,h]];corners.forEach((a,n)=>{const b=corners[(n+1)%4],g=ctx.createLinearGradient(0,project(a[0],a[1],0)[1],0,project(a[0],a[1],-slab)[1]);g.addColorStop(0,shade("#6b4a2f",n%2?-14:-30));g.addColorStop(1,"#2a1d12");ctx.beginPath();[project(a[0],a[1],0),project(b[0],b[1],0),project(b[0],b[1],-slab),project(a[0],a[1],-slab)].forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=g;ctx.fill()})}
+if(terrainData()&&terrainData().show!==false)drawTerrainMesh(ctx,project,w,h,sin,cos);else poly(ground,groundPreset().base);drawGroundTexture(ctx,project,w,h);drawRoadNet3d(ctx,project,scale,w,h);drawSceneShadows(ctx,project);
 for(let j=0;j<=Math.floor(h/400);j++){const p1=project(0,j*400),p2=project(w,j*400);ctx.beginPath();ctx.moveTo(...p1);ctx.lineTo(...p2);ctx.strokeStyle="#75a17a22";ctx.stroke()}
 const ordered=items().filter(i=>i.visible!==false&&state.layers[layerFor(i.type)]!==false).map(i=>{const m=i.w/2,n=i.h/2,dx=i.x+m-w/2,dy=i.y+n-h/2;return{i,depth:dx*sin+dy*cos}}).sort((a,b)=>a.depth-b.depth);landAreas().filter(zoneLayerVisible).forEach(z=>draw3dLandZone(ctx,z,projectObject,poly,scale,z.id===selectedZoneId));if(state.layers["Ground cover"]!==false)surfacePatches().forEach((p,n)=>drawGroundPatch(ctx,p,project,poly,n));
 for(const {i} of ordered){
@@ -411,7 +412,7 @@ poly(top,land?shade(col,-8):thin?col:shade(col,12));if(!land&&!thin&&z>4){const 
 if(sceneCut&&i.id===selectedId&&ww>35&&hh>25){for(let t=.25;t<.9;t+=.25){const a=project(i.x+ww*t,i.y+hh*.18,z+ez+.5),b=project(i.x+ww*t,i.y+hh*.82,z+ez+.5);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.strokeStyle="#fff9";ctx.lineWidth=1.4;ctx.stroke()}}
 if(i.id===selectedId&&ww>50&&hh>30&&!land){const label=String(i.label||i.name||template?.name||"");if(label){const p=project(i.x+ww/2,i.y+hh/2,z+ez+2);ctx.fillStyle="#f3f7f3";ctx.font="bold 10px system-ui";ctx.textAlign="center";ctx.fillText(label,p[0],p[1]+3)}}
 }
-ctx.restore();ctx.fillStyle="#d5e6d8";ctx.font="10px system-ui";ctx.textAlign="left";ctx.fillText("N ↑",9,15);ctx.fillStyle="#a8b7ad";ctx.textAlign="right";ctx.fillText(`${state.project.acres} ac · concept only`,cw-9,ch-8);
+ctx.restore();{const tint={dawn:"rgba(255,170,110,.16)",day:"rgba(255,244,214,.07)",sunset:"rgba(255,120,60,.2)",night:"rgba(20,40,110,.38)"}[sceneFx.time];ctx.save();ctx.globalCompositeOperation="source-atop";if(tint){ctx.fillStyle=tint;ctx.fillRect(0,0,cw,ch)}const v=ctx.createRadialGradient(cw/2,ch*.55,Math.min(cw,ch)*.35,cw/2,ch*.55,Math.max(cw,ch)*.75);v.addColorStop(0,"rgba(0,0,0,0)");v.addColorStop(1,"rgba(0,0,0,.35)");ctx.fillStyle=v;ctx.fillRect(0,0,cw,ch);ctx.restore()}ctx.fillStyle="#d5e6d8";ctx.font="10px system-ui";ctx.textAlign="left";ctx.fillText("N ↑",9,15);ctx.fillStyle="#a8b7ad";ctx.textAlign="right";ctx.fillText(`${state.project.acres} ac · concept only`,cw-9,ch-8);
 }
 function draw3dRoad(ctx,i,projectObject,scale,selected){
 const width=Math.max(1,Math.min(i.w,i.h)),length=Math.max(i.w,i.h),terrain=terrainData(),dims=propertyDims(),terrainStep=terrain?Math.min(dims.w/(terrain.cols-1),dims.h/(terrain.rows-1)):80,segments=Math.min(128,Math.max(i.type==="curvedroad"?24:2,Math.ceil(length/Math.max(20,terrainStep)))),points=[];
@@ -432,6 +433,7 @@ for(let layer=0;layer<rings.length-1;layer++)for(let n=0;n<sides;n++){const pts=
 faces.sort((a,b)=>a.depth-b.depth).forEach(face=>poly(face.pts,shade(color,face.shade)));
 ctx.beginPath();ctx.moveTo(...rings.at(-1)[0]);for(let n=1;n<sides;n++)ctx.lineTo(...rings.at(-1)[n]);ctx.closePath();ctx.fillStyle=shade(color,15);ctx.fill();
 const highlight=projectObject(i,x-rx*.32,y-ry*.28,zBase+height*.67);ctx.beginPath();ctx.ellipse(highlight[0],highlight[1],Math.max(1,rx*scale*.11),Math.max(1,ry*scale*.07),-.3,0,Math.PI*2);ctx.fillStyle="#e1f4ad30";ctx.fill();
+for(let n=0;n<9;n++){const a=((x*12.9898+y*78.233+n*37.7)%6.283+6.283)%6.283,d=((x*4.1+y*9.7+n*13.3)%1+1)%1,p=projectObject(i,x+Math.cos(a)*rx*.8*d,y+Math.sin(a)*ry*.8*d,zBase+height*(.3+.55*((n*.37)%1)));ctx.beginPath();ctx.arc(p[0],p[1],Math.max(.8,rx*scale*.09),0,Math.PI*2);ctx.fillStyle=n%2?"#d8ee9a2e":"#0a1f0f3a";ctx.fill()}
 }
 function draw3dPost(ctx,i,projectObject,poly,x,y,height,width,color){
 const half=width/2,base=[[x-half,y-half],[x+half,y-half],[x+half,y+half],[x-half,y+half]].map(p=>projectObject(i,p[0],p[1])),top=[[x-half,y-half],[x+half,y-half],[x+half,y+half],[x-half,y+half]].map(p=>projectObject(i,p[0],p[1],height));
@@ -439,6 +441,7 @@ poly([base[0],base[1],top[1],top[0]],shade(color,-22));poly([base[1],base[2],top
 }
 function draw3dTree(ctx,i,projectObject,poly,scale,x=i.w/2,y=i.h/2,type=i.type){
 const height=Math.max(4,num(i.height,24)),radius=Math.max(2,Math.min(i.w,i.h)*.36),conifer=["conifer","pine"].includes(type),trunkHeight=height*(conifer?.2:.38),trunkWidth=Math.max(1,radius*.18),cx=i.x+x,cy=i.y+y;
+{const sp=projectObject(i,cx+radius*.25,cy+radius*.2,.1);ctx.beginPath();ctx.ellipse(sp[0],sp[1],Math.max(2,radius*scale*.95),Math.max(1,radius*scale*.45),0,0,Math.PI*2);ctx.fillStyle="rgba(6,14,8,.28)";ctx.fill()}
 draw3dPost(ctx,i,projectObject,poly,cx,cy,trunkHeight,trunkWidth,"#765237");
 if(conifer){const tiers=3;for(let tier=0;tier<tiers;tier++){const baseZ=trunkHeight+height*(.06+tier*.2),tierHeight=height*.42,baseR=radius*(1-tier*.22),sides=9,ring=Array.from({length:sides},(_,n)=>{const a=n*Math.PI*2/sides;return projectObject(i,cx+Math.cos(a)*baseR,cy+Math.sin(a)*baseR,baseZ)}),peak=projectObject(i,cx,cy,baseZ+tierHeight);for(let n=0;n<sides;n++)poly([ring[n],ring[(n+1)%sides],peak],shade(i.color||"#17613c",n%3===0?8:-10))}}
 else draw3dCanopy(ctx,projectObject,poly,i,cx,cy,radius,radius*.86,trunkHeight,height-trunkHeight,i.color||"#2f7d3a",scale);

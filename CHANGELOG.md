@@ -164,3 +164,5 @@
 - Connected site quantities and financial assumptions to capital estimates, operating revenue/expenses, breakeven, financing illustration, phase estimates, and a five-year illustrative projection.
 - Added infrastructure notes, editable staffing ratios, a categorized due-diligence checklist, scenario comparison, print report, JSON backup/restore, CSV schedule export, and searchable reference manual.
 - Added versioned local storage, recovery snapshot, legacy `st3` migration, accessibility labels/focus handling, responsive layout, reduced-motion behavior, and the full planning disclaimer.
+
+- 3D realism: soil slab edge under the land, tree contact shadows, leaf dapple, time-of-day color grade and vignette.
