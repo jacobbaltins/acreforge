@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Site Designer: Cities-Skylines-style road network. Draw roads point by point (dirt, gravel, two-lane, main street, boulevard, walking path) with curves, one-way, junction snapping, upgrade and bulldoze tools, and import of existing road objects. Road cost feeds the budget.
+- Traffic and pedestrian simulation: cars follow routes with lane keeping, following distance and junction yielding; walkers use sidewalks and paths. Congestion, car-volume and foot-traffic overlays in 2D and 3D, plus live stats and flags for buildings with no road access.
 - 3D preview: auto-fit framing, camera views (isometric, top-down, low angle, showcase orbit) and sun-direction shadows that follow time of day (with an on/off setting).
 - 3D preview options: time of day (day, dawn, sunset, night), season tint, render quality (low, medium, high) and a Save PNG screenshot button. Settings persist in this browser.
 - Site Designer: pastures and crop fields are now editable land zones (type, name, color, size, outline, rotation) drawn on the plan and shown in 3D, not placeable objects.

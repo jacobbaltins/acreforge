@@ -234,10 +234,10 @@ const STATE_MAP_CENTERS={AL:[32.8,-86.8],AK:[64,-152],AZ:[34.2,-111.7],AR:[34.8,
 const USGS_TILES={topo:"https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile",imagery:"https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile"};
 const scenario=()=>state.scenarios.find(s=>s.id===state.activeScenario)||state.scenarios[0], items=()=>scenario().items, landAreas=()=>scenario().fields, zoneLayerVisible=()=>state.layers["Land zones"]!==false;
 function save(){clearTimeout(saveTimer);$("saveState").innerHTML='<i class="dot" style="background:#fbbf24"></i> Saving…';saveTimer=setTimeout(()=>{try{const prev=localStorage.getItem(STORAGE);if(prev)localStorage.setItem(RECOVERY,prev);state.updatedAt=new Date().toISOString();localStorage.setItem(STORAGE,JSON.stringify(state));$("saveState").innerHTML='<i class="dot"></i> Saved locally'}catch(e){$("saveState").textContent="Storage unavailable — export backup"}},300);}
-function snapshot(){undoStack.push(JSON.stringify({items:items(),fields:landAreas(),surfacePatches:surfacePatches()}));if(undoStack.length>50)undoStack.shift();redoStack=[];}
-function restoreSnapshot(stack,target){const raw=JSON.parse(stack.pop());target.items=Array.isArray(raw)?raw:raw.items;target.fields=Array.isArray(raw)?target.fields:(raw.fields||[]);target.surfacePatches=Array.isArray(raw.surfacePatches)?raw.surfacePatches:[];selectedId=null;selectedZoneId=null;}
-function undo(){if(!undoStack.length)return;redoStack.push(JSON.stringify({items:items(),fields:landAreas(),surfacePatches:surfacePatches()}));restoreSnapshot(undoStack,scenario());save();render();}
-function redo(){if(!redoStack.length)return;undoStack.push(JSON.stringify({items:items(),fields:landAreas(),surfacePatches:surfacePatches()}));restoreSnapshot(redoStack,scenario());save();render();}
+function snapshot(){undoStack.push(JSON.stringify({items:items(),fields:landAreas(),surfacePatches:surfacePatches(),roads:scenario().roads||[]}));if(undoStack.length>50)undoStack.shift();redoStack=[];}
+function restoreSnapshot(stack,target){const raw=JSON.parse(stack.pop());target.items=Array.isArray(raw)?raw:raw.items;target.fields=Array.isArray(raw)?target.fields:(raw.fields||[]);target.surfacePatches=Array.isArray(raw.surfacePatches)?raw.surfacePatches:[];target.roads=Array.isArray(raw.roads)?raw.roads:[];selectedId=null;selectedZoneId=null;}
+function undo(){if(!undoStack.length)return;redoStack.push(JSON.stringify({items:items(),fields:landAreas(),surfacePatches:surfacePatches(),roads:scenario().roads||[]}));restoreSnapshot(undoStack,scenario());save();render();}
+function redo(){if(!redoStack.length)return;undoStack.push(JSON.stringify({items:items(),fields:landAreas(),surfacePatches:surfacePatches(),roads:scenario().roads||[]}));restoreSnapshot(redoStack,scenario());save();render();}
 function shapeAreaSqft(w,h,shape="rect"){if(shape==="circle"){const r=Math.min(w,h)/2;return Math.PI*r*r}if(shape==="ellipse")return Math.PI*w*h/4;if(shape==="triangle")return w*h/2;if(shape==="roundrect"){const radius=Math.min(w,h)*.2;return Math.max(0,w*h-(4-Math.PI)*radius*radius)}if(shape==="poly"){const cut=Math.min(w,h)*.18;return Math.max(0,w*h-2*cut*cut)}return w*h;}
 function acresFor(i){return shapeAreaSqft(i.w,i.h,i.shape)/43560;}
 function footprintPoints(item){const{w,h}=item,x=item.x,y=item.y,cut=Math.min(w,h)*.18,r=Math.min(w,h)/2;let points=item.shape==="triangle"?[[w/2,0],[w,h],[0,h]]:item.shape==="poly"?[[cut,0],[w-cut,0],[w,cut],[w,h-cut],[w-cut,h],[cut,h],[0,h-cut],[0,cut]]:item.shape==="circle"?Array.from({length:32},(_,n)=>[w/2+Math.cos(n*Math.PI/16)*r,h/2+Math.sin(n*Math.PI/16)*r]):item.shape==="ellipse"?Array.from({length:32},(_,n)=>[w/2+Math.cos(n*Math.PI/16)*w/2,h/2+Math.sin(n*Math.PI/16)*h/2]):[[0,0],[w,0],[w,h],[0,h]];const angle=num(item.rotation)*Math.PI/180,c=Math.cos(angle),s=Math.sin(angle),cx=w/2,cy=h/2;return points.map(([px,py])=>[x+cx+(px-cx)*c-(py-cy)*s,y+cy+(px-cx)*s+(py-cy)*c]);}
@@ -393,7 +393,7 @@ const project=(x,y,z=0)=>{const dx=x-w/2,dy=y-h/2,rx=dx*cos-dy*sin,ry=dx*sin+dy*
 const poly=(pts,color)=>{ctx.beginPath();pts.forEach((p,n)=>n?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.strokeStyle="#ffffff20";ctx.lineWidth=1;ctx.stroke()};
 const objectWorld=(i,x,y)=>{const angle=num(i.rotation,0)*Math.PI/180,dx=x-(i.x+i.w/2),dy=y-(i.y+i.h/2);return[i.x+i.w/2+dx*Math.cos(angle)-dy*Math.sin(angle),i.y+i.h/2+dx*Math.sin(angle)+dy*Math.cos(angle)]};
 const projectObject=(i,x,y,z=0)=>{const[wx,wy]=objectWorld(i,x,y);return project(wx,wy,terrainElev(wx,wy)*terrainExag+z)};
-const ground=[[0,0],[w,0],[w,h],[0,h]].map(p=>project(p[0],p[1]));if(terrainData()&&terrainData().show!==false)drawTerrainMesh(ctx,project,w,h,sin,cos);else poly(ground,groundPreset().base);drawGroundTexture(ctx,project,w,h);drawSceneShadows(ctx,project);
+const ground=[[0,0],[w,0],[w,h],[0,h]].map(p=>project(p[0],p[1]));if(terrainData()&&terrainData().show!==false)drawTerrainMesh(ctx,project,w,h,sin,cos);else poly(ground,groundPreset().base);drawGroundTexture(ctx,project,w,h);drawRoadNet3d(ctx,project,scale,w,h);drawSceneShadows(ctx,project);
 for(let j=0;j<=Math.floor(h/400);j++){const p1=project(0,j*400),p2=project(w,j*400);ctx.beginPath();ctx.moveTo(...p1);ctx.lineTo(...p2);ctx.strokeStyle="#75a17a22";ctx.stroke()}
 const ordered=items().filter(i=>i.visible!==false&&state.layers[layerFor(i.type)]!==false).map(i=>{const m=i.w/2,n=i.h/2,dx=i.x+m-w/2,dy=i.y+n-h/2;return{i,depth:dx*sin+dy*cos}}).sort((a,b)=>a.depth-b.depth);landAreas().filter(zoneLayerVisible).forEach(z=>draw3dLandZone(ctx,z,projectObject,poly,scale,z.id===selectedZoneId));if(state.layers["Ground cover"]!==false)surfacePatches().forEach((p,n)=>drawGroundPatch(ctx,p,project,poly,n));
 for(const {i} of ordered){
@@ -1068,6 +1068,207 @@ const sceneFxBase=designerPage;
 designerPage=function(){const sel=(key,map)=>`<label class="small">${key[0].toUpperCase()+key.slice(1)} <select data-scene-fx="${key}">${Object.entries(map).map(([k,v])=>`<option value="${k}" ${sceneFx[key]===k?"selected":""}>${Array.isArray(v)?v[0]:v.label}</option>`).join("")}</select></label>`;return sceneFxBase().replace('<summary>Preview options</summary><div class="row">','<summary>Preview options</summary><div class="row">'+sel("time",SCENE_TIMES)+sel("season",SCENE_SEASONS)+sel("quality",SCENE_QUALITY)+sel("shadows",{on:["On"],off:["Off"]})+`<label class="small">View <select data-scene-view>${Object.entries(SCENE_VIEWS).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join("")}</select></label>`+'<button class="toolbtn" data-scene-shot title="Download the preview as a PNG">Save PNG</button>')};
 content.addEventListener("change",e=>{const s=e.target.closest("[data-scene-fx]");if(!s)return;sceneFx[s.dataset.sceneFx]=s.value;try{localStorage.setItem(SCENE_FX_KEY,JSON.stringify(sceneFx))}catch{}draw3d()},true);
 content.addEventListener("click",e=>{if(!e.target.closest("[data-scene-shot]"))return;const c=$("scene3d");if(!c)return;draw3d();c.toBlob(b=>{if(!b)return;const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=`acreforge-preview-${sceneFx.time}-${new Date().toISOString().slice(0,10)}.png`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)})},true);
+/* ===== Road network builder + traffic / pedestrian simulation ===== */
+const RN_TYPES={
+dirt:{name:"Dirt lane",w:14,lanes:1,speed:22,cost:15,color:"#a68a64",car:true},
+gravel:{name:"Gravel road",w:20,lanes:2,speed:36,cost:40,color:"#8b8478",car:true},
+paved:{name:"Two-lane road",w:26,lanes:2,speed:51,cost:120,color:"#4b5563",car:true,center:true},
+street:{name:"Main street",w:40,lanes:2,speed:37,cost:420,color:"#374151",car:true,center:true,side:true},
+avenue:{name:"Boulevard",w:62,lanes:4,speed:58,cost:800,color:"#2f3a49",car:true,center:true,side:true,median:true},
+trail:{name:"Walking path",w:7,lanes:0,speed:0,cost:12,color:"#d6c7a1",car:false}};
+const RN_REACH=650,RN_COLORS=["#f87171","#60a5fa","#fbbf24","#a78bfa","#34d399","#f472b6","#e5e7eb","#fb923c"];
+let rnType="gravel",rnMode="draw",rnCurve=true,rnOneway=false,rnDraft=null,rnCursor=null;
+const rnSim={running:false,cars:24,walkers:20,speed:3,overlay:"congestion",agents:[],trips:0,stuck:0,log:[],graph:null,sig:"",places:[],placeT:-9,t:0,last:0,raf:0,last3d:0,lastUi:0,lastSig:0};
+try{const s=JSON.parse(localStorage.getItem("acreforge.traffic")||"{}");if(Number.isFinite(+s.cars))rnSim.cars=Math.max(0,Math.min(150,+s.cars));if(Number.isFinite(+s.walkers))rnSim.walkers=Math.max(0,Math.min(150,+s.walkers));if([1,3,8].includes(+s.speed))rnSim.speed=+s.speed;if(["off","congestion","volume","foot"].includes(s.overlay))rnSim.overlay=s.overlay;if(typeof s.curve==="boolean")rnCurve=s.curve}catch(e){}
+const rnPersist=()=>{try{localStorage.setItem("acreforge.traffic",JSON.stringify({cars:rnSim.cars,walkers:rnSim.walkers,speed:rnSim.speed,overlay:rnSim.overlay,curve:rnCurve}))}catch(e){}};
+const rnRoads=()=>{const s=scenario();return Array.isArray(s.roads)?s.roads:(s.roads=[])};
+function rnCleanRoads(raw){if(!Array.isArray(raw))return[];return raw.slice(0,600).map(r=>{if(!r||!RN_TYPES[r.type]||!Array.isArray(r.pts))return null;const pts=r.pts.slice(0,500).filter(p=>Array.isArray(p)&&Number.isFinite(+p[0])&&Number.isFinite(+p[1])).map(p=>[+p[0],+p[1]]);return pts.length<2?null:{id:String(r.id||uid()),type:r.type,pts,curve:!!r.curve,oneway:!!r.oneway}}).filter(Boolean)}
+const rnNormBase=normalizeState;normalizeState=function(raw){const next=rnNormBase(raw);next.scenarios.forEach((sc,i)=>{sc.roads=rnCleanRoads(raw?.scenarios?.[i]?.roads)});return next};
+const rnDenseCache=new WeakMap();
+function rnDense(r){const sig=(r.curve?"c":"s")+JSON.stringify(r.pts),hit=rnDenseCache.get(r);if(hit&&hit.sig===sig)return hit.d;const P=r.pts,pts=[],seg=[];
+if(!r.curve||P.length<3){P.forEach((p,i)=>{pts.push(p);if(i<P.length-1)seg.push(i)})}
+else{for(let i=0;i<P.length-1;i++){const p0=P[i-1]||P[i],p1=P[i],p2=P[i+1],p3=P[i+2]||P[i+1],n=Math.max(2,Math.ceil(Math.hypot(p2[0]-p1[0],p2[1]-p1[1])/35));for(let k=0;k<n;k++){if(k===0)pts.push(p1);else{const t=k/n,t2=t*t,t3=t2*t,c=j=>.5*(2*p1[j]+(-p0[j]+p2[j])*t+(2*p0[j]-5*p1[j]+4*p2[j]-p3[j])*t2+(-p0[j]+3*p1[j]-3*p2[j]+p3[j])*t3);pts.push([c(0),c(1)])}seg.push(i)}}pts.push(P[P.length-1])}
+const d={pts,seg};rnDenseCache.set(r,{sig,d});return d}
+const rnLen=r=>{const d=rnDense(r).pts;let s=0;for(let i=1;i<d.length;i++)s+=Math.hypot(d[i][0]-d[i-1][0],d[i][1]-d[i-1][1]);return s};
+const rnCost=()=>rnRoads().reduce((s,r)=>s+rnLen(r)*RN_TYPES[r.type].cost,0);
+const rnR1=v=>Math.round(v*10)/10;
+function rnSnapPt(x,y,R,skip,extra){let best=null,bd=R;
+for(const r of rnRoads()){if(r===skip)continue;for(const p of r.pts){const d=Math.hypot(p[0]-x,p[1]-y);if(d<bd){bd=d;best={x:p[0],y:p[1],kind:"node"}}}}
+if(extra)for(const p of extra){const d=Math.hypot(p[0]-x,p[1]-y);if(d<bd){bd=d;best={x:p[0],y:p[1],kind:"node"}}}
+if(best)return best;bd=R*.8;
+for(const r of rnRoads()){if(r===skip)continue;const D=rnDense(r);for(let k=0;k<D.pts.length-1;k++){const a=D.pts[k],b=D.pts[k+1],dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy;if(!l2)continue;const t=Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/l2)),qx=a[0]+dx*t,qy=a[1]+dy*t,d=Math.hypot(qx-x,qy-y);if(d<bd){bd=d;best={x:rnR1(qx),y:rnR1(qy),kind:"seg",road:r,at:D.seg[k]}}}}
+return best}
+function rnSnap(p){const dims=propertyDims(),R=Math.max(24,dims.w/55),extra=rnDraft?rnDraft.pts.slice(0,-1).concat(rnDraft.pts.length>=3?[rnDraft.pts[0]]:[]):null,s=rnSnapPt(p.x,p.y,R,null,extra);if(s)return s;const gx=snapEnabled?Math.round(p.x/gridSize)*gridSize:rnR1(p.x),gy=snapEnabled?Math.round(p.y/gridSize)*gridSize:rnR1(p.y);return{x:Math.max(0,Math.min(dims.w,gx)),y:Math.max(0,Math.min(dims.h,gy)),kind:"free"}}
+function rnHit(p){const dims=propertyDims(),R=Math.max(14,dims.w/90);let best=null,bd=Infinity;for(const r of rnRoads()){const D=rnDense(r),lim=RN_TYPES[r.type].w/2+R;for(let k=0;k<D.pts.length-1;k++){const a=D.pts[k],b=D.pts[k+1],dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy;if(!l2)continue;const t=Math.max(0,Math.min(1,((p.x-a[0])*dx+(p.y-a[1])*dy)/l2)),d=Math.hypot(a[0]+dx*t-p.x,a[1]+dy*t-p.y);if(d<lim&&d<bd){bd=d;best=r}}}return best}
+function rnAddPoint(s){if(!rnDraft){snapshot();rnDraft={type:rnType,curve:rnCurve,oneway:rnOneway,pts:[]}}
+if(s.kind==="seg")s.road.pts.splice(s.at+1,0,[s.x,s.y]);
+const last=rnDraft.pts[rnDraft.pts.length-1];if(last&&Math.hypot(last[0]-s.x,last[1]-s.y)<1){rnFinish();return}
+rnDraft.pts.push([s.x,s.y]);rnRefreshDraft()}
+function rnFinish(){const d=rnDraft;rnDraft=null;rnCursor=null;if(d&&d.pts.length>=2){const road={id:uid(),type:d.type,pts:d.pts,curve:d.curve&&d.pts.length>2,oneway:d.oneway};if(rnLen(road)>8){rnRoads().push(road);save();render();return}}rnRefreshDraft()}
+function rnRefreshDraft(){const g=$("roadDraft");if(g)g.outerHTML=rnDraftSvg();rnHint()}
+function rnHint(){const h=$("roadHint");if(!h)return;h.textContent=tool!=="roadnet"?"Pick a road type or press Draw to start. Click the map to lay points; click an existing road to branch off it.":rnMode==="erase"?"Bulldoze: click a road to remove it.":rnMode==="upgrade"?"Upgrade: click a road to change it to the selected type.":rnDraft?"Click to add points · double-click, Enter or right-click to finish · Backspace removes a point · Esc cancels.":"Click the map to start a road. Snap to an existing road or node to create a junction."}
+/* graph + routing */
+function rnBuildGraph(){const roads=rnRoads(),nodes=[],map=new Map(),edges=[],key=p=>rnR1(p[0])+","+rnR1(p[1]);let length=0;
+const nid=p=>{const k=key(p);let i=map.get(k);if(i===undefined){i=nodes.length;map.set(k,i);nodes.push({x:p[0],y:p[1],outC:[],outW:[],deg:0,lock:null,lockT:0})}return i};
+for(const r of roads){const T=RN_TYPES[r.type],d=rnDense(r).pts;for(let k=0;k<d.length-1;k++){const a=nid(d[k]),b=nid(d[k+1]);if(a===b)continue;const dx=nodes[b].x-nodes[a].x,dy=nodes[b].y-nodes[a].y,len=Math.hypot(dx,dy);if(len<.5)continue;length+=len;nodes[a].deg++;nodes[b].deg++;
+const add=(f,t,mode,ux,uy)=>{const e={i:edges.length,a:f,b:t,len,ux,uy,mode,type:r.type,w:T.w,oneway:!!r.oneway,speed:T.speed||0,vol:0,ema:null,seen:-99};edges.push(e);nodes[f][mode==="car"?"outC":"outW"].push(e.i)};
+if(T.car){add(a,b,"car",dx/len,dy/len);if(!r.oneway)add(b,a,"car",-dx/len,-dy/len)}add(a,b,"walk",dx/len,dy/len);add(b,a,"walk",-dx/len,-dy/len)}}
+return{nodes,edges,length,junctions:nodes.filter(n=>n.deg>=3).length}}
+function rnGraph(force){const sig=JSON.stringify(rnRoads());if(!force&&rnSim.graph&&rnSim.sig===sig)return rnSim.graph;rnSim.sig=sig;rnSim.graph=rnBuildGraph();rnSim.agents=[];rnSim.trips=0;rnSim.stuck=0;rnSim.log=[];rnSim.places=rnPlaces(rnSim.graph);rnSim.placeT=rnSim.t;return rnSim.graph}
+function rnPlaces(g){const skip=["Road","Path","Fence","Utility","Landscape","Pasture","Water"],out=[];for(const i of items()){if(i.visible===false)continue;const c=templates[i.type]?.cat||"";if(skip.includes(c)||/road|path|fence|trail|street/i.test(i.type))continue;const cx=i.x+i.w/2,cy=i.y+i.h/2;let bi=-1,bd=Infinity;g.nodes.forEach((n,k)=>{if(!n.outC.length&&!n.outW.length)return;const d=Math.hypot(n.x-cx,n.y-cy);if(d<bd){bd=d;bi=k}});out.push({node:bi,d:bd,item:i,cx,cy,ok:bi>=0&&bd<=RN_REACH})}
+g.nodes.forEach((n,k)=>{if(n.deg===1)out.push({node:k,d:0,gate:true,ok:true,cx:n.x,cy:n.y})});return out}
+function rnRoute(g,from,to,mode){const out=mode==="car"?"outC":"outW",N=g.nodes.length,dist=new Float64Array(N).fill(Infinity),prev=new Int32Array(N).fill(-1),h=[[0,from]];dist[from]=0;
+const push=it=>{h.push(it);let i=h.length-1;while(i>0){const p=(i-1)>>1;if(h[p][0]<=h[i][0])break;[h[p],h[i]]=[h[i],h[p]];i=p}};
+const pop=()=>{const top=h[0],last=h.pop();if(h.length){h[0]=last;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<h.length&&h[l][0]<h[m][0])m=l;if(r<h.length&&h[r][0]<h[m][0])m=r;if(m===i)break;[h[m],h[i]]=[h[i],h[m]];i=m}}return top};
+while(h.length){const[d,u]=pop();if(d>dist[u])continue;if(u===to)break;for(const ei of g.nodes[u][out]){const e=g.edges[ei],c=d+(mode==="car"?e.len/e.speed:e.len*(e.type==="trail"?.6:1)/1.4);if(c<dist[e.b]){dist[e.b]=c;prev[e.b]=ei;h.length||0;push([c,e.b])}}}
+if(prev[to]<0)return null;const path=[];for(let v=to;v!==from;v=g.edges[prev[v]].a)path.push(prev[v]);return path.reverse()}
+function rnPlace(g,a,snap,dt){const e=g.edges[a.path[a.i]],A=g.nodes[e.a],pos=Math.min(a.pos,e.len),nx=-e.uy,ny=e.ux,T=RN_TYPES[e.type];let off;
+if(a.k==="car"){off=T.lanes>=4?e.w*(.12+.17*a.lane):e.w*.25;if(e.oneway)off=T.lanes>=4?e.w*(-.17+.34*a.lane):(a.lane?e.w*.18:-e.w*.18)}
+else off=e.type==="trail"?(a.lane?1.4:-1.4):(T.side?e.w*.5+3:e.w*.5-.5);
+const tx=A.x+e.ux*pos+nx*off,ty=A.y+e.uy*pos+ny*off,ta=Math.atan2(e.uy,e.ux);
+if(snap){a.x=tx;a.y=ty;a.ang=ta;return}const k=Math.min(1,dt*9);a.x+=(tx-a.x)*k;a.y+=(ty-a.y)*k;let da=ta-a.ang;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;a.ang+=da*k}
+function rnSpawn(kind){const g=rnSim.graph,P=rnSim.places.filter(p=>p.ok);if(!g||P.length<2)return false;
+for(let tries=0;tries<8;tries++){const a=P[Math.random()*P.length|0],b=P[Math.random()*P.length|0];if(a.node===b.node)continue;
+if(kind==="walk"&&tries<6&&Math.hypot(g.nodes[a.node].x-g.nodes[b.node].x,g.nodes[a.node].y-g.nodes[b.node].y)>1100)continue;
+const path=rnRoute(g,a.node,b.node,kind==="car"?"car":"walk");if(!path||!path.length)continue;
+if(kind==="car"&&rnSim.agents.some(o=>o.k==="car"&&o.path[o.i]===path[0]&&o.pos<30))continue;
+const vf=.85+Math.random()*.25,ag={k:kind,path,i:0,pos:Math.random()*Math.min(5,g.edges[path[0]].len*.3),v:kind==="walk"?4.6*vf:0,vf,col:kind==="car"?RN_COLORS[Math.random()*RN_COLORS.length|0]:["#fde68a","#bae6fd","#fbcfe8","#bbf7d0"][Math.random()*4|0],lane:Math.random()<.5?0:1,wait:0,hold:null,x:0,y:0,ang:0};
+rnPlace(g,ag,true);rnSim.agents.push(ag);return true}return false}
+function rnStep(g,dt){const t=rnSim.t,ag=rnSim.agents,by=new Map(),dead=[];
+for(const a of ag)if(a.k==="car"){const id=a.path[a.i];let l=by.get(id);if(!l)by.set(id,l=[]);l.push(a)}
+for(const l of by.values())l.sort((p,q)=>q.pos-p.pos);
+for(const a of ag){const ei=a.path[a.i],e=g.edges[ei],nextId=a.path[a.i+1];
+if(a.hold!=null){const hn=g.nodes[a.hold],onIn=e.b===a.hold,onOut=e.a===a.hold;if(!(onIn||onOut)||(onOut&&a.pos>22)||hn.lock!==a){if(hn.lock===a)hn.lock=null;a.hold=null}else hn.lockT=t+3}
+if(a.k==="car"){const l=by.get(ei),idx=l.indexOf(a);let gap=Infinity;
+if(idx>0)gap=l[idx-1].pos-a.pos-18;else if(nextId!==undefined){const nl=by.get(nextId);if(nl)gap=e.len-a.pos+nl[nl.length-1].pos-18}
+const dEnd=e.len-a.pos;let target=e.speed*a.vf;
+if(nextId===undefined)target=Math.min(target,Math.max(5,dEnd*1.3));
+else{const node=g.nodes[e.b];if(node.deg>=3){if(dEnd<50)target=Math.min(target,e.speed*.5);if(dEnd<18&&a.hold!==e.b){if(node.lock&&node.lock!==a&&node.lockT>t)target=Math.min(target,Math.max(0,dEnd-4)*1.5);else{node.lock=a;node.lockT=t+3;a.hold=e.b}}}}
+if(gap<Infinity)target=Math.min(target,Math.max(0,gap)*1.5);
+a.v+=(target-a.v)*Math.min(1,dt*(target<a.v?6:2.2));if(target<.05&&a.v<.3)a.v=0;a.pos+=a.v*dt;
+const ratio=a.v/e.speed;e.ema=e.ema==null?ratio:e.ema+(ratio-e.ema)*Math.min(1,dt*.6);e.seen=t;
+if(a.v<1.2)a.wait+=dt;else a.wait=Math.max(0,a.wait-dt*2);if(a.wait>30){dead.push(a);rnSim.stuck++;continue}}
+else a.pos+=a.v*dt;
+if(a.pos>=e.len){e.vol++;if(nextId===undefined){dead.push(a);rnSim.trips++;rnSim.log.push(t);continue}a.pos-=e.len;a.i++}
+rnPlace(g,a,false,dt)}
+if(dead.length){for(const a of dead)if(a.hold!=null&&g.nodes[a.hold].lock===a)g.nodes[a.hold].lock=null;rnSim.agents=ag.filter(a=>!dead.includes(a))}}
+function rnTick(ts){rnSim.raf=0;if(!rnSim.running)return;rnSim.raf=requestAnimationFrame(rnTick);if(document.hidden){rnSim.last=ts;return}
+try{const dtReal=Math.min(.1,Math.max(0,(ts-(rnSim.last||ts))/1000));rnSim.last=ts;
+if(ts-rnSim.lastSig>600){rnSim.lastSig=ts;rnGraph(false)}const g=rnSim.graph||rnGraph(true);
+if(rnSim.t-rnSim.placeT>3){rnSim.places=rnPlaces(g);rnSim.placeT=rnSim.t}
+const total=dtReal*rnSim.speed,steps=Math.max(1,Math.ceil(total/.1)),dt=total/steps;
+for(let s=0;s<steps;s++){rnSim.t+=dt;const nc=rnSim.agents.reduce((n,a)=>n+(a.k==="car"),0),nw=rnSim.agents.length-nc;
+if(nc<rnSim.cars&&Math.random()<Math.min(1,dt*2))rnSpawn("car");if(nw<rnSim.walkers&&Math.random()<Math.min(1,dt*2))rnSpawn("walk");rnStep(g,dt)}
+const ag=$("trafficAgents");if(ag)ag.innerHTML=rnAgentsSvg();
+if(ts-rnSim.lastUi>500){rnSim.lastUi=ts;const hz=$("roadHeat");if(hz)hz.innerHTML=rnHeatSvg();rnStats()}
+if($("scene3d")&&ts-rnSim.last3d>34){rnSim.last3d=ts;draw3d()}}
+catch(err){console.error(err);rnSim.running=false;rnStats()}}
+function rnSetRunning(on){rnSim.running=on;if(on){rnGraph(false);rnSim.last=0;if(!rnSim.raf)rnSim.raf=requestAnimationFrame(rnTick)}else{if(rnSim.raf)cancelAnimationFrame(rnSim.raf);rnSim.raf=0;draw3d()}}
+/* rendering */
+function rnHeat(){const g=rnSim.graph,m=rnSim.overlay,out=[];if(!g||m==="off")return out;const t=rnSim.t;let max=1;
+if(m==="volume"||m==="foot")for(const e of g.edges)if(e.mode===(m==="foot"?"walk":"car"))max=Math.max(max,e.vol);
+for(const e of g.edges){if(m==="congestion"&&e.mode==="car"&&e.ema!=null&&t-e.seen<20)out.push([e,`hsl(${Math.round(Math.max(0,Math.min(1,e.ema/.95))*125)} 80% 48%)`]);
+else if(m==="volume"&&e.mode==="car"&&e.vol>0)out.push([e,`hsl(${Math.round(215-215*Math.min(1,e.vol/max))} 85% 52%)`]);
+else if(m==="foot"&&e.mode==="walk"&&e.vol>0)out.push([e,`hsl(${Math.round(190+110*Math.min(1,e.vol/max))} 85% 62%)`])}return out}
+function rnEdgeEnds(g,e){const A=g.nodes[e.a],B=g.nodes[e.b],off=e.mode==="car"&&!e.oneway?e.w*.24:e.mode==="walk"?(e.type==="trail"?0:e.w*.5+1):0,nx=-e.uy*off,ny=e.ux*off;return[A.x+nx,A.y+ny,B.x+nx,B.y+ny]}
+function rnHeatSvg(){const g=rnSim.graph;return rnHeat().map(([e,c])=>{const[x1,y1,x2,y2]=rnEdgeEnds(g,e);return`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${c}" stroke-width="${e.mode==="walk"?Math.max(2.4,e.w*.22):Math.max(3,e.w*.34)}" stroke-linecap="round" opacity=".88"/>`}).join("")}
+function rnAgentsSvg(){const d=propertyDims(),L=Math.max(14,d.w/170),W=L*.45,pr=Math.max(4,d.w/330),sw=Math.max(.6,L*.05);
+return rnSim.agents.map(a=>a.k==="car"?`<g transform="translate(${a.x.toFixed(1)} ${a.y.toFixed(1)}) rotate(${(a.ang*180/Math.PI).toFixed(0)})"><rect x="${-L/2}" y="${-W/2}" width="${L}" height="${W}" rx="${W*.3}" fill="${a.col}" stroke="#0b1220" stroke-width="${sw}"/><rect x="${L*.08}" y="${-W*.32}" width="${L*.28}" height="${W*.64}" fill="#0b1220" opacity=".55"/></g>`:`<circle cx="${a.x.toFixed(1)}" cy="${a.y.toFixed(1)}" r="${pr}" fill="${a.col}" stroke="#0b1220" stroke-width="${sw}"/>`).join("")}
+function rnPathPts(pts){return pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")}
+function rnRoadsSvg(){if(state.layers["Roads"]===false)return"";const roads=rnRoads();if(!roads.length)return"";
+const L=roads.map(r=>({r,T:RN_TYPES[r.type],p:rnPathPts(rnDense(r).pts)})),pl=(p,c,w,x="")=>`<polyline points="${p}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" ${x}/>`;let s='<g id="roadNet" pointer-events="none">';
+for(const o of L)s+=pl(o.p,"#1b1e22",o.T.w+(o.T.side?12:0)+3);
+for(const o of L)if(o.T.side)s+=pl(o.p,"#aab2bb",o.T.w+12);
+for(const o of L)s+=pl(o.p,o.T.color,o.T.w);
+for(const o of L){if(o.T.median)s+=pl(o.p,"#4d7c0f",5);if(o.T.center)s+=pl(o.p,"#f0d98a",o.T.median?1.2:1.6,o.T.median?"":`stroke-dasharray="10 8" opacity=".85"`)}
+for(const o of L)if(o.r.oneway){const d=rnDense(o.r).pts;let acc=0,next=60;for(let k=1;k<d.length;k++){const dx=d[k][0]-d[k-1][0],dy=d[k][1]-d[k-1][1],l=Math.hypot(dx,dy);if(!l)continue;acc+=l;if(acc>=next){next+=140;const a=Math.atan2(dy,dx)*180/Math.PI,z=Math.max(5,o.T.w*.3);s+=`<path d="M${-z},${-z*.7} L${z},0 L${-z},${z*.7} Z" transform="translate(${d[k][0].toFixed(1)} ${d[k][1].toFixed(1)}) rotate(${a.toFixed(0)})" fill="#f8fafc" opacity=".8"/>`}}}
+return s+"</g>"}
+function rnDraftSvg(){if(tool!=="roadnet")return'<g id="roadDraft" pointer-events="none"></g>';const d=propertyDims(),fs=Math.max(12,d.w/75),dot=Math.max(4,d.w/260);let s='<g id="roadDraft" pointer-events="none">';
+if(rnDraft){const T=RN_TYPES[rnDraft.type],pts=rnDraft.pts.concat(rnCursor?[[rnCursor.x,rnCursor.y]]:[]),dense=pts.length>1?rnDense({pts,curve:rnDraft.curve&&pts.length>2}).pts:pts,p=rnPathPts(dense);
+if(pts.length>1){s+=`<polyline points="${p}" fill="none" stroke="#0b1220" stroke-width="${T.w+3}" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/><polyline points="${p}" fill="none" stroke="${T.color}" stroke-width="${T.w}" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/><polyline points="${p}" fill="none" stroke="#86efac" stroke-width="1.4" stroke-dasharray="6 5"/>`;let len=0;for(let k=1;k<dense.length;k++)len+=Math.hypot(dense[k][0]-dense[k-1][0],dense[k][1]-dense[k-1][1]);const e=pts[pts.length-1];s+=`<text x="${e[0]+dot*2}" y="${e[1]-dot*2}" font-size="${fs}" fill="#f8fafc" stroke="#0b1220" stroke-width="${fs*.18}" paint-order="stroke">${Math.round(len)} ft · $${Math.round(len*T.cost).toLocaleString()}</text>`}
+rnDraft.pts.forEach(q=>{s+=`<circle cx="${q[0]}" cy="${q[1]}" r="${dot}" fill="#fff" stroke="#16a34a" stroke-width="${dot*.4}"/>`})}
+if(rnCursor&&rnMode==="draw")s+=`<circle cx="${rnCursor.x}" cy="${rnCursor.y}" r="${dot*(rnCursor.kind==="free"?1:1.7)}" fill="none" stroke="${rnCursor.kind==="free"?"#e5e7eb":"#22c55e"}" stroke-width="${dot*.4}"/>`;
+return s+"</g>"}
+function rnConnectSvg(){if(tool!=="roadnet"||!rnRoads().length)return"";const g=rnGraph(false),d=propertyDims(),r=Math.max(5,d.w/280),fs=Math.max(11,d.w/90);let s="";for(const p of rnPlaces(g)){if(p.gate)continue;s+=p.ok?`<circle cx="${p.cx}" cy="${p.cy}" r="${r}" fill="#22c55e" stroke="#052e16" stroke-width="${r*.3}" opacity=".9"/>`:`<g><circle cx="${p.cx}" cy="${p.cy}" r="${r*1.6}" fill="none" stroke="#f59e0b" stroke-width="${r*.35}" stroke-dasharray="${r} ${r*.7}"/><text x="${p.cx+r*2}" y="${p.cy+r}" font-size="${fs}" fill="#fbbf24" stroke="#0b1220" stroke-width="${fs*.2}" paint-order="stroke">no road</text></g>`}return s}
+function rnOverlaySvg(){const roads=rnRoads();let nodes="";if(tool==="roadnet"&&roads.length){const d=propertyDims(),r=Math.max(3.5,d.w/340);for(const o of roads)for(const p of o.pts)nodes+=`<circle cx="${p[0]}" cy="${p[1]}" r="${r}" fill="#0b1220" stroke="#e5e7eb" stroke-width="${r*.35}"/>`}
+return`<g id="roadOverlay" pointer-events="none">${rnConnectSvg()}<g id="roadHeat" pointer-events="none">${rnHeatSvg()}</g>${nodes}<g id="trafficAgents" pointer-events="none">${rnAgentsSvg()}</g></g>${rnDraftSvg()}`}
+const rnMapBase=drawMap;drawMap=function(){let s=rnMapBase();s=s.replace('<g id="mapObjects"',()=>rnRoadsSvg()+'<g id="mapObjects"');const k=s.lastIndexOf("</svg>");return k<0?s:s.slice(0,k)+rnOverlaySvg()+s.slice(k)};
+/* 3D */
+function rnQuad(a,L,W){const c=Math.cos(a.ang),s=Math.sin(a.ang),h=L/2,w=W/2;return[[h,-w],[h,w],[-h,w],[-h,-w]].map(([u,v])=>[a.x+u*c-v*s,a.y+u*s+v*c])}
+function drawRoadNet3d(ctx,project,scale,w,h){if(state.layers["Roads"]===false)return;const roads=rnRoads();if(!roads.length)return;
+const zf=(x,y,o)=>project(x,y,terrainElev(x,y)*terrainExag+o),lw=ft=>Math.max(1.6,ft*scale*.6),L=roads.map(r=>({r,T:RN_TYPES[r.type],p:rnDense(r).pts.map(q=>zf(q[0],q[1],.5))}));
+const stroke=(pts,color,width,dash)=>{ctx.beginPath();pts.forEach((p,n)=>n?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash||[]);ctx.stroke()};
+ctx.save();ctx.lineCap="round";ctx.lineJoin="round";
+for(const o of L)stroke(o.p,"#1c1f22",lw(o.T.w+(o.T.side?12:0))+2.4);
+for(const o of L)if(o.T.side)stroke(o.p,"#b4bcc4",lw(o.T.w+12));
+for(const o of L)stroke(o.p,o.T.color,lw(o.T.w));
+for(const o of L){if(o.T.median)stroke(o.p,"#4d7c0f",lw(5));if(o.T.center)stroke(o.p,"#f0d98a",Math.max(.7,lw(1.5)),o.T.median?[]:[7,6])}
+ctx.setLineDash([]);const g=rnSim.graph;
+if(g){for(const[e,c]of rnHeat()){const[x1,y1,x2,y2]=rnEdgeEnds(g,e),A=zf(x1,y1,.9),B=zf(x2,y2,.9);ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.strokeStyle=c;ctx.lineWidth=Math.max(1.6,lw(e.mode==="walk"?3:e.w*.34));ctx.globalAlpha=.9;ctx.stroke()}ctx.globalAlpha=1;
+const dims=propertyDims(),CL=Math.max(14,dims.w/170),CW=CL*.46,CH=CL*.42,night=sceneFx.time==="night"||sceneFx.time==="sunset";
+const list=rnSim.agents.slice().sort((p,q)=>(p.x+p.y)-(q.x+q.y));
+for(const a of list){if(a.k==="car"){const q=rnQuad(a,CL,CW),lo=q.map(p=>zf(p[0],p[1],.8)),hi=q.map(p=>zf(p[0],p[1],.8+CH));
+ctx.fillStyle=shade(a.col,-45);for(let k=0;k<4;k++){const n=(k+1)%4;ctx.beginPath();ctx.moveTo(lo[k][0],lo[k][1]);ctx.lineTo(lo[n][0],lo[n][1]);ctx.lineTo(hi[n][0],hi[n][1]);ctx.lineTo(hi[k][0],hi[k][1]);ctx.closePath();ctx.fill()}
+ctx.beginPath();hi.forEach((p,n)=>n?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=a.col;ctx.fill();
+if(night){const f=zf(a.x+Math.cos(a.ang)*CL*.6,a.y+Math.sin(a.ang)*CL*.6,1.6);ctx.save();ctx.globalCompositeOperation="lighter";ctx.fillStyle="rgba(255,226,140,.55)";ctx.beginPath();ctx.arc(f[0],f[1],Math.max(2,scale*CL*.45),0,7);ctx.fill();ctx.restore()}}
+else{const b=zf(a.x,a.y,.8),t=zf(a.x,a.y,6),r=Math.max(1.3,scale*CL*.12);ctx.strokeStyle=a.col;ctx.lineWidth=Math.max(1.4,r*1.2);ctx.beginPath();ctx.moveTo(b[0],b[1]);ctx.lineTo(t[0],t[1]);ctx.stroke();ctx.fillStyle="#fde7c8";ctx.beginPath();ctx.arc(t[0],t[1]-r*.6,r,0,7);ctx.fill()}}}
+ctx.restore()}
+/* UI panel */
+const rnFt=v=>v>=5280?(v/5280).toFixed(2)+" mi":Math.round(v).toLocaleString()+" ft";
+function rnPanel(){const act=tool==="roadnet",types=Object.entries(RN_TYPES).map(([k,t])=>{const on=act&&rnType===k&&rnMode!=="erase";return`<button class="toolbtn road-type ${on?"active":""}" data-road-type="${k}" aria-pressed="${on}" title="${esc(t.name)} · ${t.w} ft wide · $${t.cost}/ft${t.car?` · ${Math.round(t.speed*.682)} mph`:" · pedestrians only"}"><i class="road-sw" style="background:${t.color}"></i>${esc(t.name)}</button>`}).join(""),
+mode=(m,l)=>`<button class="toolbtn ${act&&rnMode===m?"active":""}" data-road-mode="${m}" aria-pressed="${act&&rnMode===m}">${l}</button>`,
+opt=(v,l,cur)=>`<option value="${v}" ${String(cur)===String(v)?"selected":""}>${l}</option>`;
+return`<div class="card road-card" id="roadCard"><div class="between"><h3>Roads &amp; traffic</h3><span class="pill" id="roadSum"></span></div>
+<p class="tiny muted" id="roadHint" role="status"></p>
+<div class="road-row">${types}</div>
+<div class="road-row">${mode("draw","✎ Draw road")}${mode("upgrade","⇧ Upgrade")}${mode("erase","✕ Bulldoze")}<label class="road-chk"><input type="checkbox" data-road-curve ${rnCurve?"checked":""}> Curves</label><label class="road-chk"><input type="checkbox" data-road-oneway ${rnOneway?"checked":""}> One-way</label><button class="toolbtn" data-road-import title="Turn the road and path objects already on the plan into editable network roads">Import existing roads</button><button class="toolbtn" data-road-clear>Clear network</button></div>
+<div class="road-row road-sim"><button class="toolbtn ${rnSim.running?"active":""}" data-road-sim aria-pressed="${rnSim.running}">${rnSim.running?"⏸ Pause traffic":"▶ Simulate traffic"}</button><button class="toolbtn" data-road-reset title="Clear vehicles, pedestrians and counters">Reset</button>
+<label class="road-chk">Cars <input type="range" min="0" max="150" value="${rnSim.cars}" data-road-cars aria-label="Cars"> <b id="rnCarsV">${rnSim.cars}</b></label>
+<label class="road-chk">Walkers <input type="range" min="0" max="150" value="${rnSim.walkers}" data-road-walkers aria-label="Walkers"> <b id="rnWalkV">${rnSim.walkers}</b></label>
+<label class="road-chk">Speed <select data-road-speed aria-label="Simulation speed">${opt(1,"1×",rnSim.speed)}${opt(3,"3×",rnSim.speed)}${opt(8,"8×",rnSim.speed)}</select></label>
+<label class="road-chk">Overlay <select data-road-overlay aria-label="Traffic overlay">${opt("congestion","Congestion",rnSim.overlay)}${opt("volume","Car volume",rnSim.overlay)}${opt("foot","Foot traffic",rnSim.overlay)}${opt("off","Off",rnSim.overlay)}</select></label></div>
+<div class="road-stats" id="roadStats"></div></div>`}
+function rnStats(){const el=$("roadStats");if(!el)return;const roads=rnRoads(),g=rnSim.graph||(roads.length?rnGraph(false):null),cars=rnSim.agents.filter(a=>a.k==="car"),walk=rnSim.agents.length-cars.length,avg=cars.length?cars.reduce((s,a)=>s+a.v,0)/cars.length*.682:0,stalled=cars.length?Math.round(cars.filter(a=>a.v<2).length/cars.length*100):0,recent=rnSim.log.filter(x=>x>rnSim.t-60).length,unserved=rnSim.places.filter(p=>!p.gate&&!p.ok).length;
+const st=(k,v,h="")=>`<div class="road-stat"><span>${k}</span><b>${v}</b>${h?`<small>${h}</small>`:""}</div>`;
+el.innerHTML=st("Network",rnFt(g?g.length:0),`${roads.length} roads · ${g?g.junctions:0} junctions`)+st("Build cost","$"+Math.round(rnCost()).toLocaleString(),"added to the project budget")+st("Vehicles",cars.length,rnSim.running?`${avg.toFixed(0)} mph average`:"simulation paused")+st("Pedestrians",walk)+st("Trips",recent+"/min",`${rnSim.trips} completed`)+st("Stalled",stalled+"%",rnSim.stuck?`${rnSim.stuck} gridlock clears`:"cars below 2 ft/s")+(rnSim.places.length?st("Unserved buildings",unserved,unserved?"more than 650 ft from a road":"all connected"):"");
+const sum=$("roadSum");if(sum)sum.textContent=rnSim.running?"Simulating":roads.length?`${roads.length} roads`:"No roads yet"}
+function rnImport(){const map={road:"gravel",mainroad:"gravel",farmroad:"dirt",firelane:"gravel",citystreet:"street",path:"trail",trail:"trail",curvedroad:"gravel"},src=items().filter(i=>map[i.type]);
+if(!src.length){alert("There are no road or path objects on the plan to convert.");return}
+if(!confirmAction(`Convert ${src.length} road/path object(s) into editable network roads? The original objects are replaced (Undo restores them).`))return;
+snapshot();const dims=propertyDims(),roads=rnRoads(),added=[];
+for(const i of src){const a=num(i.rotation,0)*Math.PI/180,cx=i.x+i.w/2,cy=i.y+i.h/2,rot=(x,y)=>{const dx=x-cx,dy=y-cy;return[rnR1(cx+dx*Math.cos(a)-dy*Math.sin(a)),rnR1(cy+dx*Math.sin(a)+dy*Math.cos(a))]};let pts,curve=false;
+if(i.type==="curvedroad"){const inset=Math.min(i.w,i.h)*.55;pts=[[i.x+inset,i.y+i.h*.65],[i.x+inset+(i.w-2*inset)*.3,i.y+i.h*.65],[i.x+inset+(i.w-2*inset)*.7,i.y+i.h*.35],[i.x+i.w-inset,i.y+i.h*.35]].map(p=>rot(p[0],p[1]));curve=true}
+else if(i.w>=i.h)pts=[rot(i.x,cy),rot(i.x+i.w,cy)];else pts=[rot(cx,i.y),rot(cx,i.y+i.h)];
+pts=pts.map(p=>[Math.max(0,Math.min(dims.w,p[0])),Math.max(0,Math.min(dims.h,p[1]))]);const r={id:uid(),type:map[i.type],pts,curve,oneway:false};roads.push(r);added.push(r)}
+for(const r of added){for(const idx of [0,r.pts.length-1]){const p=r.pts[idx],s=rnSnapPt(p[0],p[1],90,r);if(!s)continue;if(s.kind==="seg")s.road.pts.splice(s.at+1,0,[s.x,s.y]);r.pts[idx]=[s.x,s.y]}}
+scenario().items=items().filter(i=>!map[i.type]);selectedId=null;rnGraph(true);save();render()}
+function rnClickPanel(e){const t=e.target.closest("[data-road-tool],[data-road-type],[data-road-mode],[data-road-import],[data-road-clear],[data-road-sim],[data-road-reset]");if(!t)return false;e.preventDefault();e.stopImmediatePropagation();
+if(t.matches("[data-road-tool]")){tool=tool==="roadnet"?"select":"roadnet";rnDraft=null;render()}
+else if(t.matches("[data-road-type]")){rnType=t.dataset.roadType;if(rnMode==="erase")rnMode="draw";tool="roadnet";rnDraft=null;render()}
+else if(t.matches("[data-road-mode]")){rnMode=t.dataset.roadMode;tool="roadnet";rnDraft=null;render()}
+else if(t.matches("[data-road-import]"))rnImport();
+else if(t.matches("[data-road-clear]")){if(rnRoads().length&&confirmAction("Remove every road in this plan? Undo restores them.")){snapshot();scenario().roads=[];rnSim.agents=[];rnGraph(true);save();render()}}
+else if(t.matches("[data-road-sim]")){rnSetRunning(!rnSim.running);render()}
+else if(t.matches("[data-road-reset]")){rnGraph(true);rnStats();draw3d()}
+return true}
+content.addEventListener("click",e=>{if(rnClickPanel(e))return;if(tool==="roadnet"&&e.target.closest("#siteMap")){e.preventDefault();e.stopImmediatePropagation()}},true);
+content.addEventListener("pointerdown",e=>{if(tool!=="roadnet")return;const svg=e.target.closest("#siteMap");if(!svg||spacePan)return;
+if(e.button===2){if(rnDraft){e.preventDefault();e.stopImmediatePropagation();rnFinish()}return}
+if(e.button!==0)return;e.preventDefault();e.stopImmediatePropagation();const p=mapLocal(svg,e);
+if(rnMode==="draw")rnAddPoint(rnSnap(p));
+else{const r=rnHit(p);if(!r)return;snapshot();if(rnMode==="erase")scenario().roads=rnRoads().filter(x=>x!==r);else{r.type=rnType;r.oneway=rnOneway}rnGraph(true);save();render()}},true);
+content.addEventListener("pointermove",e=>{if(tool!=="roadnet"||rnMode!=="draw")return;const svg=e.target.closest("#siteMap");if(!svg)return;rnCursor=rnSnap(mapLocal(svg,e));rnRefreshDraft()},true);
+content.addEventListener("contextmenu",e=>{if(tool==="roadnet"&&rnDraft&&e.target.closest("#siteMap"))e.preventDefault()},true);
+content.addEventListener("input",e=>{const t=e.target;if(t.matches("[data-road-cars]")){rnSim.cars=+t.value;$("rnCarsV").textContent=t.value;rnPersist()}else if(t.matches("[data-road-walkers]")){rnSim.walkers=+t.value;$("rnWalkV").textContent=t.value;rnPersist()}});
+content.addEventListener("change",e=>{const t=e.target;if(t.matches("[data-road-speed]")){rnSim.speed=+t.value;rnPersist()}else if(t.matches("[data-road-overlay]")){rnSim.overlay=t.value;rnPersist();const hz=$("roadHeat");if(hz)hz.innerHTML=rnHeatSvg();draw3d()}else if(t.matches("[data-road-curve]")){rnCurve=t.checked;rnPersist()}else if(t.matches("[data-road-oneway]"))rnOneway=t.checked});
+window.addEventListener("keydown",e=>{if(tool!=="roadnet"||activePage!=="designer"||/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName))return;
+if(e.key==="Enter"&&rnDraft){e.preventDefault();e.stopImmediatePropagation();rnFinish()}
+else if(e.key==="Escape"){e.preventDefault();e.stopImmediatePropagation();if(rnDraft){rnDraft=null;rnCursor=null;rnRefreshDraft()}else{tool="select";render()}}
+else if(e.key==="Backspace"&&rnDraft){e.preventDefault();e.stopImmediatePropagation();rnDraft.pts.pop();if(!rnDraft.pts.length)rnDraft=null;rnRefreshDraft()}},{capture:true});
+const rnDesignerBase=designerPage;designerPage=function(){return rnDesignerBase().replace('<div class="card scene-card">',()=>rnPanel()+'<div class="card scene-card">')};
+const rnRenderBase=render;render=function(){if(tool!=="roadnet")rnDraft=null;rnRenderBase();if(activePage!=="designer")return;const row=document.querySelector(".map-toolbar .toolrow");if(row&&!row.querySelector("[data-road-tool]"))row.insertAdjacentHTML("beforeend",`<button class="toolbtn ${tool==="roadnet"?"active":""}" data-road-tool aria-pressed="${tool==="roadnet"}">🛣 Roads</button>`);rnHint();rnStats();if(rnSim.running&&!rnSim.raf)rnSim.raf=requestAnimationFrame(rnTick)};
+const rnComputeBase=compute;compute=function(){const r=rnComputeBase(),rc=rnCost();if(rc>0){r.costs+=rc;r.capex=r.costs*(1+Math.max(0,num(scenario().finance.contingency))/100);r.roadCost=rc}return r};
+(()=>{const s=document.createElement("style");s.textContent=".road-card{margin-bottom:16px}.road-row{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin:8px 0}.road-sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid rgba(255,255,255,.4)}.road-chk{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:inherit}.road-chk input[type=range]{width:96px}.road-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:8px}.road-stat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 10px}.road-stat span{display:block;font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.04em}.road-stat b{font-size:18px}.road-stat small{display:block;font-size:11px;opacity:.65}";document.head.appendChild(s)})();
 document.querySelectorAll(".scene-canvas").forEach(c=>c.setAttribute("aria-label","Interactive 3D estate preview. Drag horizontally to orbit and vertically to tilt; Shift-drag or right-drag to pan; scroll to zoom."));
 wireEvents();if(state._recoveryWarning){setTimeout(()=>alert(state._recoveryWarning),200)}render();
 })();
