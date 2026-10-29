@@ -168,3 +168,5 @@
 - 3D realism: soil slab edge under the land, tree contact shadows, leaf dapple, time-of-day color grade and vignette.
 
 - Creeks & rivers: draw streams, creeks, rivers and canals as natural meandering channels with banks, in 2D and 3D (Water tool).
+- Bridges: roads that cross water get bridge decks and rails automatically, in 2D and 3D.
+- Real map snippet: capture USGS aerial imagery of your land as an underlay layer in 2D and 3D (adjustable opacity).

@@ -394,7 +394,7 @@ const poly=(pts,color)=>{ctx.beginPath();pts.forEach((p,n)=>n?ctx.lineTo(p[0],p[
 const objectWorld=(i,x,y)=>{const angle=num(i.rotation,0)*Math.PI/180,dx=x-(i.x+i.w/2),dy=y-(i.y+i.h/2);return[i.x+i.w/2+dx*Math.cos(angle)-dy*Math.sin(angle),i.y+i.h/2+dx*Math.sin(angle)+dy*Math.cos(angle)]};
 const projectObject=(i,x,y,z=0)=>{const[wx,wy]=objectWorld(i,x,y);return project(wx,wy,terrainElev(wx,wy)*terrainExag+z)};
 const ground=[[0,0],[w,0],[w,h],[0,h]].map(p=>project(p[0],p[1]));{const slab=Math.max(10,Math.max(w,h)*.025),soil=groundPreset().base,corners=[[0,0],[w,0],[w,h],[0,h]];corners.forEach((a,n)=>{const b=corners[(n+1)%4],g=ctx.createLinearGradient(0,project(a[0],a[1],0)[1],0,project(a[0],a[1],-slab)[1]);g.addColorStop(0,shade("#6b4a2f",n%2?-14:-30));g.addColorStop(1,"#2a1d12");ctx.beginPath();[project(a[0],a[1],0),project(b[0],b[1],0),project(b[0],b[1],-slab),project(a[0],a[1],-slab)].forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=g;ctx.fill()})}
-if(terrainData()&&terrainData().show!==false)drawTerrainMesh(ctx,project,w,h,sin,cos);else poly(ground,groundPreset().base);drawGroundTexture(ctx,project,w,h);drawWater3d(ctx,project,scale,w,h);drawRoadNet3d(ctx,project,scale,w,h);drawSceneShadows(ctx,project);
+if(terrainData()&&terrainData().show!==false)drawTerrainMesh(ctx,project,w,h,sin,cos);else poly(ground,groundPreset().base);drawGroundTexture(ctx,project,w,h);drawSnippet3d(ctx,project,w,h);drawWater3d(ctx,project,scale,w,h);drawRoadNet3d(ctx,project,scale,w,h);drawBridges3d(ctx,project,scale);drawSceneShadows(ctx,project);
 for(let j=0;j<=Math.floor(h/400);j++){const p1=project(0,j*400),p2=project(w,j*400);ctx.beginPath();ctx.moveTo(...p1);ctx.lineTo(...p2);ctx.strokeStyle="#75a17a22";ctx.stroke()}
 const ordered=items().filter(i=>i.visible!==false&&state.layers[layerFor(i.type)]!==false).map(i=>{const m=i.w/2,n=i.h/2,dx=i.x+m-w/2,dy=i.y+n-h/2;return{i,depth:dx*sin+dy*cos}}).sort((a,b)=>a.depth-b.depth);landAreas().filter(zoneLayerVisible).forEach(z=>draw3dLandZone(ctx,z,projectObject,poly,scale,z.id===selectedZoneId));if(state.layers["Ground cover"]!==false)surfacePatches().forEach((p,n)=>drawGroundPatch(ctx,p,project,poly,n));
 for(const {i} of ordered){
@@ -1328,6 +1328,71 @@ else if(e.key==="Escape"){e.preventDefault();e.stopImmediatePropagation();if(wtD
 else if(e.key==="Backspace"&&wtDraft){e.preventDefault();e.stopImmediatePropagation();wtDraft.pts.pop();if(!wtDraft.pts.length)wtDraft=null;wtRefresh()}},{capture:true});
 const wtDesignerBase=designerPage;designerPage=function(){return wtDesignerBase().replace('<div class="card scene-card">',()=>wtPanel()+'<div class="card scene-card">')};
 const wtRenderBase=render;render=function(){if(tool!=="waternet")wtDraft=null;wtRenderBase();if(activePage!=="designer")return;const row=document.querySelector(".map-toolbar .toolrow");if(row&&!row.querySelector("[data-wt-tool]"))row.insertAdjacentHTML("beforeend",`<button class="toolbtn ${tool==="waternet"?"active":""}" data-wt-tool aria-pressed="${tool==="waternet"}">🌊 Water</button>`);wtHint();wtStats()};
+/* Bridges where roads cross water */
+let wtBrCache={sig:"",list:[]};
+function wtBridges(){const roads=rnRoads(),ws=wtList();if(!roads.length||!ws.length)return[];
+const sig=JSON.stringify([roads.map(r=>[r.id,r.type,r.curve,r.pts]),ws.map(r=>[r.id,r.type,r.meander,r.pts])]);if(sig===wtBrCache.sig)return wtBrCache.list;
+const out=[];
+for(const r of roads){const T=RN_TYPES[r.type],P=rnDense(r).pts;
+for(const w of ws){const WT=WT_TYPES[w.type],C=wtDense(w).c,seen=[];
+for(let i=0;i<P.length-1;i++){const a=P[i],b=P[i+1],rx=b[0]-a[0],ry=b[1]-a[1];
+for(let k=0;k<C.length-1;k++){const c=C[k],d=C[k+1],sx=d[0]-c[0],sy=d[1]-c[1],den=rx*sy-ry*sx;if(Math.abs(den)<1e-9)continue;
+const t=((c[0]-a[0])*sy-(c[1]-a[1])*sx)/den,u=((c[0]-a[0])*ry-(c[1]-a[1])*rx)/den;if(t<0||t>1||u<0||u>1)continue;
+const x=a[0]+rx*t,y=a[1]+ry*t;if(seen.some(q=>Math.hypot(q[0]-x,q[1]-y)<WT.w*1.5+30))continue;seen.push([x,y]);
+const rl=Math.hypot(rx,ry)||1,sl=Math.hypot(sx,sy)||1,sinA=Math.max(.35,Math.abs(rx*sy-ry*sx)/(rl*sl));
+out.push({x,y,ang:Math.atan2(ry,rx),len:(WT.w*1.25+14)/sinA,w:T.w+(T.car?5:3),type:r.type,walk:!T.car})}}}}
+wtBrCache={sig,list:out};return out}
+function wtBridgesSvg(){if(state.layers["Roads"]===false||state.layers["Water"]===false)return"";const L=wtBridges();if(!L.length)return"";let s='<g id="bridges" pointer-events="none">';
+for(const b of L){const deg=b.ang*180/Math.PI,hl=b.len/2,hw=b.w/2,rail=Math.max(1.6,b.w*.09);
+s+=`<g transform="translate(${b.x.toFixed(1)} ${b.y.toFixed(1)}) rotate(${deg.toFixed(2)})"><rect x="${-hl}" y="${-hw-2}" width="${b.len}" height="${b.w+4}" fill="#000" opacity=".25"/><rect x="${-hl}" y="${-hw}" width="${b.len}" height="${b.w}" fill="${b.walk?"#a8865a":"#9a9a98"}" stroke="#3f3f46" stroke-width="1"/><line x1="${-hl}" y1="${-hw}" x2="${hl}" y2="${-hw}" stroke="#e5e7eb" stroke-width="${rail}"/><line x1="${-hl}" y1="${hw}" x2="${hl}" y2="${hw}" stroke="#e5e7eb" stroke-width="${rail}"/></g>`}
+return s+"</g>"}
+function drawBridges3d(ctx,project,scale){if(state.layers["Roads"]===false||state.layers["Water"]===false)return;const L=wtBridges();if(!L.length)return;
+for(const b of L){const q=rnQuad(b,b.len,b.w),z=b.zBase!==undefined?b.zBase:terrainElev(b.x,b.y)*terrainExag,lo=q.map(p=>project(p[0],p[1],z+.2)),hi=q.map(p=>project(p[0],p[1],z+2.2));
+ctx.save();ctx.fillStyle="#6b6b6a";for(let k=0;k<4;k++){const n=(k+1)%4;ctx.beginPath();ctx.moveTo(lo[k][0],lo[k][1]);ctx.lineTo(lo[n][0],lo[n][1]);ctx.lineTo(hi[n][0],hi[n][1]);ctx.lineTo(hi[k][0],hi[k][1]);ctx.closePath();ctx.fill()}
+ctx.beginPath();hi.forEach((p,n)=>n?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=b.walk?"#a8865a":"#8f8f8d";ctx.fill();ctx.strokeStyle="#3f3f46";ctx.lineWidth=1;ctx.stroke();
+ctx.strokeStyle="#e5e7eb";ctx.lineWidth=Math.max(1.2,scale*b.w*.07);ctx.lineCap="round";
+for(const[i,j]of[[0,3],[1,2]]){const A=project(q[i][0],q[i][1],z+4.6),B=project(q[j][0],q[j][1],z+4.6);ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();for(const t of[0,.5,1]){const x=q[i][0]+(q[j][0]-q[i][0])*t,y=q[i][1]+(q[j][1]-q[i][1])*t,a=project(x,y,z+2.2),c=project(x,y,z+4.6);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(c[0],c[1]);ctx.stroke()}}
+ctx.restore()}}
+const wtBrMapBase=drawMap;drawMap=function(){let s=wtBrMapBase();const b=wtBridgesSvg();return b?s.replace('<g id="mapObjects"',()=>b+'<g id="mapObjects"'):s};
+/* Real map snippet layer: USGS imagery cropped to the land footprint */
+const SN_KEY="acreforge.snippet";let snData=null,snImg=null,snMsg="";
+try{const s=JSON.parse(localStorage.getItem(SN_KEY)||"null");if(s&&typeof s.url==="string"&&s.url.startsWith("data:image/"))snData=s}catch(e){}
+function snLoad(){if(!snData){snImg=null;return}const im=new Image();im.onload=()=>{snImg=im;try{render()}catch(e){}};im.src=snData.url}
+setTimeout(snLoad,0);
+const snOk=()=>{if(!snData||snData.on===false||state.layers["Satellite"]===false)return false;const d=propertyDims();return Math.abs(snData.w-d.w)/d.w<.01&&Math.abs(snData.h-d.h)/d.h<.01};
+function snSave(){try{localStorage.setItem(SN_KEY,JSON.stringify(snData));return true}catch(e){return false}}
+function snAnchor(){const d=propertyDims(),b=state.project.parcelBoundary,ky=6371007.1809*3.280839895*Math.PI/180;if(b){const[lon0,lat0]=b.center,kx=ky*Math.max(.01,Math.cos(lat0*Math.PI/180)),p=b.polygons[0][0][0],c=b.coordinates[0][0][0];let dx=c[0]-lon0;if(dx>180)dx-=360;if(dx<-180)dx+=360;return{d,kx,ky,lon0,lat0,minX:dx*kx-p[0],minY:(c[1]-lat0)*ky-p[1],n:1}}let c=state.project.locationCoordinates?[state.project.locationCoordinates.lon,state.project.locationCoordinates.lat]:null;if(!c&&typeof terrainMapInstance!=="undefined"&&terrainMapInstance){const m=terrainMapInstance.getCenter();c=[m.lng,m.lat]}if(!c)return null;return{d,kx:ky*Math.max(.01,Math.cos(c[1]*Math.PI/180)),ky,lon0:c[0],lat0:c[1],minX:-d.w/2,minY:-d.h/2,n:-1}}
+const snGeo=(a,x,y)=>[a.lon0+(x+a.minX)/a.kx,a.lat0+a.n*(y+a.minY)/a.ky];
+async function snCapture(){const a=snAnchor();if(!a){snMsg="Import a parcel, set a location, or open the 3D terrain map first so I know where this land is.";return snPanelRefresh()}
+snMsg="Fetching USGS imagery…";snPanelRefresh();
+const d=a.d,A=snGeo(a,0,0),B=snGeo(a,d.w,d.h),west=Math.min(A[0],B[0]),east=Math.max(A[0],B[0]),south=Math.min(A[1],B[1]),north=Math.max(A[1],B[1]);
+const wx=(lon,z)=>(lon+180)/360*256*2**z,wy=(lat,z)=>(1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*256*2**z;
+let z=17,X0,X1,Y0,Y1;do{z--;X0=Math.floor(wx(west,z)/256);X1=Math.floor(wx(east,z)/256);Y0=Math.floor(wy(north,z)/256);Y1=Math.floor(wy(south,z)/256)}while(z>8&&((X1-X0+1)*(Y1-Y0+1)>36));
+const S=document.createElement("canvas");S.width=(X1-X0+1)*256;S.height=(Y1-Y0+1)*256;const sx=S.getContext("2d");let ok=0;const jobs=[];
+for(let X=X0;X<=X1;X++)for(let Y=Y0;Y<=Y1;Y++)jobs.push(new Promise(res=>{const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{sx.drawImage(im,(X-X0)*256,(Y-Y0)*256);ok++;res()};im.onerror=()=>res();im.src=`${USGS_TILES.imagery}/${z}/${Y}/${X}`}));
+await Promise.all(jobs);if(!ok){snMsg="Could not download imagery. Check your internet connection and try again.";return snPanelRefresh()}
+const W=d.w>=d.h?1400:Math.round(1400*d.w/d.h),H=d.w>=d.h?Math.round(1400*d.h/d.w):1400,O=document.createElement("canvas");O.width=W;O.height=H;const ox=O.getContext("2d");ox.imageSmoothingQuality="high";
+const lonA=snGeo(a,0,0)[0],lonB=snGeo(a,d.w,0)[0],sx0=wx(lonA,z)-X0*256,sw=wx(lonB,z)-wx(lonA,z);
+for(let j=0;j<H;j++){const lat=snGeo(a,0,(j+.5)/H*d.h)[1],sy=Math.max(0,Math.min(S.height-1,wy(lat,z)-Y0*256-.5));ox.drawImage(S,sx0,sy,sw,1,0,j,W,1)}
+let url;try{url=O.toDataURL("image/jpeg",.8)}catch(e){snMsg="The map server blocked image capture in this browser.";return snPanelRefresh()}
+snData={url,w:d.w,h:d.h,on:true,opacity:snData?.opacity||.9,zoom:z,at:new Date().toISOString()};snImg=null;
+snMsg=snSave()?`Captured ${ok} USGS tiles at zoom ${z}. Image: USGS The National Map.`:"Captured, but browser storage is full, so it will not persist after reload.";snLoad();try{render()}catch(e){}}
+function snPanel(){const has=!!snData,d=propertyDims(),stale=has&&!snOk()&&snData.on!==false&&(Math.abs(snData.w-d.w)/d.w>=.01||Math.abs(snData.h-d.h)/d.h>=.01);
+return`<div class="card" id="snipCard"><h3>🛰 Real map snippet</h3><p class="muted" style="margin:0 0 8px">Cuts a piece of the real USGS aerial photo to fit this land and lays it under your plan and 3D preview.</p><div class="toolrow"><button class="toolbtn" data-sn-cap>${has?"Re-capture":"Capture real map"}</button>${has?`<label class="toolbtn"><input type="checkbox" data-sn-on ${snData.on!==false?"checked":""}> Show</label><label class="toolbtn">Opacity <input type="range" min="20" max="100" value="${Math.round((snData.opacity||.9)*100)}" data-sn-op aria-label="Snippet opacity"></label><button class="toolbtn" data-sn-clear>Remove</button>`:""}</div><p class="muted" id="snStatus" style="margin:8px 0 0" role="status">${esc(stale?"Land size changed since capture. Re-capture to realign.":snMsg||(has?"USGS aerial imagery. Concept use only.":"Needs an imported parcel or a location."))}</p></div>`}
+function snPanelRefresh(){const e=$("snStatus");if(e)e.textContent=snMsg}
+content.addEventListener("click",e=>{if(e.target.closest("[data-sn-cap]")){snCapture();return}if(e.target.closest("[data-sn-clear]")){snData=null;snImg=null;snMsg="";try{localStorage.removeItem(SN_KEY)}catch(x){}render()}},true);
+content.addEventListener("change",e=>{if(!snData)return;if(e.target.matches("[data-sn-on]")){snData.on=e.target.checked;snSave();render()}else if(e.target.matches("[data-sn-op]")){snData.opacity=Math.max(.2,Math.min(1,(+e.target.value||90)/100));snSave();render()}});
+const snDesignerBase=designerPage;designerPage=function(){return snDesignerBase().replace('<div class="card scene-card">',()=>snPanel()+'<div class="card scene-card">')};
+const snMapBase=drawMap;drawMap=function(){let s=snMapBase();if(!snOk())return s;const d=propertyDims(),tag=`<image id="snippetLayer" href="${snData.url}" x="0" y="0" width="${d.w}" height="${d.h}" preserveAspectRatio="none" opacity="${snData.opacity||.9}" pointer-events="none"/>`,i=["<g id=\"waterNet\"","<g id=\"roadNet\"","<g id=\"mapObjects\""].map(m=>s.indexOf(m)).filter(k=>k>=0).sort((p,q)=>p-q)[0];return i===undefined?s:s.slice(0,i)+tag+s.slice(i)};
+function drawSnippet3d(ctx,project,w,h){if(!snOk()||!snImg)return;const N=Math.max(8,Math.min(26,Math.round(26*Math.sqrt(w/Math.max(w,h))))),M=Math.max(8,Math.min(26,Math.round(26*Math.sqrt(h/Math.max(w,h))))),iw=snImg.width,ih=snImg.height,P=[];
+for(let j=0;j<=M;j++){P[j]=[];for(let i=0;i<=N;i++){const x=w*i/N,y=h*j/M;P[j][i]=project(x,y,terrainElev(x,y)*terrainExag+.2)}}
+const tri=(p0,p1,p2,u0,v0,u1,v1,u2,v2)=>{const cx=(p0[0]+p1[0]+p2[0])/3,cy=(p0[1]+p1[1]+p2[1])/3,g=q=>{const dx=q[0]-cx,dy=q[1]-cy,l=Math.hypot(dx,dy)||1;return[q[0]+dx/l*.7,q[1]+dy/l*.7]},a=g(p0),b=g(p1),c=g(p2),det=(u1-u0)*(v2-v0)-(u2-u0)*(v1-v0);if(Math.abs(det)<1e-9)return;
+ctx.save();ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.lineTo(c[0],c[1]);ctx.closePath();ctx.clip();
+const m0=((b[0]-a[0])*(v2-v0)-(c[0]-a[0])*(v1-v0))/det,m2=((c[0]-a[0])*(u1-u0)-(b[0]-a[0])*(u2-u0))/det,m1=((b[1]-a[1])*(v2-v0)-(c[1]-a[1])*(v1-v0))/det,m3=((c[1]-a[1])*(u1-u0)-(b[1]-a[1])*(u2-u0))/det;
+ctx.transform(m0,m1,m2,m3,a[0]-m0*u0-m2*v0,a[1]-m1*u0-m3*v0);ctx.drawImage(snImg,0,0);ctx.restore()};
+ctx.save();ctx.globalAlpha=snData.opacity||.9;
+for(let j=0;j<M;j++)for(let i=0;i<N;i++){const u0=iw*i/N,u1=iw*(i+1)/N,v0=ih*j/M,v1=ih*(j+1)/M,A=P[j][i],B=P[j][i+1],C=P[j+1][i+1],D=P[j+1][i];tri(A,B,C,u0,v0,u1,v0,u1,v1);tri(A,C,D,u0,v0,u1,v1,u0,v1)}
+ctx.restore()}
 document.querySelectorAll(".scene-canvas").forEach(c=>c.setAttribute("aria-label","Interactive 3D estate preview. Drag horizontally to orbit and vertically to tilt; Shift-drag or right-drag to pan; scroll to zoom."));
 wireEvents();if(state._recoveryWarning){setTimeout(()=>alert(state._recoveryWarning),200)}render();
 })();
