@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Lot Builder: DXF exports now declare CAD layers and lay out multiple floors side by side for easier review.
 - Lot Builder: DXF export now includes door openings, swing leaves, and window lines on separate layers.
 - Business guide: added an in-app download link to the family business launch guide.
 - Accessibility: improved contrast for site-plan palette badges and active Lot Builder tools.
