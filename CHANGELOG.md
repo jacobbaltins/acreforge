@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- 3D preview: auto-fit framing, camera views (isometric, top-down, low angle, showcase orbit) and sun-direction shadows that follow time of day (with an on/off setting).
 - 3D preview options: time of day (day, dawn, sunset, night), season tint, render quality (low, medium, high) and a Save PNG screenshot button. Settings persist in this browser.
 - Site Designer: pastures and crop fields are now editable land zones (type, name, color, size, outline, rotation) drawn on the plan and shown in 3D, not placeable objects.
 - 3D Site Designer: polygon and rounded buildings use their true footprint and orientation.
