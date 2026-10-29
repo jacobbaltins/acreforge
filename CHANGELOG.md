@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Site Designer: pastures and crop fields are now editable land zones (type, name, color, size, outline, rotation) drawn on the plan and shown in 3D, not placeable objects.
+- 3D Site Designer: polygon and rounded buildings use their true footprint and orientation.
+- Site Designer: paintable ground — choose a base biome (temperate, eastern Oregon, desert, short grass, tall grass) and paint or erase local ground cover; saved per scenario with undo/redo, a "Ground cover" layer toggle, and 3D rendering.
+- Originality note: Map3D, VoxCity and 3D City Database were reviewed only as inspiration; AcreForge uses its own original code and no third-party code or data.
+- 3D Site Designer: roads and paths use distinct surfaced routes and terrain-aware elevation; primary/service roads gain markings, and buildings gain shaded walls, pitched roofs, windows, and doors.
+- 3D Site Designer: selected road/building labels render safely; object rotations are reflected in the detailed preview.
+- Site Designer: rotate mode now has a dedicated pointer interaction so rotation works alongside map drag handling.
+- Site Designer: added free 360° object rotation by drag or slider, true circle and ellipse footprints, and 3D circle/triangle building forms.
+- 3D Site Designer: added procedural dimensional trees, clustered bushes, hedges, and detailed post/rail, board, electric, and mesh fences; buildings now cast shadows and use faceted roof shading.
 - Lot Builder: added a letter-landscape print-ready floor-plan PDF with room labels, areas, dimensions, and a planning title block; DXF now includes room labels.
 - Lot Builder: DXF exports now declare CAD layers and lay out multiple floors side by side for easier review.
 - Lot Builder: DXF export now includes door openings, swing leaves, and window lines on separate layers.
