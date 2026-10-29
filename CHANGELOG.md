@@ -171,6 +171,7 @@
 - Bridges: roads that cross water get bridge decks and rails automatically, in 2D and 3D.
 - Real map snippet: capture USGS aerial imagery of your land as an optional underlay in 2D and 3D (hidden until you turn Show on; adjustable opacity).
 - Match real features now also brings in real ponds, lakes and reservoirs as editable pond items (the Pond item is already in the palette for drawing your own).
+- Real-map matching now retries up to 5 times with growing waits when the public OpenStreetMap servers are busy.
 - New projects start as a square 200-acre lot. The 3D preview now shows the lot centred inside a 1,000-acre surrounding area so you can see context.
 - Traffic signals now appear in the 3D preview as poles with live red/green lights that follow the simulation.
 - Irrigation canals are costed at $55/ft excavated and added to the build cost (ponds were already costed; creeks and rivers are natural, no cost)
