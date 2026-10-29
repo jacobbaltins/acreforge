@@ -1211,6 +1211,7 @@ for(const o of L)stroke(o.p,o.T.color,lw(o.T.w));
 for(const o of L){if(o.T.median)stroke(o.p,"#4d7c0f",lw(5));if(o.T.center)stroke(o.p,"#f0d98a",Math.max(.7,lw(1.5)),o.T.median?[]:[7,6])}
 ctx.setLineDash([]);const g=rnSim.graph;
 if(g){for(const[e,c]of rnHeat()){const[x1,y1,x2,y2]=rnEdgeEnds(g,e),A=zf(x1,y1,.9),B=zf(x2,y2,.9);ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.strokeStyle=c;ctx.lineWidth=Math.max(1.6,lw(e.mode==="walk"?3:e.w*.34));ctx.globalAlpha=.9;ctx.stroke()}ctx.globalAlpha=1;
+for(const n of g.nodes){if(!n.sig)continue;const cs={red:"#ef4444",yellow:"#facc15",green:"#22c55e"},hs=rnSigState(n,{ux:1,uy:0},rnSim.t),vs=rnSigState(n,{ux:0,uy:1},rnSim.t),b=zf(n.x,n.y,.9),t=zf(n.x,n.y,26),r=Math.max(1.6,scale*2.6);ctx.beginPath();ctx.moveTo(b[0],b[1]);ctx.lineTo(t[0],t[1]);ctx.strokeStyle="#2b2f33";ctx.lineWidth=Math.max(1.2,scale*1.4);ctx.stroke();ctx.fillStyle="#111418";ctx.fillRect(t[0]-r*2.2,t[1]-r*1.2,r*4.4,r*2.4);for(const[dx,s]of[[-1,hs],[1,vs]]){ctx.beginPath();ctx.arc(t[0]+dx*r*1.1,t[1],r*.9,0,Math.PI*2);ctx.fillStyle=cs[s];ctx.shadowColor=cs[s];ctx.shadowBlur=r*2.5;ctx.fill();ctx.shadowBlur=0}}
 const dims=propertyDims(),CL=Math.max(14,dims.w/170,6/scale),CW=CL*.46,CH=CL*.42,night=sceneFx.time==="night"||sceneFx.time==="sunset";
 const list=rnSim.agents.slice().sort((p,q)=>(p.x+p.y)-(q.x+q.y));
 for(const a of list){if(a.k==="car"){const q=rnQuad(a,CL,CW),lo=q.map(p=>zf(p[0],p[1],.8)),hi=q.map(p=>zf(p[0],p[1],.8+CH));
