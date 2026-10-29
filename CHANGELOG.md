@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Accessibility: unlabeled form controls now get accessible names automatically.
 - Mobile: the ? Guide button no longer covers the bottom navigation.
 - About page: pricing cards now say DXF export and PDF download are available (no longer 'planned').
 - First-run quick start guide (shown once, reopen with the ? Guide button).

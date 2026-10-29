@@ -858,6 +858,14 @@ wireEvents();if(state._recoveryWarning){setTimeout(()=>alert(state._recoveryWarn
 })();
 </script>
 <script>
+(()=>{const lab=()=>{document.querySelectorAll("input,select,textarea").forEach(e=>{if(e.type==="hidden"||e.getAttribute("aria-label")||e.getAttribute("aria-labelledby")||e.title||(e.id&&document.querySelector('label[for="'+e.id+'"]'))||e.closest("label"))return;
+let t="";const p=e.previousElementSibling;if(p&&!/^(INPUT|SELECT|TEXTAREA)$/.test(p.tagName))t=p.textContent.trim();if(t.length>50)t="";
+if(!t){const c=e.parentElement;if(c){const cl=c.cloneNode(true);cl.querySelectorAll("input,select,textarea,button").forEach(x=>x.remove());t=cl.textContent.trim();if(t.length>50)t=""}}
+if(!t)t=e.placeholder||"";if(!t){const k=e.dataset.plan||e.dataset.finance||e.dataset.project||e.id||e.name||"";t=k.replace(/([A-Z])/g," $1").replace(/[-_]/g," ").trim()}
+if(t)e.setAttribute("aria-label",t.replace(/\s+/g," ").slice(0,60))})};
+let q=0;new MutationObserver(()=>{clearTimeout(q);q=setTimeout(lab,150)}).observe(document.body,{childList:true,subtree:true});setTimeout(lab,300)})();
+</script>
+<script>
 (()=>{const KEY="acreforge-guide-seen";
 const steps=[["Design","Site Designer: drag objects from “Add an object” onto your land. Use Fit plan, grids and Rotate."],["Build","Buildings and Lot Builder: draw floor plans, add levels, then “Place on site plan”."],["Check","Financials, Compliance and Scenarios estimate cost and flag issues. Numbers are concept-level only."],["Share","Download PDF, Print sheet or Export DXF from the Site Designer. Export a backup JSON often."]];
 function open(){if(document.getElementById("afGuide"))return;const o=document.createElement("div");o.id="afGuide";o.setAttribute("role","dialog");o.setAttribute("aria-modal","true");o.setAttribute("aria-label","Quick start guide");
