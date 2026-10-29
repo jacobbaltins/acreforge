@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Lot Builder: DXF export now includes door openings, swing leaves, and window lines on separate layers.
 - Business guide: added an in-app download link to the family business launch guide.
 - Accessibility: improved contrast for site-plan palette badges and active Lot Builder tools.
 - Accessibility: unlabeled form controls now get accessible names automatically.
