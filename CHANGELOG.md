@@ -171,6 +171,7 @@
 - Bridges: roads that cross water get bridge decks and rails automatically, in 2D and 3D.
 - Real map snippet: capture USGS aerial imagery of your land as an optional underlay in 2D and 3D (hidden until you turn Show on; adjustable opacity).
 - Match real features now also brings in real ponds, lakes and reservoirs as editable pond items (the Pond item is already in the palette for drawing your own).
+- New Lake / Reservoir object at $1.25/sq ft (a 10-acre lake is about $545k, versus $1.7M at the pond rate). Large water bodies imported from the real map become lakes. Fixed a thin seam line in the sunset sky.
 - The 3D preview's corner label is now readable at sunset and night, and the lower sky blends darker.
 - The 3D ground now has soft light and dark patches so large lots look less flat.
 - Real-map matching now retries up to 5 times with growing waits when the public OpenStreetMap servers are busy.
