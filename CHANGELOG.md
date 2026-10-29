@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- 3D preview options: time of day (day, dawn, sunset, night), season tint, render quality (low, medium, high) and a Save PNG screenshot button. Settings persist in this browser.
 - Site Designer: pastures and crop fields are now editable land zones (type, name, color, size, outline, rotation) drawn on the plan and shown in 3D, not placeable objects.
 - 3D Site Designer: polygon and rounded buildings use their true footprint and orientation.
 - Site Designer: paintable ground — choose a base biome (temperate, eastern Oregon, desert, short grass, tall grass) and paint or erase local ground cover; saved per scenario with undo/redo, a "Ground cover" layer toggle, and 3D rendering.
