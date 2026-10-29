@@ -1205,7 +1205,7 @@ for(const o of L)stroke(o.p,o.T.color,lw(o.T.w));
 for(const o of L){if(o.T.median)stroke(o.p,"#4d7c0f",lw(5));if(o.T.center)stroke(o.p,"#f0d98a",Math.max(.7,lw(1.5)),o.T.median?[]:[7,6])}
 ctx.setLineDash([]);const g=rnSim.graph;
 if(g){for(const[e,c]of rnHeat()){const[x1,y1,x2,y2]=rnEdgeEnds(g,e),A=zf(x1,y1,.9),B=zf(x2,y2,.9);ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.strokeStyle=c;ctx.lineWidth=Math.max(1.6,lw(e.mode==="walk"?3:e.w*.34));ctx.globalAlpha=.9;ctx.stroke()}ctx.globalAlpha=1;
-const dims=propertyDims(),CL=Math.max(14,dims.w/170),CW=CL*.46,CH=CL*.42,night=sceneFx.time==="night"||sceneFx.time==="sunset";
+const dims=propertyDims(),CL=Math.max(14,dims.w/170,6/scale),CW=CL*.46,CH=CL*.42,night=sceneFx.time==="night"||sceneFx.time==="sunset";
 const list=rnSim.agents.slice().sort((p,q)=>(p.x+p.y)-(q.x+q.y));
 for(const a of list){if(a.k==="car"){const q=rnQuad(a,CL,CW),lo=q.map(p=>zf(p[0],p[1],.8)),hi=q.map(p=>zf(p[0],p[1],.8+CH));
 ctx.fillStyle=shade(a.col,-45);for(let k=0;k<4;k++){const n=(k+1)%4;ctx.beginPath();ctx.moveTo(lo[k][0],lo[k][1]);ctx.lineTo(lo[n][0],lo[n][1]);ctx.lineTo(hi[n][0],hi[n][1]);ctx.lineTo(hi[k][0],hi[k][1]);ctx.closePath();ctx.fill()}
