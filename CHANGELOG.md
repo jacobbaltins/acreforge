@@ -171,6 +171,7 @@
 - Bridges: roads that cross water get bridge decks and rails automatically, in 2D and 3D.
 - Real map snippet: capture USGS aerial imagery of your land as an optional underlay in 2D and 3D (hidden until you turn Show on; adjustable opacity).
 - Match real features now also brings in real ponds, lakes and reservoirs as editable pond items (the Pond item is already in the palette for drawing your own).
+- Real-map snippet is clipped to the imported parcel outline in the plan and 3D preview
 - Bridges and culverts where roads cross water are costed and added to the road build cost and project budget
 - Traffic simulation has signalised intersections: lights alternate on street/avenue junctions and cars stop on red
 - Pick location has one-click presets: Cedarville CA, Christmas Valley OR, Wagontire OR and 15 more small towns across the West and Southwest. Any other town works through search.
