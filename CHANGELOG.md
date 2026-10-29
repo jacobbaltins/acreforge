@@ -1,7 +1,8 @@
 # Changelog
 
-- Accessibility: improved contrast for site-plan palette badges and active Lot Builder tools.
 ## Unreleased
+- Business guide: added an in-app download link to the family business launch guide.
+- Accessibility: improved contrast for site-plan palette badges and active Lot Builder tools.
 - Accessibility: unlabeled form controls now get accessible names automatically.
 - Mobile: the ? Guide button no longer covers the bottom navigation.
 - About page: pricing cards now say DXF export and PDF download are available (no longer 'planned').
