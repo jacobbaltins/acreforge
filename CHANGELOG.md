@@ -1,3 +1,8 @@
+## Lot Builder 3D + building editing
+- Buildings cards: "Edit in Lot Builder · 3D" generates an editable barn, arena, shop, event hall, stand, yurt, etc. from the card's footprint and count
+- Multi-part 3D furniture (sofas, beds, tables, chairs, trees, bleachers…) with shading, back-face culling and any rotation angle
+- Library: thumbnails, search, new bleacher/bench/stage items, per-item colour in the inspector
+
 ## Polish pass
 - Installable offline app (manifest, service worker, icon), share/SEO meta tags
 - Skip link, ARIA labels, live save status with last-saved time
