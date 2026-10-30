@@ -71,7 +71,7 @@ GitHub Pages is static only, so there are no server functions.
 
 ## Data and privacy
 
-Project data autosaves to this browser's local storage and is not cloud-synced by the app. The terrain map requests USGS imagery and AWS elevation tiles; the optional OpenStreetMap feature lookup sends the visible map bounds only after the user enables it. Public project export is intended to publish its JSON file alongside the site, so review it for sensitive information first. The [prototype data and privacy notice](data-notice.html) describes these flows and the unverified status of any server-side Stripe webhook configuration. It is not a complete commercial privacy policy.
+Project data autosaves to this browser's local storage and is not cloud-synced by the app. The terrain map requests USGS imagery and AWS elevation tiles; **Import real elevation** requests tiles for the current property after you choose it. The optional OpenStreetMap feature lookup sends the visible map bounds only after the user starts it. Public project export is intended to publish its JSON file alongside the site, so review it for sensitive information first. The [prototype data and privacy notice](data-notice.html) describes these flows and the unverified status of any server-side Stripe webhook configuration. It is not a complete commercial privacy policy.
 
 The app can read the legacy `st3` site-planner local-storage data and migrate its site objects and financial assumptions on first launch.
 
@@ -87,7 +87,7 @@ Each browser keeps its own copy. To share: click **Export**, send the dated .jso
 
 ## Terrain and themes
 
-Use **Terrain** in the Site Designer to sculpt elevation (shown in the isometric view). Change the color theme in **Project Settings → Appearance**.
+Use **Terrain** in the Site Designer to import real elevation for a chosen location or parcel, then sculpt with raise, lower, smooth, and flatten brushes. Imported relief is shown at 1× by default; higher preview exaggeration is clearly visual-only. Elevation is an approximate planning reference, not a survey. Change the color theme in **Project Settings → Appearance**.
 
 
 ## Publishing publicly
