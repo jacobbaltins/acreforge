@@ -1,3 +1,8 @@
+## Lot Builder tools 2
+- Turn 90° 3D camera, Mirror and Flip the whole design, Copy level, Clear items, Blank design
+- Share link (design is encoded in the URL and opens on load)
+- Keyboard: [ and ] rotate the selected item 15°, Esc deselects
+
 ## Lot Builder tools
 - Download the plan or 3D view as a PNG, save/open designs as .json files, export an item list CSV
 - Center design button, arrow-key nudge (Shift = 2 ft), Ctrl+Z undo, Ctrl+D duplicate
