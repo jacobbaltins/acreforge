@@ -1,3 +1,8 @@
+## Lot Builder tools 4
+- Snap 1 ft, Remove duplicates, Scale 125%/80%, Rotate design 90°
+- Delete key removes the selected item; R/Home resets the 3D view
+- Wall length, door and window totals in the schedule
+
 ## Lot Builder tools 3
 - Room schedule and cost estimate panel (by room type, total area, furniture summary)
 - Fit scale and Center item buttons
