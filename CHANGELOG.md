@@ -1,3 +1,10 @@
+## Polish pass
+- Installable offline app (manifest, service worker, icon), share/SEO meta tags
+- Skip link, ARIA labels, live save status with last-saved time
+- Alt+1-9 tab shortcuts and ? help with storage usage
+- Per-tab page titles, scroll reset, offline/online notices
+- Unsaved-save guard on close, persistent storage request, print stylesheet
+
 # Changelog
 
 ## Unreleased
@@ -192,3 +199,4 @@
 - Pick location: search an address, paste a Google Maps link or coordinates, or click the satellite map; one press captures the map and matches real features. OpenStreetMap is now read in three small requests (roads first) and includes roads just outside the land edge.
 - Imported buildings, scrub and woods keep their real rotation and footprint size.
 - Match real features: copy real roads, houses, other buildings, trees, bushes, scrub and waterways from OpenStreetMap into your plan as editable items.
+

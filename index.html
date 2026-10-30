@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a110f">
 <title>AcreForge | U.S. Land & Estate Planner</title>
+<meta name="description" content="Local-first land and estate planner: design parcels, buildings, infrastructure, terrain and costs in 3D. Your data stays in your browser.">
+<meta property="og:title" content="AcreForge | U.S. Land & Estate Planner">
+<meta property="og:description" content="Plan acreage, buildings, terrain, utilities and budgets in one private, browser-based tool.">
+<meta property="og:type" content="website">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon.svg">
+<style>.af-skip{position:fixed;left:8px;top:-60px;z-index:100000;background:#34d399;color:#05140e;padding:8px 14px;border-radius:8px;font-weight:700;transition:top .15s}.af-skip:focus{top:8px}
+.af-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:99999;background:#17251f;color:#ecf2ee;border:1px solid #34d399;padding:9px 16px;border-radius:10px;font-size:13px;box-shadow:0 6px 24px #0008}
+.af-help{position:fixed;inset:0;z-index:100000;background:#000a;display:grid;place-items:center}.af-help>div{background:#111c18;border:1px solid #283a31;border-radius:14px;padding:20px 24px;max-width:460px;width:calc(100% - 32px);color:#ecf2ee;font-size:14px}.af-help kbd{background:#17251f;border:1px solid #283a31;border-radius:5px;padding:1px 6px;font-family:inherit}.af-help h2{margin:0 0 10px}.af-help p{margin:6px 0}
+@media print{aside,.topbar,.af-skip,.af-toast{display:none!important}.shell{display:block!important}body{background:#fff!important;color:#000!important}}</style>
 <link rel="stylesheet" href="./vendor/maplibre-gl.css">
 <style>
 :root{color-scheme:dark;--bg:#09110e;--panel:#111c18;--panel2:#17251f;--line:#283a31;--text:#ecf2ee;--muted:#9aa9a0;--green:#34d399;--amber:#fbbf24;--blue:#60a5fa;--rose:#fb7185;--purple:#e879f9;--radius:15px;font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -1493,6 +1503,49 @@ o.innerHTML='<div style="background:#111827;color:#e5e7eb;border:1px solid #3741
 document.body.appendChild(o);const close=()=>{o.remove();try{localStorage.setItem(KEY,"1")}catch(e){}};o.querySelector("#afGuideGo").onclick=close;o.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const t=b.dataset.go;close();const n=[...document.querySelectorAll("button")].find(x=>x.id!=="afGuideBtn"&&x.textContent.trim().endsWith(t));if(n)n.click()});o.addEventListener("click",e=>{if(e.target===o)close()});document.addEventListener("keydown",function k(e){if(e.key==="Escape"&&document.getElementById("afGuide")){close();document.removeEventListener("keydown",k)}});o.querySelector("#afGuideGo").focus()}
 const h=document.createElement("button");h.textContent="? Guide";h.setAttribute("aria-label","Open quick start guide");h.style.cssText="position:fixed;right:14px;bottom:14px;z-index:9999;background:#1f2937;color:#e5e7eb;border:1px solid #4b5563;border-radius:16px;padding:5px 12px;font:12px Segoe UI,Arial,sans-serif;cursor:pointer";h.onclick=open;h.id="afGuideBtn";const st=document.createElement("style");st.textContent="@media(max-width:900px){#afGuideBtn{bottom:78px!important;right:8px!important}}";document.head.appendChild(st);document.body.appendChild(h);
 let seen=false;try{seen=!!localStorage.getItem(KEY)}catch(e){}if(!seen)setTimeout(open,500)})();
+</script>
+<script>
+(()=>{"use strict";
+const $=id=>document.getElementById(id);
+const toast=(m)=>{const t=document.createElement("div");t.className="af-toast";t.setAttribute("role","status");t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2800)};
+// 1 PWA / offline shell
+if("serviceWorker"in navigator&&location.protocol==="https:")addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+// 2 Skip link + main landmark target
+const main=document.querySelector("main.main"),content=$("content");
+if(content){content.setAttribute("tabindex","-1");content.id="content"}
+const skip=document.createElement("a");skip.className="af-skip";skip.href="#content";skip.textContent="Skip to content";skip.onclick=e=>{e.preventDefault();content&&content.focus()};document.body.prepend(skip);
+// 3 Online / offline notices
+addEventListener("offline",()=>toast("You're offline. Your work still saves in this browser."));
+addEventListener("online",()=>toast("Back online."));
+// 4 Per-tab document title, scroll reset, and focus-friendly updates
+const baseTitle="AcreForge";
+const syncTitle=()=>{const b=document.querySelector("#nav button.active");const label=b?b.textContent.replace(/^[^\w]+/,"").trim():"";document.title=label?label+" | "+baseTitle:document.title.split(" | ").pop()===baseTitle?document.title:"AcreForge | U.S. Land & Estate Planner"};
+const nav=$("nav");let lastKey="";
+if(content)new MutationObserver(()=>{const b=document.querySelector("#nav button.active");const k=b?b.textContent:"";if(k&&k!==lastKey){lastKey=k;syncTitle();scrollTo(0,0)}}).observe(nav||content,{subtree:true,attributes:true,childList:true});
+// 5 Alt+1..9 tab shortcuts, ? help overlay, Esc closes overlay
+const closeHelp=()=>{const h=document.querySelector(".af-help");if(h){h.remove();return true}return false};
+const typing=e=>/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||e.target.isContentEditable;
+const storageInfo=()=>{try{let n=0;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);n+=k.length+(localStorage.getItem(k)||"").length}return(n*2/1048576).toFixed(2)+" MB of roughly 5 MB used"}catch(e){return"unavailable"}};
+const openHelp=()=>{if(closeHelp())return;const h=document.createElement("div");h.className="af-help";h.setAttribute("role","dialog");h.setAttribute("aria-modal","true");h.setAttribute("aria-label","Keyboard shortcuts");h.innerHTML='<div><h2>Keyboard shortcuts</h2><p><kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>9</kbd> Jump to a tab</p><p><kbd>?</kbd> Show or hide this help</p><p><kbd>Esc</kbd> Close dialogs</p><p style="color:#9aa9a0;margin-top:14px">Browser storage: '+storageInfo()+'.</p><p style="color:#9aa9a0">Install: use your browser menu, then Install app, to run AcreForge offline.</p><button type="button" id="afHelpX" style="margin-top:10px">Close</button></div>';h.onclick=e=>{if(e.target===h)h.remove()};document.body.appendChild(h);$("afHelpX").focus();$("afHelpX").onclick=()=>h.remove()};
+addEventListener("keydown",e=>{
+ if(e.key==="Escape"&&closeHelp())return;
+ if(typing(e)||e.ctrlKey||e.metaKey)return;
+ if(e.key==="?"){e.preventDefault();openHelp();return}
+ if(e.altKey&&/^[1-9]$/.test(e.key)){const b=document.querySelectorAll("#nav button")[+e.key-1];if(b){e.preventDefault();b.click();toast((b.textContent||"").replace(/^[^\w]+/,"").trim())}}
+});
+// 6 Warn before closing the tab while a save is pending
+addEventListener("beforeunload",e=>{const s=$("saveState");if(s&&/Saving/.test(s.textContent)){e.preventDefault();e.returnValue=""}});
+// 7 Last-saved time shown on hover and to screen readers
+const ss=$("saveState");
+if(ss){ss.setAttribute("role","status");ss.setAttribute("aria-live","polite");new MutationObserver(()=>{if(/Saved/i.test(ss.textContent))ss.title="Last saved "+new Date().toLocaleTimeString()}).observe(ss,{childList:true,characterData:true,subtree:true})}
+// 8 Label unlabeled icon-only buttons and canvases for assistive tech
+const label=()=>{document.querySelectorAll("button:not([aria-label])").forEach(b=>{if(!b.textContent.trim()&&b.title)b.setAttribute("aria-label",b.title)});document.querySelectorAll("canvas:not([role])").forEach(c=>{c.setAttribute("role","img");if(!c.getAttribute("aria-label"))c.setAttribute("aria-label","Interactive 3D or plan preview")})};
+if(content)new MutationObserver(label).observe(content,{childList:true,subtree:true});label();
+// 9 Respect reduced motion for smooth scroll resets
+if(matchMedia("(prefers-reduced-motion:reduce)").matches)document.documentElement.style.scrollBehavior="auto";
+// 10 Persistent storage request so the browser doesn't evict the saved project
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+})();
 </script>
 </body>
 </html>
