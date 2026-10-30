@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Imported parcels and their aerial/elevation/OSM overlays now use a north-up plan orientation; older parcel projects migrate their objects, routes, ground paint, terrain, and saved map image without changing their relative layout.
 - Site Designer terrain can now be seeded from real AWS elevation tiles for a selected location or imported parcel, then edited with raise, lower, smooth, and flatten brushes. Real-scale (1×) relief is the default; visual exaggeration is labeled as such. Removed the synthetic hills shortcut.
 - Site Designer: Cities-Skylines-style road network. Draw roads point by point (dirt, gravel, two-lane, main street, boulevard, walking path) with curves, one-way, junction snapping, upgrade and bulldoze tools, and import of existing road objects. Road cost feeds the budget.
 - Traffic and pedestrian simulation: cars follow routes with lane keeping, following distance and junction yielding; walkers use sidewalks and paths. Congestion, car-volume and foot-traffic overlays in 2D and 3D, plus live stats and flags for buildings with no road access.
