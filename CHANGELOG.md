@@ -1,3 +1,8 @@
+## Lot Builder tools
+- Download the plan or 3D view as a PNG, save/open designs as .json files, export an item list CSV
+- Center design button, arrow-key nudge (Shift = 2 ft), Ctrl+Z undo, Ctrl+D duplicate
+- Library item size tooltips, visible keyboard focus rings, toast confirmations
+
 ## Lot Builder 3D + building editing
 - Buildings cards: "Edit in Lot Builder · 3D" generates an editable barn, arena, shop, event hall, stand, yurt, etc. from the card's footprint and count
 - Multi-part 3D furniture (sofas, beds, tables, chairs, trees, bleachers…) with shading, back-face culling and any rotation angle
