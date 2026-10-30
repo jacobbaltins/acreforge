@@ -1,3 +1,8 @@
+## Lot Builder tools 3
+- Room schedule and cost estimate panel (by room type, total area, furniture summary)
+- Fit scale and Center item buttons
+- Keyboard: Tab / Shift+Tab cycles items, PageUp/PageDown switches levels, Q/E spins the 3D view, Alt+arrows resize the selected item
+
 ## Lot Builder tools 2
 - Turn 90° 3D camera, Mirror and Flip the whole design, Copy level, Clear items, Blank design
 - Share link (design is encoded in the URL and opens on load)
