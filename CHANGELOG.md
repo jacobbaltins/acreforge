@@ -1,3 +1,6 @@
+## Utility routes
+- Property planner shows power, fiber, water and septic runs with distance, material, estimated cost and difficulty.
+
 ## Layer manager additions
 - The terrain map's Reference layers panel now has opacity sliders for your design and the basemap, plus a color legend (gray existing, green proposed, blue selected).
 
