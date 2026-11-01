@@ -1,3 +1,7 @@
+## Layer opacity + gray existing buildings
+- Terrain map reference layers get opacity sliders (buildings, roads, trees, fields/woods).
+- Existing OSM buildings are now gray, per the map color scheme.
+
 ## Family Compound scores
 - Privacy, walking distance, shared-utility trench and expansion scores for multi-home plans, with tips.
 
