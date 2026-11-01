@@ -1,3 +1,6 @@
+## Driveway cost
+- The driveway explanation now shows an approximate gravel cost.
+
 ## Driveway access
 - Placing a plan now adds a driveway from the main house to the nearest property edge, with a written reason and length, so access is never disconnected.
 

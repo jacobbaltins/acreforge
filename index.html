@@ -1775,7 +1775,7 @@ function afZone(list){
   if(d[0]==="W"||d[0]==="E"){dr.w=len;dr.h=Wd;dr.x=d[0]==="W"?X0:hm.x+hm.w;dr.y=Math.round(hy-Wd/2);if(d[0]==="W")dr.w=Math.round(hm.x-X0)}
   else{dr.w=Wd;dr.h=len;dr.x=Math.round(hx-Wd/2);dr.y=d[0]==="N"?Y0:hm.y+hm.h;if(d[0]==="N")dr.h=Math.round(hm.y-Y0)}
   dr.name="Driveway to "+({W:"west",E:"east",N:"north",S:"south"})[d[0]]+" road edge";dr.fromPlan=1;
-  dr.why="Runs "+Math.round(Math.max(dr.w,dr.h))+" ft from the house to the nearest edge of the property, where road access is assumed. Connect it to the real road at the property line; check county access rules.";
+  dr.why="Runs "+Math.round(Math.max(dr.w,dr.h))+" ft from the house to the nearest edge of the property, where road access is assumed. Gravel at about $"+templates.road.cost+"/ft is roughly "+fmt(Math.round(Math.max(dr.w,dr.h)*templates.road.cost))+" (not in the plan total yet). Connect it to the real road at the property line; check county access rules.";
   items().push(dr);n++;
  }
  return n;
