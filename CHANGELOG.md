@@ -1,3 +1,6 @@
+## Land data lookup
+- AI Planner: Land data card pulls elevation (USGS), FEMA flood zone and USDA soil/drainage for the parcel center; each source fails independently.
+
 ## BIM-style layers
 - Lot Builder: Layer selector (Architecture, Structure, Electrical, Plumbing, HVAC, Fire safety) with generated schematic overlays; click a room in Plumbing to list fixtures and pipe sizes.
 
