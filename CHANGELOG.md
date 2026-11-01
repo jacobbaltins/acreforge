@@ -1,3 +1,6 @@
+## v31
+- Layer opacity sliders and reference-layer toggles are remembered between visits and re-renders.
+
 ## v30
 - Utilities card reconciles with the plan total: shows the generic utility amount already in the plan and a layout-adjusted total.
 
