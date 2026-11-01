@@ -1,3 +1,8 @@
+## AI Planner
+- New AI Planner tab: describe a project in plain text and get a program, low/mid/high cost, bill of materials, utilities trench costs, phasing chart, permit checklist, event/traffic simulation, investment/developer pro forma, and Reduce-cost-by-20% redesign.
+- Place on Site Designer adds the planned buildings as objects; CSV export.
+- Rule-based planning estimates, not bids or engineering.
+
 ## Lot Builder tools 5
 - Added dedicated Undo/Redo buttons and keyboard shortcuts (Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y)
 - Whole-plan scaling and rotation now transform rooms, furniture dimensions, doors, windows, and dimension lines together

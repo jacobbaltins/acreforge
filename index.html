@@ -74,7 +74,7 @@
 (()=>{"use strict";
 const STORAGE="oregon-estate-planner-v1",RECOVERY="oregon-estate-planner-recovery-v1",CELL=40;
 const navItems=[
- ["about","ⓘ","About"],["dashboard","▦","Dashboard"],["designer","⌖","Site Designer"],["buildings","⌂","Buildings"],["homes","🏠","Lot Builder"],["infrastructure","⌁","Infrastructure"],["financials","$","Financials"],["operations","♧","Operations"],["compliance","✓","Compliance"],["scenarios","◫","Scenarios"],["reports","▤","Reports"],["manual","☷","Manual"],["settings","⚙","Settings"]
+ ["about","ⓘ","About"],["dashboard","▦","Dashboard"],["planner","✦","AI Planner"],["designer","⌖","Site Designer"],["buildings","⌂","Buildings"],["homes","🏠","Lot Builder"],["infrastructure","⌁","Infrastructure"],["financials","$","Financials"],["operations","♧","Operations"],["compliance","✓","Compliance"],["scenarios","◫","Scenarios"],["reports","▤","Reports"],["manual","☷","Manual"],["settings","⚙","Settings"]
 ];
 const templates={
  barn:{name:"20-Stall Main Barn",cat:"Building",w:144,h:48,height:24,color:"#b45309",label:"B",cost:1200000,method:"fixed",stalls:20,phase:"1"},
@@ -298,7 +298,7 @@ function kpi(label,value,hint="",color=""){return`<div class="card kpi"><div cla
 function selectOpts(items,current){return items.map(x=>`<option value="${esc(x[0])}" ${x[0]===current?"selected":""}>${esc(x[1])}</option>`).join("");}
 function navRender(){$("nav").innerHTML=navItems.map(([id,icon,label])=>`<button data-page="${id}" class="${activePage===id?"active":""}" aria-current="${activePage===id?"page":"false"}"><span class="ico" aria-hidden="true">${icon}</span><span>${label}</span></button>`).join("");}
 function render(){navRender();$("topTitle").textContent=state.project.name||"AcreForge";$("topCrumb").textContent=" / "+(navItems.find(x=>x[0]===activePage)?.[2]||"");
-const fn={about:aboutPage,dashboard:dashboardPage,designer:designerPage,buildings:buildingsPage,infrastructure:infrastructurePage,financials:financialsPage,operations:operationsPage,compliance:compliancePage,scenarios:scenariosPage,reports:reportsPage,manual:manualPage,settings:settingsPage};$("content").innerHTML=(fn[activePage]||dashboardPage)();clearInterval(sceneTimer);if(activePage==="settings"&&state.project.parcelBoundary){const acres=document.querySelector('[data-project="acres"]');if(acres){acres.readOnly=true;acres.title="Calculated from imported parcel boundary";acres.closest(".field")?.insertAdjacentHTML("afterend",`<div class="notice">${state.project.parcelBoundary.acres.toFixed(2)} acres calculated from imported boundary (${esc(state.project.parcelBoundary.source)}). <button class="toolbtn" data-action="clear-parcel">Remove parcel outline</button></div>`);}}if(activePage==="designer"){const bar=document.querySelector(".map-toolbar");bar?.insertAdjacentHTML("beforeend",`<button class="toolbtn" data-action="toggle-map-view">${mapView==="flat"?"USA map":"Flat plan"}</button><button class="toolbtn" data-action="import-parcel">Import parcel boundary</button><input class="input" style="width:220px;padding:6px 8px" data-project="locationUrl" aria-label="Google Maps or Zillow reference link" placeholder="Google Maps / Zillow link" value="${esc(state.project.locationUrl||"")}">`);const meta=document.querySelector(".map-meta");if(meta){const b=state.project.parcelBoundary,href=safeMapReference(state.project.locationUrl||"");meta.insertAdjacentHTML("beforeend",b?`<span>${esc(b.source)} · ${b.acres.toFixed(2)} geodesic acres</span><button class="toolbtn" data-action="clear-parcel">Remove parcel</button>`:"<span>Import a survey or assessor parcel file for real acreage.</span>");if(href)meta.insertAdjacentHTML("beforeend",`<a class="toolbtn" href="${esc(href)}" target="_blank" rel="noopener noreferrer">Open property reference ↗</a>`);}if(mapView==="globe"){const plan=$("siteMap");if(plan)plan.style.display="none";$("mapViewport")?.insertAdjacentHTML("beforeend",drawGlobe());}draw3d();sceneTimer=setInterval(()=>{if(sceneAuto&&!sceneDrag){sceneAngle+=.006;draw3d()}},100);}}
+const fn={about:aboutPage,dashboard:dashboardPage,planner:plannerPage,designer:designerPage,buildings:buildingsPage,infrastructure:infrastructurePage,financials:financialsPage,operations:operationsPage,compliance:compliancePage,scenarios:scenariosPage,reports:reportsPage,manual:manualPage,settings:settingsPage};$("content").innerHTML=(fn[activePage]||dashboardPage)();clearInterval(sceneTimer);if(activePage==="settings"&&state.project.parcelBoundary){const acres=document.querySelector('[data-project="acres"]');if(acres){acres.readOnly=true;acres.title="Calculated from imported parcel boundary";acres.closest(".field")?.insertAdjacentHTML("afterend",`<div class="notice">${state.project.parcelBoundary.acres.toFixed(2)} acres calculated from imported boundary (${esc(state.project.parcelBoundary.source)}). <button class="toolbtn" data-action="clear-parcel">Remove parcel outline</button></div>`);}}if(activePage==="designer"){const bar=document.querySelector(".map-toolbar");bar?.insertAdjacentHTML("beforeend",`<button class="toolbtn" data-action="toggle-map-view">${mapView==="flat"?"USA map":"Flat plan"}</button><button class="toolbtn" data-action="import-parcel">Import parcel boundary</button><input class="input" style="width:220px;padding:6px 8px" data-project="locationUrl" aria-label="Google Maps or Zillow reference link" placeholder="Google Maps / Zillow link" value="${esc(state.project.locationUrl||"")}">`);const meta=document.querySelector(".map-meta");if(meta){const b=state.project.parcelBoundary,href=safeMapReference(state.project.locationUrl||"");meta.insertAdjacentHTML("beforeend",b?`<span>${esc(b.source)} · ${b.acres.toFixed(2)} geodesic acres</span><button class="toolbtn" data-action="clear-parcel">Remove parcel</button>`:"<span>Import a survey or assessor parcel file for real acreage.</span>");if(href)meta.insertAdjacentHTML("beforeend",`<a class="toolbtn" href="${esc(href)}" target="_blank" rel="noopener noreferrer">Open property reference ↗</a>`);}if(mapView==="globe"){const plan=$("siteMap");if(plan)plan.style.display="none";$("mapViewport")?.insertAdjacentHTML("beforeend",drawGlobe());}draw3d();sceneTimer=setInterval(()=>{if(sceneAuto&&!sceneDrag){sceneAngle+=.006;draw3d()}},100);}}
 function aboutPage(){return`<section class="about-hero"><div class="eyebrow">ACREFORGE · U.S. PROJECT PLANNER</div><h2>Plan the land.<br>Build what belongs on it.</h2><p class="about-lead">I’m building AcreForge to bring rural property planning, site layout, and home and building design together in one approachable workspace for people across the United States.</p><p class="muted">The idea is to explore a property like a planner and build on it like a game: map the land, place barns and infrastructure, sketch homes and floor plans, and see how the pieces fit before taking concepts to qualified professionals.</p><div class="actions"><button class="btn primary" data-page="designer">Start with the site plan</button><button class="btn" data-page="homes">Design a home</button><button class="btn ghost" data-page="dashboard">Open project dashboard</button></div></section><div class="grid g3" style="margin:14px 0"><article class="card"><div class="eyebrow">FREE</div><h3>$0</h3><p class="small muted">Map, site plan, building and lot builder, DXF export, one-click PDF of the site plan, local saving and backup. Available now.</p></article><article class="card"><div class="eyebrow">PRO · PLANNED</div><h3>Pricing TBD</h3><p class="small muted">Planned: cloud-saved projects, accounts, and premium map data. Not yet available; no payments are taken.</p></article><article class="card"><div class="eyebrow">EARLY ACCESS</div><h3>Join the waitlist</h3><p class="small muted">Use the Join Pro waitlist button in the top bar to tell me what you would pay for.</p></article></div><div class="grid g3 about-features"><article class="card"><div class="eyebrow">01 · LAND</div><h3>Plan a property</h3><p class="small muted">Arrange buildings, arenas, pasture, roads, utilities, and other site elements on a measured planning grid. Explore terrain and map context where available.</p></article><article class="card"><div class="eyebrow">02 · BUILD</div><h3>Design homes & buildings</h3><p class="small muted">Move from a site concept into building layouts, room plans, furniture placement, dimensions, and a 3D view.</p></article><article class="card"><div class="eyebrow">03 · DECIDE</div><h3>Keep the plan connected</h3><p class="small muted">Track planning assumptions, costs, scenarios, due-diligence questions, and project notes alongside the design.</p></article></div><div class="grid g2" style="margin-top:14px"><article class="card"><h3>What I’m trying to build</h3><p class="small muted">A practical, visual planning tool for families and rural landowners who want to think through an estate, farm, or equestrian property in one place—from the overall site down to the rooms in a home.</p><p class="small muted">It’s being developed iteratively, with a local-first approach: your project is saved in this browser, and you can export a backup.</p><a class="btn ghost" href="support.html">Project status & data use ↗</a><a class="btn ghost" href="AcreForge-Business-Launch-Guide.docx" download>Download the family business launch guide (Word)</a></article><article class="card"><h3>Important boundary</h3><p class="small muted">This is for early-stage concepts and organization, not construction documents or professional approvals. Maps, dimensions, cost assumptions, and layouts must be checked against the actual property and applicable requirements by the right professionals. Planning and regulatory information is not tailored to any particular city, county, or state.</p><button class="btn" data-page="manual">Read the planning notes</button></article></div>`}
 function dashboardPage(){const c=compute(),sc=scenario(),pct=taskSeed.filter(t=>state.tasks[t[0]]?.done).length/taskSeed.length*100, high=taskSeed.filter(t=>t[2]==="High"&&!state.tasks[t[0]]?.done).length;
 return pageHead("PROJECT OVERVIEW",esc(state.project.name),`${esc(state.project.county||"U.S. property planning")} · ${sc.name} · planning assumptions only`,btn("Print summary","print","ghost"))+
@@ -1596,6 +1596,153 @@ ctx.save();const pb=state.project.parcelBoundary;if(pb&&pb.polygons){ctx.beginPa
 for(let j=0;j<M;j++)for(let i=0;i<N;i++){const u0=iw*i/N,u1=iw*(i+1)/N,v0=ih*j/M,v1=ih*(j+1)/M,A=P[j][i],B=P[j][i+1],C=P[j+1][i+1],D=P[j+1][i];tri(A,B,C,u0,v0,u1,v0,u1,v1);tri(A,C,D,u0,v0,u1,v1,u0,v1)}
 ctx.restore()}
 document.querySelectorAll(".scene-canvas").forEach(c=>c.setAttribute("aria-label","Interactive 3D estate preview. Drag horizontally to orbit and vertically to tilt; Shift-drag or right-drag to pan; scroll to zoom."));
+/* AI PLANNER */
+if(!templates.coop)templates.coop={name:"Chicken Coop & Run",cat:"Farm",w:16,h:24,height:8,color:"#d97706",label:"CC",cost:45,method:"sqft",phase:"3",layer:"Farmland"};
+if(!templates.solar)templates.solar={name:"Ground Solar Array",cat:"Utility",w:60,h:40,height:8,color:"#1d4ed8",label:"PV",cost:12,method:"sqft",phase:"3"};
+const PL_EX=["Build a self-sufficient homestead with a 2,500 sqft house and 40x60 shop","Design a wedding venue for 250 guests","Create a 40-home subdivision","Design a family compound with 3 homes, a barn and an orchard","Design a retreat center with cabins and a pavilion for 80 guests"];
+const PL_CATS=["Excavation & site prep","Foundation & concrete","Framing & structure","Roofing & exterior","Electrical","Plumbing & HVAC","Interior finishes","Sitework & landscape","Utilities (trenching)","Design, permits & fees","Contingency (10%)"];
+function plToast(m){const t=document.createElement("div");t.className="af-toast";t.textContent=m;t.setAttribute("role","status");document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+function plParse(t){
+ const s=String(t||"").toLowerCase(),P=[],num2=x=>+String(x).replace(/,/g,""),has=r=>r.test(s);
+ const add=(k,label,w,h,rate,tmpl,o={})=>P.push({k,label,w,h,rate,tmpl,sf:w*h,bld:!!o.bld,opt:!!o.opt,fixed:o.fixed||0,qty:o.qty||1,kind:o.kind||"home"});
+ const guestM=s.match(/(\d[\d,]*)\s*(?:guests|people|attendees)/),guests=guestM?num2(guestM[1]):(has(/wedding|venue|festival|retreat|event|fair/)?150:0);
+ const subM=s.match(/(\d+)[\s-]*(?:home|house|lot|unit)s?\b/),subdiv=has(/subdivision|neighborhood|community|development/);
+ const sqM=s.match(/(\d[\d,]*)\s*(?:sq\.?\s?ft|sqft|square f)/);
+ const homes=subdiv&&subM?Math.min(300,+subM[1]):0;
+ if(homes){add("lot","Homes",45,40,190,"homelot",{bld:true,qty:homes,kind:"subdivision"});add("rd","Roads, drainage & lot utilities",60,60,0,"",{fixed:18000,qty:homes,kind:"subdivision"});add("park","Pocket park",120,80,10,"garden",{kind:"subdivision"})}
+ else if(has(/house|home|homestead|compound|cabin|ranch|farm|retreat/)||sqM){
+  const sf=sqM?Math.min(20000,num2(sqM[1])):(has(/luxury/)?4500:2200),w=Math.round(Math.sqrt(sf*1.5)),h=Math.round(sf/w);
+  const cm=s.match(/(\d+)\s*(?:homes|houses|cabins|residences)/),n=has(/compound/)?Math.max(2,cm?+cm[1]:3):(has(/cabin|retreat/)&&cm?+cm[1]:1);
+  add("house",has(/compound/)?"Main house":"House",w,h,has(/luxury/)?340:225,"home",{bld:true});
+  for(let i=1;i<Math.min(n,12);i++)add("home"+i,has(/compound/)?(i==1?"Parent / guest house":"Family house "+(i+1)):"Cabin "+(i+1),Math.round(w*.75),Math.round(h*.75),has(/compound/)?215:200,"home",{bld:true,kind:"extra"});
+  if(has(/guest house|mother|in-?law|parent/)&&!has(/compound/))add("guest","Guest house",30,30,205,"home",{bld:true,kind:"extra"});
+ }
+ const sm=s.match(/(\d+)\s*x\s*(\d+)\s*(?:ft|foot|')?\s*(?:shop|barn|garage|workshop|building)/);
+ if(sm)add("shop","Shop "+sm[1]+"x"+sm[2],+sm[1],+sm[2],70,"shop",{bld:true});
+ else if(has(/\bshop\b|workshop|garage/))add("shop","Shop 40x60",40,60,70,"shop",{bld:true});
+ if(has(/\bbarn\b|livestock|horse|ranch/))add("barn","Barn 40x80",40,80,55,"barn",{bld:true});
+ if(has(/homestead|self.?sufficient|chicken|coop/))add("coop","Chicken coop & run",16,24,45,"coop",{bld:true});
+ if(has(/orchard|homestead|self.?sufficient/))add("orchard","Orchard (1 acre)",180,240,0,"orchard",{fixed:2200*1.2*1.0*10,opt:true,kind:"farm"});
+ if(has(/garden|homestead|self.?sufficient/))add("garden","Vegetable garden",80,60,3,"garden",{opt:true,kind:"farm"});
+ if(has(/greenhouse|homestead|self.?sufficient/))add("gh","Greenhouse",30,96,12,"greenhouse",{bld:true,opt:true,kind:"farm"});
+ if(has(/pond|lake|homestead|retreat|ranch|luxury/))add("pond","Pond",120,80,2,"pond",{opt:true});
+ if(has(/solar|homestead|self.?sufficient|off.?grid/))add("solar","Solar array (~10 kW)",60,40,0,"solar",{opt:true,fixed:28000});
+ if(guests){
+  add("hall",has(/wedding/)?"Event barn & reception hall":"Gathering hall",Math.round(Math.sqrt(guests*15*1.6)),Math.round(Math.sqrt(guests*15/1.6)),260,"event",{bld:true,kind:"event"});
+  add("wc","Restroom pavilion",48,32,300,"restroom",{bld:true,kind:"event",qty:Math.max(1,Math.ceil(guests/150))});
+  if(has(/wedding|retreat|festival/))add("pav","Ceremony pavilion",60,40,120,"pavilion",{bld:true,kind:"event"});
+  const veh=Math.ceil(guests/2.4*1.1);add("lot","Guest parking ("+veh+" cars)",Math.round(Math.sqrt(veh*320*1.5)),Math.round(Math.sqrt(veh*320/1.5)),6,"parking",{kind:"event"});
+ }
+ if(!P.length)add("house","House",60,40,225,"home",{bld:true});
+ add("well","Well",20,20,0,"well",{fixed:30000,kind:"utility"});
+ if(!homes)add("septic","Septic system",160,100,0,"septic",{fixed:has(/venue|retreat|event/)?65000:32000,kind:"utility"});
+ return{prompt:t,P,guests,homes,venue:guests>0,solar:P.some(p=>p.k==="solar")};
+}
+function plCompute(pr,mod,dist){
+ const tier={economy:.85,standard:1,premium:1.35}[mod.tier]||1,drop=new Set(mod.drop||[]),shrink=mod.shrink||1;
+ const cat=Object.fromEntries(PL_CATS.map(c=>[c,0])),bom={},lines=[];
+ const R=[.04,.14,.24,.10,.08,.08,.24];
+ const bAdd=(n,u,q,p)=>{if(!bom[n])bom[n]={u,q:0,p};bom[n].q+=q};
+ pr.P.filter(p=>!drop.has(p.k)).forEach(p=>{
+  const k=p.k==="house"||p.kind==="extra"?shrink:1,sf=Math.round(p.sf*k*k),q=p.qty,
+   cost=p.fixed?p.fixed*q:sf*p.rate*q*(p.bld?tier:1);
+  lines.push({label:p.label+(q>1?" ×"+q:""),sf:sf*q,cost,bld:p.bld&&!p.fixed});
+  if(p.bld&&!p.fixed){R.forEach((r,i)=>cat[PL_CATS[i]]+=cost*r);
+   bAdd("Concrete (footing + slab)","cu yd",sf*q*.02,165);bAdd("Framing lumber","bd ft",sf*q*7,1.1);bAdd("Roofing","squares (100 sf)",sf*q*1.25/100,480);bAdd("Sheathing & siding","sf",sf*q*2.6,4.2);bAdd("Electrical wire & devices","ft",sf*q*1.6,1.4);bAdd("Plumbing / HVAC rough-in","lot-sf",sf*q,5.5);bAdd("Insulation & drywall","sf",sf*q*3,2.4)}
+  else cat["Sitework & landscape"]+=cost;
+ });
+ const bld=lines.reduce((a,l)=>a+l.cost,0);
+ const trench=dist+(pr.homes?pr.homes*60:0),svc=pr.homes?5:(pr.venue?5:4);
+ const U=[["Water line",45,1],["Electric service",35,1],["Fiber / internet",18,1],["Gas / propane",30,0],[pr.homes?"Sewer main":"Drainage & culverts",pr.homes?70:22,1]].map(([n,r,on])=>({n,ft:trench,cost:trench*r*(on?1:.0)}));
+ U.filter(u=>u.cost).forEach(u=>cat["Utilities (trenching)"]+=u.cost);
+ const sub=Object.values(cat).reduce((a,b)=>a+b,0);
+ cat["Design, permits & fees"]=sub*.06;cat["Contingency (10%)"]=(sub+cat["Design, permits & fees"])*.10;
+ const mid=Object.values(cat).reduce((a,b)=>a+b,0);
+ const bomRows=Object.entries(bom).map(([n,b])=>({n,u:b.u,q:Math.round(b.q*10)/10,cost:b.q*b.p}));
+ return{cat,mid,low:mid*.82,high:mid*1.28,lines,U,trench,bomRows,sf:lines.filter(l=>l.bld).reduce((a,l)=>a+l.sf,0)};
+}
+function plPhases(pr,c){
+ const bsf=c.sf,t=Math.round(c.trench/400);
+ const ph=[["Site prep & survey",2+(pr.homes?4:0),0],["Roads & driveway",2+(pr.homes?5:0),2],["Utilities",3+t+(pr.homes?6:0),3],["Foundations",3+Math.round(bsf/4000),5],["Buildings & shell",8+Math.round(bsf/1200),8],["MEP & finishes",6+Math.round(bsf/2000),14],["Landscaping & final inspection",3,16]];
+ let e=0;return ph.map(([n,w,d],i)=>{const st=i?Math.max(0,Math.round(e-(i>3?w*.3:0))):0;e=st+w;return{n,w,st}});
+}
+function plSim(pr){
+ const g=pr.guests;if(!g)return[];
+ const veh=Math.ceil(g/2.4),spaces=Math.ceil(veh*1.1),wc=Math.ceil(g/40),food=Math.ceil(g/75),peak=Math.ceil(veh*.7),lanes=g>400?3:g>150?2:1,queue=Math.round(peak/(lanes*6)),exits=Math.max(2,Math.ceil(g*.2/36));
+ const W=[];
+ if(queue>10)W.push("Arrival queue ≈ "+queue+" min at the entrance with "+lanes+" lane(s). Add a lane or stagger arrivals.");
+ if(spaces>150)W.push("Parking bottleneck: "+spaces+" spaces needed near the entrance; add an overflow field and attendants.");
+ if(lanes===1&&g>100)W.push("Single access road: emergency vehicles and guests share it. Add a second access.");
+ W.push("Emergency access: keep a 20 ft clear fire lane to the hall.");
+ return[["Vehicles",veh],["Parking spaces",spaces],["Peak arrivals / hr",peak*2],["Restroom fixtures",wc],["Food stations",food],["Exit doors (36 in)",exits],["Entrance lanes",lanes],["Est. entrance queue",queue+" min"]].concat(W.map(w=>["⚠",w]));
+}
+function plRoi(pr,c){
+ const mid=c.mid,o={};
+ if(pr.homes){const lot=475000,rev=lot*pr.homes;o.title="Developer pro forma";o.rows=[["Homes",pr.homes],["Sale price / home",fmt(lot)],["Gross revenue",fmt(rev)],["Development cost",fmt(mid)],["Land cost (est.)",fmt(rev*.2)],["Profit",fmt(rev-mid-rev*.2)],["Margin",Math.round((rev-mid-rev*.2)/rev*100)+"%"]];return o}
+ let rev,noi,note;
+ if(pr.venue){const ev=40,pp=60;rev=ev*pr.guests*pp;noi=rev*.55;note="40 events/yr × "+pr.guests+" guests × $60"}
+ else{const rent=Math.max(1,pr.P.filter(p=>p.kind==="extra").length)*1800*12*.9;rev=rent;noi=rent*.7;note="Rental of extra home(s) at $1,800/mo, 10% vacancy"}
+ const loan=mid*.8,r=.07/12,n=240,pay=loan*r/(1-Math.pow(1+r,-n))*12;
+ o.title="Investment mode";o.rows=[["Basis",note],["Annual revenue",fmt(rev)],["Net operating income",fmt(noi)],["Cap rate (NOI / cost)",(noi/mid*100).toFixed(1)+"%"],["Simple payback",(mid/noi).toFixed(1)+" yrs"],["Debt service (80% LTV, 7%, 20 yr)",fmt(pay)],["Annual cash flow",fmt(noi-pay)]];return o;
+}
+function plPermits(pr){
+ const L=["Zoning / land-use verification with the county planning office","Building permit + plan review (each structure)","Septic / on-site sewage site evaluation","Well permit or water-right confirmation","Driveway / road access permit","Erosion & sediment control plan","Electrical, plumbing and mechanical permits"];
+ if(pr.venue)L.push("Assembly occupancy / fire marshal review","Temporary event or food-service licensing","ADA-accessible route and restrooms");
+ if(pr.homes)L.push("Subdivision / plat approval","Stormwater and traffic impact study","Utility will-serve letters");
+ L.push("Inspections: footing, foundation, framing, rough MEP, insulation, final");return L;
+}
+function plPlace(pr,mod){
+ const side=Math.sqrt((state.project.acres||200)*43560),W=Math.min(side*.9,1800);let x=240,y=240,rowH=0,n=0;
+ const drop=new Set(mod.drop||[]),shrink=mod.shrink||1;snapshot();
+ pr.P.filter(p=>!drop.has(p.k)&&templates[p.tmpl]).forEach(p=>{
+  const cnt=Math.min(p.qty,p.homes?40:40),k=p.k==="house"||p.kind==="extra"?shrink:1;
+  for(let i=0;i<cnt;i++){const w=Math.round(p.w*k),h=Math.round(p.h*k);if(x+w>240+W){x=240;y+=rowH+60;rowH=0}
+   const it=makeItem(p.tmpl,x,y);it.w=w;it.h=h;it.name=p.label.replace(/ ×\d+$/,"")+(cnt>1?" "+(i+1):"");items().push(it);x+=w+50;rowH=Math.max(rowH,h);n++}
+ });save();return n;
+}
+function plannerPage(){
+ const pl=state.plan||(state.plan={prompt:"",dist:600,mod:{tier:"standard",drop:[],shrink:1}});
+ const out=pl.prompt?plHtml(pl):`<div class="empty">Describe what you want to build, then press Generate. Everything below is a planning-grade estimate.</div>`;
+ return`<section class="card"><div class="eyebrow">AI PLANNER</div><h2>Describe your vision</h2><p class="small muted">Plain text in, a costed and phased plan out. Rule-based estimator; not an engineering or bid document.</p><textarea id="plPrompt" class="input" rows="3" style="width:100%" aria-label="Project description" placeholder="${esc(PL_EX[0])}">${esc(pl.prompt)}</textarea><div class="actions" style="margin:8px 0">${PL_EX.map((e,i)=>`<button class="toolbtn" data-pl="ex" data-i="${i}">${esc(e.split(" with ")[0].slice(0,34))}</button>`).join("")}</div><label class="small">Distance from road / utilities (ft) <input id="plDist" class="input" type="number" min="0" style="width:100px" value="${pl.dist}"></label> <button class="btn primary" data-pl="gen">Generate plan</button> <button class="btn" data-pl="cut">Reduce cost by 20%</button> <button class="btn" data-pl="reset">Undo reductions</button> <button class="btn" data-pl="place">Place on Site Designer</button> <button class="btn ghost" data-pl="csv">⬇ Export CSV</button></section>${out}`;
+}
+function plHtml(pl){
+ const pr=plParse(pl.prompt),c=plCompute(pr,pl.mod,pl.dist),ph=plPhases(pr,c),tot=Math.max(...ph.map(p=>p.st+p.w)),sim=plSim(pr),roi=plRoi(pr,c),tb=r=>`<table class="table" style="width:100%">${r}</table>`;
+ const note=pl.mod.tier!=="standard"||pl.mod.drop.length||pl.mod.shrink<1?`<div class="notice">Reductions applied: ${esc(pl.mod.tier)} finishes${pl.mod.drop.length?", removed "+pl.mod.drop.map(k=>esc(pr.P.find(p=>p.k===k)?.label||k)).join(", "):""}${pl.mod.shrink<1?", homes shrunk "+Math.round((1-pl.mod.shrink)*100)+"%":""}.</div>`:"";
+ return`<div class="grid g3" style="margin:14px 0"><article class="card"><div class="eyebrow">LOW</div><h3>${fmt(c.low)}</h3></article><article class="card"><div class="eyebrow">MID ESTIMATE</div><h3>${fmt(c.mid)}</h3><p class="small muted">${Math.round(c.sf).toLocaleString()} sq ft · ${tot} weeks</p></article><article class="card"><div class="eyebrow">HIGH</div><h3>${fmt(c.high)}</h3></article></div>${note}
+ <div class="grid g2"><article class="card"><h3>Program</h3>${tb(c.lines.map(l=>`<tr><td>${esc(l.label)}</td><td>${l.sf.toLocaleString()} sf</td><td>${fmt(l.cost)}</td></tr>`).join(""))}<h3 style="margin-top:12px">Cost breakdown</h3>${tb(PL_CATS.map(k=>`<tr><td>${k}</td><td style="text-align:right">${fmt(c.cat[k])}</td></tr>`).join("")+`<tr><td><b>Total (mid)</b></td><td style="text-align:right"><b>${fmt(c.mid)}</b></td></tr>`)}</article>
+ <article class="card"><h3>Utilities · ${c.trench.toLocaleString()} ft trench</h3>${tb(c.U.map(u=>`<tr><td>${esc(u.n)}</td><td>${u.ft} ft</td><td>${fmt(u.cost)}</td></tr>`).join(""))}<h3 style="margin-top:12px">Bill of materials</h3>${tb(c.bomRows.map(b=>`<tr><td>${esc(b.n)}</td><td>${b.q.toLocaleString()} ${esc(b.u)}</td><td>${fmt(b.cost)}</td></tr>`).join("")||"<tr><td>No buildings</td></tr>")}</article></div>
+ <div class="grid g2" style="margin-top:14px"><article class="card"><h3>Phasing · ${tot} weeks</h3>${ph.map((p,i)=>`<div class="small" style="margin:6px 0">${i+1}. ${esc(p.n)} <span class="muted">(wk ${p.st+1}–${p.st+p.w})</span><div style="height:10px;background:#1f2a37;border-radius:5px"><div style="margin-left:${p.st/tot*100}%;width:${p.w/tot*100}%;height:10px;background:#f2c14e;border-radius:5px"></div></div></div>`).join("")}<p class="small muted">Utilities, roads and foundations overlap; weather and crews can shift dates.</p></article>
+ <article class="card"><h3>${esc(roi.title)}</h3>${tb(roi.rows.map(r=>`<tr><td>${esc(r[0])}</td><td style="text-align:right">${esc(r[1])}</td></tr>`).join(""))}<p class="small muted">Assumptions are placeholders; replace with local figures.</p></article></div>
+ <div class="grid g2" style="margin-top:14px"><article class="card"><h3>Permit checklist</h3><ul class="small">${plPermits(pr).map(x=>`<li>${esc(x)}</li>`).join("")}</ul><p class="small muted">Generic list; codes vary by county and state.</p></article>
+ <article class="card"><h3>${sim.length?"Event & traffic simulation":"Suggested improvements"}</h3>${sim.length?tb(sim.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join("")):`<ul class="small"><li>Site the house on the least-sloped, best-drained ground.</li><li>Keep shop and barn near the driveway to shorten utility runs.</li><li>Place the well upslope of the septic field, at least 100 ft away.</li><li>Orient long roof planes south for solar.</li></ul>`}</article></div>`;
+}
+function plCut(pl){
+ const pr=plParse(pl.prompt),m=pl.mod,target=plCompute(pr,m,pl.dist).mid*.8;
+ const cur=()=>plCompute(pr,m,pl.dist).mid;
+ if(m.tier!=="economy"){m.tier="economy"}
+ const opts=pr.P.filter(p=>p.opt&&!m.drop.includes(p.k)).map(p=>({p,v:plCompute(pr,{tier:m.tier,drop:[p.k],shrink:1},pl.dist).mid})).sort((a,b)=>a.v-b.v);
+ for(const o of opts){if(cur()<=target)break;m.drop.push(o.p.k)}
+ while(cur()>target&&m.shrink>.7)m.shrink=Math.round((m.shrink-.05)*100)/100;
+}
+function plCsv(pl){
+ const pr=plParse(pl.prompt),c=plCompute(pr,pl.mod,pl.dist),r=[["Section","Item","Value"]];
+ c.lines.forEach(l=>r.push(["Program",l.label,Math.round(l.cost)]));PL_CATS.forEach(k=>r.push(["Cost",k,Math.round(c.cat[k])]));
+ r.push(["Total","Low",Math.round(c.low)],["Total","Mid",Math.round(c.mid)],["Total","High",Math.round(c.high)]);
+ c.bomRows.forEach(b=>r.push(["BOM",b.n+" ("+b.u+")",b.q]));plPhases(pr,c).forEach(p=>r.push(["Phase",p.n,"wk "+(p.st+1)+"-"+(p.st+p.w)]));
+ const blob=new Blob([r.map(x=>x.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="acreforge-plan.csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
+}
+document.addEventListener("click",e=>{
+ const b=e.target.closest("[data-pl]");if(!b)return;
+ const pl=state.plan||(state.plan={prompt:"",dist:600,mod:{tier:"standard",drop:[],shrink:1}}),a=b.dataset.pl;
+ if(a==="ex"){pl.prompt=PL_EX[+b.dataset.i];pl.mod={tier:"standard",drop:[],shrink:1}}
+ else if(a==="gen"){const t=$("plPrompt").value.trim();if(!t)return plToast("Describe your project first");pl.prompt=t;pl.dist=Math.max(0,+$("plDist").value||0);pl.mod={tier:"standard",drop:[],shrink:1}}
+ else if(!pl.prompt)return plToast("Generate a plan first");
+ else if(a==="cut"){pl.dist=Math.max(0,+$("plDist").value||pl.dist);plCut(pl)}
+ else if(a==="reset")pl.mod={tier:"standard",drop:[],shrink:1};
+ else if(a==="place"){const n=plPlace(plParse(pl.prompt),pl.mod);plToast(n+" objects added to the Site Designer");return}
+ else if(a==="csv"){plCsv(pl);return}
+ save();render();
+});
 wireEvents();if(state._recoveryWarning){setTimeout(()=>alert(state._recoveryWarning),200)}render();
 })();
 </script>
