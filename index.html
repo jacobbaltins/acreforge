@@ -1960,6 +1960,17 @@ function landSamplePoints(center){
   const points=[],addGrid=fractions=>{for(const fy of fractions)for(const fx of fractions){const x=minX+(maxX-minX)*fx,y=minY+(maxY-minY)*fy;if(insideRing(outerRing,x,y)&&!rings.slice(1).some(ring=>insideRing(ring,x,y)))points.push({lon:x>180?x-360:x,lat:y})}};
   addGrid([.17,.5,.83]);
   if(!points.length)addGrid([.1,.2,.3,.4,.5,.6,.7,.8,.9]);
+  if(points.length<9){
+   const vertices=rings.flat().map(point=>point[1]).sort((a,b)=>a-b),scanlines=[];
+   for(let i=1;i<vertices.length;i++)if(vertices[i]>vertices[i-1])for(const fraction of [.2,.5,.8])scanlines.push(vertices[i-1]+(vertices[i]-vertices[i-1])*fraction);
+   const seen=new Set(points.map(point=>`${point.lon.toFixed(9)},${point.lat.toFixed(9)}`));
+   for(const y of scanlines){
+    const intersections=[];
+    for(const ring of rings)for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[j],b=ring[i];if((a[1]>y)!==(b[1]>y))intersections.push(toLongitude(a[0])+(y-a[1])*(toLongitude(b[0])-toLongitude(a[0]))/(b[1]-a[1]))}
+    intersections.sort((a,b)=>a-b);
+    for(let i=1;i<intersections.length&&points.length<9;i++){const x=(intersections[i-1]+intersections[i])/2;if(!insideRing(outerRing,x,y)||rings.slice(1).some(ring=>insideRing(ring,x,y)))continue;const point={lon:x>180?x-360:x,lat:y},key=`${point.lon.toFixed(9)},${point.lat.toFixed(9)}`;if(!seen.has(key)){seen.add(key);points.push(point)}}
+   }
+  }
   return points;
  });
  const points=[],seen=new Set(),maxPoints=9;

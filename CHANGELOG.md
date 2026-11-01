@@ -1,3 +1,6 @@
+## v37
+- Add a scanline fallback to fill the nine-point land-sampling cap for narrow or diagonal parcel shapes missed by the regular grid.
+
 ## v36
 - Distribute land-data sample points across imported multipart parcels, exclude polygon holes, and report component coverage within the nine-point cap.
 - Improve fallback sampling for parcel components missed by the initial grid.

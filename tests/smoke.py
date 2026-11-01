@@ -221,6 +221,33 @@ try:
               and any(lon > -122.82 for lon, _ in locations))
         check("hole interiors are excluded from parcel samples",
               all(not in_ring(point, hole) for point in locations))
+        page.evaluate("""() => {
+          const key = 'oregon-estate-planner-v1';
+          const saved = JSON.parse(localStorage[key]);
+          const length = 0.02, slope = 0.37, offset = 0.123;
+          const normal = [-slope / Math.hypot(slope, 1) * 0.00004,
+                          1 / Math.hypot(slope, 1) * 0.00004];
+          const at = (t, side) => [-123.01 + length * t + normal[0] * side * length,
+            43.99 + length * (offset + slope * t) + normal[1] * side * length];
+          saved.project.parcelBoundary = {source: 'thin diagonal smoke test', coordinates: [[[
+            at(0, -1), at(1, -1), at(1, 1), at(0, 1), at(0, -1)
+          ]]]};
+          delete saved.land;
+          localStorage[key] = JSON.stringify(saved);
+        }""")
+        page.reload()
+        page.wait_for_timeout(800)
+        page.locator('[data-page="planner"]').first.click()
+        page.locator('[data-pl="land"]').click()
+        page.wait_for_function(
+            "() => JSON.parse(localStorage['oregon-estate-planner-v1']).land?.sampleCount === 9",
+            timeout=30000)
+        land = page.evaluate("() => JSON.parse(localStorage['oregon-estate-planner-v1']).land")
+        thin_ring = page.evaluate(
+            "() => JSON.parse(localStorage['oregon-estate-planner-v1']).project.parcelBoundary.coordinates[0][0]")
+        check("thin diagonal parcels get distributed interior samples",
+              land["sampleCount"] == 9
+              and all(in_ring((sample["lon"], sample["lat"]), thin_ring) for sample in land["samples"]))
         page.click("[data-page=designer]")
         page.locator('[data-action="toggle-map-view"]').click()
         page.locator('#stateHits path[data-state-map="OR"]').click()
