@@ -2,6 +2,7 @@
 - Paste an address: buildable area, slope, solar, flood, soil, best build zones, site-cost range.
 - Command-center score, sub-score cards, click-a-cell popup (elevation, slope, uses).
 - Design-system colors for scores.
+- Each build zone explains why it was chosen (slope, sun, privacy, flood).
 
 ## Land overlays, retries, no-duplicate placing
 - Terrain map: toggle FEMA flood zones, NWI wetlands and slope shading (planning-grade).
