@@ -39,8 +39,9 @@ try:
         page.route("https://s3.amazonaws.com/elevation-tiles-prod/terrarium/**",
                    lambda route: route.fulfill(status=200, body=dem,
                        content_type="image/png", headers={"Access-Control-Allow-Origin": "*"}))
-        land_requests = {"fema": 0, "soil": 0}
+        land_requests = {"fema": 0, "soil": 0, "epqs": 0}
         land_mode = {"fema_case": "partial-high"}
+        elevation_mode = {"case": "mapped"}
         def mock_fema(route):
             land_requests["fema"] += 1
             query = parse_qs(urlparse(route.request.url).query)
@@ -61,10 +62,19 @@ try:
             lon = float(match.group(1))
             row = ["Clay loam", "Poorly drained", "D"] if lon > -123 else ["Sandy loam", "Well drained", "A"]
             route.fulfill(json={"Table": [row]})
+        def mock_epqs(route):
+            land_requests["epqs"] += 1
+            query = parse_qs(urlparse(route.request.url).query)
+            lon, lat = float(query["x"][0]), float(query["y"][0])
+            if elevation_mode["case"] == "partial-failure" and lat > 44:
+                route.fulfill(status=503, json={"error": "temporarily unavailable"})
+                return
+            value = "No Data" if elevation_mode["case"] == "unmapped" else str(
+                1000 + round((lat - 43.99) * 10000) + round((lon + 123) * 5000))
+            route.fulfill(json={"value": value})
         page.route("https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query**", mock_fema)
         page.route("https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest", mock_soil)
-        page.route("https://epqs.nationalmap.gov/v1/json**",
-                   lambda route: route.fulfill(json={"value": 1000}))
+        page.route("https://epqs.nationalmap.gov/v1/json**", mock_epqs)
         page.goto("http://localhost:8766/index.html")
         page.wait_for_timeout(800)
         for pg in ["dashboard", "planner", "designer", "reports", "settings"]:
@@ -104,7 +114,11 @@ try:
             timeout=30000)
         land = page.evaluate("() => JSON.parse(localStorage['oregon-estate-planner-v1']).land")
         check("parcel flood and soil sampling covers nine points",
-              land["sampleCount"] == 9 and land_requests == {"fema": 9, "soil": 9})
+              land["sampleCount"] == 9 and land_requests == {"fema": 9, "soil": 9, "epqs": 9})
+        check("parcel elevations report a sampled range and average",
+              land["elevationSampleCount"] == 9 and land["elevationMin"] < land["elevationMean"]
+              < land["elevationMax"] and land["elev"].endswith("(9/9 samples)")
+              and "USGS elevation 9/9 responded, 9 mapped" in land["coverage"])
         check("partial flood risk and soil mix are explicit",
               land["floodRisk"] == "high" and land["floodCounts"]["high"] == 1
               and "1/9" in land["flood"] and "Sandy loam" in land["soil"]
@@ -126,6 +140,25 @@ try:
         check("unmapped flood samples are not labeled low risk",
               land["floodRisk"] == "unavailable" and "No mapped flood zone" in land["flood"]
               and "FEMA 9/9 responded, 0 zones mapped" in land["coverage"])
+        elevation_mode["case"] = "partial-failure"
+        page.locator('[data-pl="land"]').click()
+        page.wait_for_function(
+            "() => JSON.parse(localStorage['oregon-estate-planner-v1']).land?.elevationSampleCount === 6",
+            timeout=30000)
+        land = page.evaluate("() => JSON.parse(localStorage['oregon-estate-planner-v1']).land")
+        check("partial elevation failures are reported without hiding valid samples",
+              land["elevationSampleCount"] == 6 and "(6/9 samples)" in land["elev"]
+              and "USGS elevation 6/9 responded, 6 mapped" in land["coverage"])
+        elevation_mode["case"] = "unmapped"
+        page.locator('[data-pl="land"]').click()
+        page.wait_for_function(
+            "() => JSON.parse(localStorage['oregon-estate-planner-v1']).land?.elevationSampleCount === 0",
+            timeout=30000)
+        land = page.evaluate("() => JSON.parse(localStorage['oregon-estate-planner-v1']).land")
+        check("unmapped elevation responses are not converted to zero feet",
+              land["elev"] == "No mapped elevation data" and land["elevationMin"] is None
+              and "USGS elevation 9/9 responded, 0 mapped" in land["coverage"])
+        elevation_mode["case"] = "mapped"
         page.evaluate("""() => {
           const key = 'oregon-estate-planner-v1';
           const saved = JSON.parse(localStorage[key]);

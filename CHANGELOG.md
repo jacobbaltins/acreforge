@@ -1,3 +1,7 @@
+## v35
+- Extend sampled land lookups to USGS elevation at up to nine parcel points; report sampled minimum, maximum, average, and mapped coverage.
+- Document that Land Data sends sampled coordinates to public elevation, flood, and soil services.
+
 ## v34
 - Sample FEMA flood and USDA soil data at up to nine locations inside an imported parcel, with bounded request concurrency and explicit data-coverage counts.
 - Unmapped or incomplete flood samples are not classified as low risk; parcel sampling also handles antimeridian boundaries.
