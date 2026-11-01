@@ -1,3 +1,6 @@
+## Terrain read
+- Property page explains slope aspect, water flow direction, high points and low points from the parcel elevation grid.
+
 ## Cost range
 - Driveway plus utilities shown as low, likely and high estimates with assumptions.
 
