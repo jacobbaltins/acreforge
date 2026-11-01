@@ -1,3 +1,6 @@
+## Design assistant
+- AI Planner tab: command box edits the Site Designer plan (add another house, move the barn north, remove X, increase parking, lower costs).
+
 ## AI Planner
 - New AI Planner tab: describe a project in plain text and get a program, low/mid/high cost, bill of materials, utilities trench costs, phasing chart, permit checklist, event/traffic simulation, investment/developer pro forma, and Reduce-cost-by-20% redesign.
 - Place on Site Designer adds the planned buildings as objects; CSV export.

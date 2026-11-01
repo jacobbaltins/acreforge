@@ -1700,10 +1700,24 @@ function plPlace(pr,mod){
    const it=makeItem(p.tmpl,x,y);it.w=w;it.h=h;it.name=p.label.replace(/ ×\d+$/,"")+(cnt>1?" "+(i+1):"");items().push(it);x+=w+50;rowH=Math.max(rowH,h);n++}
  });save();return n;
 }
+const AS_KEYS={barn:"barn",arena:"arena",shop:"shop",workshop:"shop",house:"home",home:"home",cabin:"home",pond:"pond",well:"well",septic:"septic",parking:"parking",orchard:"orchard",garden:"garden",greenhouse:"greenhouse",coop:"coop",chicken:"coop",solar:"solar",restroom:"restroom",pavilion:"pavilion",camping:"camping",campground:"camping",event:"event"};
+function asFree(w,h){const its=items(),X0=200,Y0=200,step=40,side=Math.sqrt((state.project.acres||200)*43560)*.9;for(let y=Y0;y<Y0+side;y+=step)for(let x=X0;x<X0+side;x+=step){if(!its.some(o=>x<o.x+o.w+20&&x+w+20>o.x&&y<o.y+o.h+20&&y+h+20>o.y))return[x,y]}return[X0,Y0]}
+function asRun(txt){
+ const s=String(txt||"").toLowerCase().trim();if(!s)return"Type a command first.";
+ const key=Object.keys(AS_KEYS).find(k=>new RegExp("\\b"+k+"s?\\b").test(s)),tk=key&&AS_KEYS[key];
+ const find=()=>{const a=items().filter(o=>o.type===tk),its=a.length?a:items().filter(o=>key&&o.name.toLowerCase().includes(key));return its[its.length-1]};
+ if(/(lower|reduce|cut)\s+(the\s+)?cost/.test(s)){const pl=state.plan;if(!pl||!pl.prompt)return"Generate a plan first, then I can cut its cost.";plCut(pl);save();return"Applied cost reductions to the plan."}
+ if(/increase parking|more parking|add parking/.test(s)){const t=templates.parking,[x,y]=asFree(t.w,t.h),it=makeItem("parking",x,y);snapshot();items().push(it);save();return"Added a parking area."}
+ if(!tk)return"I didn't recognise an object. Try: add another house, move the barn north, remove the pond, increase parking.";
+ if(/\b(add|build|place|new)\b/.test(s)){const t=templates[tk];if(!t)return"No such object.";const n=Math.min(10,+(s.match(/\b(\d+)\b/)||[0,1])[1]||1);snapshot();for(let i=0;i<n;i++){const[x,y]=asFree(t.w,t.h);items().push(makeItem(tk,x,y))}save();return"Added "+n+" × "+t.name+"."}
+ if(/\b(remove|delete)\b/.test(s)){const o=find();if(!o)return"No "+key+" found.";snapshot();state.scenarios.find(c=>c.id===state.activeScenario).items=items().filter(i=>i!==o);save();return"Removed "+o.name+"."}
+ if(/\bmove\b/.test(s)){const o=find();if(!o)return"No "+key+" found.";const d=200,m=s.match(/north|up|south|down|east|right|west|left/);if(!m)return"Say which way: north, south, east or west.";snapshot();const v={north:[0,-d],up:[0,-d],south:[0,d],down:[0,d],east:[d,0],right:[d,0],west:[-d,0],left:[-d,0]}[m[0]];o.x=Math.max(0,o.x+v[0]);o.y=Math.max(0,o.y+v[1]);save();return"Moved "+o.name+" "+m[0]+" 200 ft."}
+ return"Try add, move or remove with an object name.";
+}
 function plannerPage(){
  const pl=state.plan||(state.plan={prompt:"",dist:600,mod:{tier:"standard",drop:[],shrink:1}});
  const out=pl.prompt?plHtml(pl):`<div class="empty">Describe what you want to build, then press Generate. Everything below is a planning-grade estimate.</div>`;
- return`<section class="card"><div class="eyebrow">AI PLANNER</div><h2>Describe your vision</h2><p class="small muted">Plain text in, a costed and phased plan out. Rule-based estimator; not an engineering or bid document.</p><textarea id="plPrompt" class="input" rows="3" style="width:100%" aria-label="Project description" placeholder="${esc(PL_EX[0])}">${esc(pl.prompt)}</textarea><div class="actions" style="margin:8px 0">${PL_EX.map((e,i)=>`<button class="toolbtn" data-pl="ex" data-i="${i}">${esc(e.split(" with ")[0].slice(0,34))}</button>`).join("")}</div><label class="small">Distance from road / utilities (ft) <input id="plDist" class="input" type="number" min="0" style="width:100px" value="${pl.dist}"></label> <button class="btn primary" data-pl="gen">Generate plan</button> <button class="btn" data-pl="cut">Reduce cost by 20%</button> <button class="btn" data-pl="reset">Undo reductions</button> <button class="btn" data-pl="place">Place on Site Designer</button> <button class="btn ghost" data-pl="csv">⬇ Export CSV</button></section>${out}`;
+ return`<section class="card"><div class="eyebrow">AI PLANNER</div><h2>Describe your vision</h2><p class="small muted">Plain text in, a costed and phased plan out. Rule-based estimator; not an engineering or bid document.</p><textarea id="plPrompt" class="input" rows="3" style="width:100%" aria-label="Project description" placeholder="${esc(PL_EX[0])}">${esc(pl.prompt)}</textarea><div class="actions" style="margin:8px 0">${PL_EX.map((e,i)=>`<button class="toolbtn" data-pl="ex" data-i="${i}">${esc(e.split(" with ")[0].slice(0,34))}</button>`).join("")}</div><label class="small">Distance from road / utilities (ft) <input id="plDist" class="input" type="number" min="0" style="width:100px" value="${pl.dist}"></label> <button class="btn primary" data-pl="gen">Generate plan</button> <button class="btn" data-pl="cut">Reduce cost by 20%</button> <button class="btn" data-pl="reset">Undo reductions</button> <button class="btn" data-pl="place">Place on Site Designer</button> <button class="btn ghost" data-pl="csv">⬇ Export CSV</button></section><section class="card" style="margin-top:14px"><div class="eyebrow">DESIGN ASSISTANT</div><p class="small muted">Edits your Site Designer plan. Try "add another house", "move the barn north", "remove the pond", "increase parking", "lower costs".</p><input id="plAsk" class="input" style="width:min(520px,100%)" aria-label="Design command" placeholder="add another house"> <button class="btn" data-pl="ask">Do it</button> <span id="plAskOut" class="small muted" role="status"></span></section>${out}`;
 }
 function plHtml(pl){
  const pr=plParse(pl.prompt),c=plCompute(pr,pl.mod,pl.dist),ph=plPhases(pr,c),tot=Math.max(...ph.map(p=>p.st+p.w)),sim=plSim(pr),roi=plRoi(pr,c),tb=r=>`<table class="table" style="width:100%">${r}</table>`;
@@ -1731,11 +1745,13 @@ function plCsv(pl){
  c.bomRows.forEach(b=>r.push(["BOM",b.n+" ("+b.u+")",b.q]));plPhases(pr,c).forEach(p=>r.push(["Phase",p.n,"wk "+(p.st+1)+"-"+(p.st+p.w)]));
  const blob=new Blob([r.map(x=>x.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="acreforge-plan.csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
 }
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="plAsk"){e.preventDefault();document.querySelector('[data-pl="ask"]')?.click()}});
 document.addEventListener("click",e=>{
  const b=e.target.closest("[data-pl]");if(!b)return;
  const pl=state.plan||(state.plan={prompt:"",dist:600,mod:{tier:"standard",drop:[],shrink:1}}),a=b.dataset.pl;
  if(a==="ex"){pl.prompt=PL_EX[+b.dataset.i];pl.mod={tier:"standard",drop:[],shrink:1}}
  else if(a==="gen"){const t=$("plPrompt").value.trim();if(!t)return plToast("Describe your project first");pl.prompt=t;pl.dist=Math.max(0,+$("plDist").value||0);pl.mod={tier:"standard",drop:[],shrink:1}}
+ else if(a==="ask"){const m=asRun($("plAsk").value);const keep=$("plAsk").value;save();render();$("plAskOut").textContent=m;plToast(m);return}
  else if(!pl.prompt)return plToast("Generate a plan first");
  else if(a==="cut"){pl.dist=Math.max(0,+$("plDist").value||pl.dist);plCut(pl)}
  else if(a==="reset")pl.mod={tier:"standard",drop:[],shrink:1};
