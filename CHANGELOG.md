@@ -1,3 +1,6 @@
+## BIM-style layers
+- Lot Builder: Layer selector (Architecture, Structure, Electrical, Plumbing, HVAC, Fire safety) with generated schematic overlays; click a room in Plumbing to list fixtures and pipe sizes.
+
 ## Design assistant
 - AI Planner tab: command box edits the Site Designer plan (add another house, move the barn north, remove X, increase parking, lower costs).
 
