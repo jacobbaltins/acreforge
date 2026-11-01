@@ -1,3 +1,7 @@
+## Simple workflow menu
+- Nav cut to Projects, Property, Design, Reports, Settings with section tabs; 'All tools' restores the full menu.
+- 'Ask AcreForge' box and goal buttons (Homestead, Compound, Venue, Retreat, Subdivision) build a starter plan in one click.
+
 ## Property Analyzer
 - Paste an address: buildable area, slope, solar, flood, soil, best build zones, site-cost range.
 - Command-center score, sub-score cards, click-a-cell popup (elevation, slope, uses).
