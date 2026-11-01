@@ -1,3 +1,6 @@
+## Family Compound scores
+- Privacy, walking distance, shared-utility trench and expansion scores for multi-home plans, with tips.
+
 ## Homestead scores
 - Homestead plans show Food Production, Energy Independence and Expansion Capability scores (0-100) with tips, scaled to the household size in your prompt (e.g. 'for six people').
 - Rule-of-thumb scoring from growing area, livestock, solar, water and unused buildable land.
