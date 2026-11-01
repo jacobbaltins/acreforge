@@ -44,6 +44,15 @@ The unit costs are starter placeholders. They exclude site-specific construction
 - Financing: standard fixed-rate fully amortizing monthly-payment estimate using entered principal, annual rate, and term. Estimated annual debt service is 12 monthly payments; NOI after debt service subtracts that estimate.
 - Five-year illustration: gross revenue and operating expenses each grow at a fixed 3% per year. The illustration has no ramp-up, variable growth controls, taxes, or other forecast adjustments.
 
+## Construction estimator
+
+- Quantities come from typed dimensions, the Lot Builder plan, or a blueprint takeoff. Takeoff length = sum of segment lengths x feet per pixel; area = shoelace polygon area x (feet per pixel)^2.
+- A whole-house estimate expands building quantities into roughly 50 assembly lines (general conditions, site work, foundation, framing, roofing, envelope, openings, MEP, insulation and drywall, finishes). Examples: roof area = footprint with overhang / cos(pitch angle); squares = roof area / 100 x 1.1 waste; concrete cy = volume / 27 x waste.
+- Unit material and labor costs are editable national-average planning figures. Finish level multiplies finish-sensitive items (basic 0.85, standard 1.00, premium 1.45).
+- Location factors per state are approximate regional adjustments (for example Oregon 1.03). They are not RSMeans or any licensed cost index.
+- Total = materials + labor + sales tax on materials + contingency + permits allowance + overhead + profit, where tax applies to materials, contingency and permits to direct cost, overhead to that subtotal, and profit to subtotal plus overhead.
+- AI takeoff results are estimates and must be reviewed before generating a bid.
+
 ## Important model boundaries
 
 The model does not calculate taxes, depreciation, working capital, insurance, replacement reserves, debt covenants, loan eligibility, development charges, property acquisition, or legal/engineering/site constraints. Linked revenue rules are simplified scenario toggles and should not be interpreted as confirmation that an activity is permitted.

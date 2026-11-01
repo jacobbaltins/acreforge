@@ -70,6 +70,7 @@
 <input class="file-hidden" id="parcelFile" type="file" accept=".geojson,.json,.kml,.xml,application/geo+json,application/vnd.google-earth.kml+xml">
 <script src="./vendor/maplibre-gl.js"></script>
 <script src="./us-states.js"></script>
+<script src="./estimator.js" defer></script>
 <script>
 (()=>{"use strict";
 const STORAGE="oregon-estate-planner-v1",RECOVERY="oregon-estate-planner-recovery-v1",CELL=40;
@@ -1590,6 +1591,7 @@ ctx.save();const pb=state.project.parcelBoundary;if(pb&&pb.polygons){ctx.beginPa
 for(let j=0;j<M;j++)for(let i=0;i<N;i++){const u0=iw*i/N,u1=iw*(i+1)/N,v0=ih*j/M,v1=ih*(j+1)/M,A=P[j][i],B=P[j][i+1],C=P[j+1][i+1],D=P[j+1][i];tri(A,B,C,u0,v0,u1,v0,u1,v1);tri(A,C,D,u0,v0,u1,v1,u0,v1)}
 ctx.restore()}
 document.querySelectorAll(".scene-canvas").forEach(c=>c.setAttribute("aria-label","Interactive 3D estate preview. Drag horizontally to orbit and vertically to tilt; Shift-drag or right-drag to pan; scroll to zoom."));
+window.AcreForgeHost={navItems,getPage:()=>activePage,setPage:p=>{activePage=p;render()},wrapRender:f=>{const r=render;render=function(){r.apply(this,arguments);f()}},rerender:()=>render(),content:()=>$("content")};
 wireEvents();if(state._recoveryWarning){setTimeout(()=>alert(state._recoveryWarning),200)}render();
 })();
 </script>

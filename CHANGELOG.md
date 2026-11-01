@@ -1,3 +1,9 @@
+## Estimator
+- New Estimator page: describe a job, estimate a Lot Builder plan, or take off quantities from an uploaded PDF/image blueprint (scale presets, calibration, length/area/count tools)
+- Optional AI blueprint reading with your own key and endpoint (only the page image is sent)
+- State location factors, finish levels, editable line items, tax/contingency/permits/overhead/profit
+- Bid PDF, CSV and JSON export; bundled PDF.js (Apache-2.0)
+
 ## Lot Builder tools 4
 - Snap 1 ft, Remove duplicates, Scale 125%/80%, Rotate design 90°
 - Delete key removes the selected item; R/Home resets the 3D view

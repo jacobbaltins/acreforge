@@ -40,6 +40,18 @@ Pastures and crop fields are **land zones** (Land zones card), not placeable obj
 ## Building & Lot Builder
 Open **Building & Lot Builder** in the sidebar. Pick a starter (3-bed home, horse barn, shop/garage, retail, full lot) and a drawing area (72–600 ft). Browse 12 library folders (rooms, kitchen, bath, garage/shop, barn, commercial, lot items). With the Move tool, click a room or item to edit its size, position, rotation, type and height, or duplicate/delete it. Keys: 1 Move, 2 Room, 3 Wall, 4 Door, 5 Window, 6 Erase, R rotate, Delete remove, Ctrl+Z undo. Toggle 3D to spin the model; **Place on site plan** drops it on the property. Export a letter-landscape **Print-ready PDF** with floor labels, room areas and dimensions, or export a layered DXF with room labels for CAD.
 
+## Estimator (blueprints to bid)
+Open **Estimator** in the sidebar to turn plans into a bid-ready estimate.
+
+- **Describe a job**: deck, slab, fence, roof, room addition, shed or whole house from a few dimensions.
+- **From Lot Builder plan**: reads your Lot Builder design (area, perimeter, interior walls, doors, windows, fixtures). There is also an "Estimate this plan in Estimator" button in Lot Builder.
+- **Blueprint takeoff**: upload a PDF or image plan, set the scale (drawing-scale preset or two-point calibration), then measure lengths, areas and counts by category. Send totals to the building quantities or add any measurement as a line item.
+- **Read with AI (optional)**: sends only the current page image to an OpenAI-compatible endpoint you choose, with your own API key stored in this browser. It fills in the building quantities for you to review. Use a server-side proxy before offering this to the public.
+- Pick a state to apply an approximate location cost factor, choose a finish level, then edit any quantity or unit cost. Tax, contingency, permits, overhead and profit roll into the total.
+- Export a branded **bid PDF** with signature line, a CSV, or save/open the estimate as JSON.
+
+Unit costs are editable national-average planning figures, not quotes. See CALCULATIONS.md.
+
 ## Run locally
 
 For the most reliable local run, extract the ZIP and serve the complete folder with any static file server. In PowerShell, from that folder:

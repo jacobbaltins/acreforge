@@ -13,3 +13,16 @@ License: 3-Clause BSD; see MAPLIBRE-LICENSE.txt.
 The viewer's USGS imagery/topographic maps, AWS elevation tiles, and optional
 OpenStreetMap references are still fetched from their public services and need
 an internet connection.
+
+PDF.js 6.4.299 (legacy build)
+
+Used by the Estimator to open blueprint PDFs locally in the browser. Files are
+never uploaded unless you choose "Read with AI".
+
+- pdfjs/pdf.min.mjs
+- pdfjs/pdf.worker.min.mjs
+- pdfjs/standard_fonts/
+
+Upstream: https://github.com/mozilla/pdf.js
+Package: https://www.npmjs.com/package/pdfjs-dist
+License: Apache-2.0; see pdfjs/LICENSE.txt.

@@ -1,5 +1,5 @@
-const CACHE="acreforge-shell-v6";
-const SHELL=["./","index.html","manifest.webmanifest","icon.svg"];
+const CACHE="acreforge-shell-v7";
+const SHELL=["./","index.html","manifest.webmanifest","icon.svg","estimator.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>n!==CACHE).map(n=>caches.delete(n)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{
