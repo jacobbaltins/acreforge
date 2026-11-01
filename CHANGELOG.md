@@ -1,3 +1,6 @@
+## Event venue check
+- Venue and retreat plans show parking, ceremony and reception space, restrooms, arrival queue time, emergency access and a low/likely/high revenue range.
+
 ## Terrain read
 - Property page explains slope aspect, water flow direction, high points and low points from the parcel elevation grid.
 
