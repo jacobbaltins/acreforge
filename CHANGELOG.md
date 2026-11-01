@@ -1,3 +1,6 @@
+## Venue check uses your layout
+- Venue card reads the placed parking, walking distance to the ceremony, and restroom count from the plan.
+
 ## Event venue check
 - Venue and retreat plans show parking, ceremony and reception space, restrooms, arrival queue time, emergency access and a low/likely/high revenue range.
 
