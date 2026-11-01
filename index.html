@@ -1769,6 +1769,15 @@ function afZone(list){
   it.why=it.type==="home"&&!placed.some(o=>o!==it&&o.type==="home")?"Best build zone: "+pzWhy(z0,A):it.type==="home"?"Next-best flat ground close to the main house, "+k.sl+"% slope.":it.type==="pond"?"Lowest ground here (about "+k.e+" ft) so water collects naturally.":AG.test(it.type)?(k.c==="o"?"Gentle "+k.sl+"% slope drains well and saves flat ground for buildings.":"Flat ground left over after buildings were placed."):"Flat ground ("+k.sl+"% slope) near the build zone keeps utility runs short.";break}}
  if(!placed.includes(it)){placed.push(it);it.why=""}
  });
+ const hm=placed.find(o=>/^(home|house)$/.test(o.type)&&o.why);
+ if(hm&&templates.road){
+  const X0=240,Y0=240,X1=240+gw*cs,Y1=240+gh*cs,hx=hm.x+hm.w/2,hy=hm.y+hm.h/2,d=[["W",hx-X0],["E",X1-hx],["N",hy-Y0],["S",Y1-hy]].sort((a,b)=>a[1]-b[1])[0],dr=makeItem("road",0,0),Wd=12,len=Math.max(20,Math.round(d[1]));
+  if(d[0]==="W"||d[0]==="E"){dr.w=len;dr.h=Wd;dr.x=d[0]==="W"?X0:hm.x+hm.w;dr.y=Math.round(hy-Wd/2);if(d[0]==="W")dr.w=Math.round(hm.x-X0)}
+  else{dr.w=Wd;dr.h=len;dr.x=Math.round(hx-Wd/2);dr.y=d[0]==="N"?Y0:hm.y+hm.h;if(d[0]==="N")dr.h=Math.round(hm.y-Y0)}
+  dr.name="Driveway to "+({W:"west",E:"east",N:"north",S:"south"})[d[0]]+" road edge";dr.fromPlan=1;
+  dr.why="Runs "+Math.round(Math.max(dr.w,dr.h))+" ft from the house to the nearest edge of the property, where road access is assumed. Connect it to the real road at the property line; check county access rules.";
+  items().push(dr);n++;
+ }
  return n;
 }
 function afHome(){

@@ -1,3 +1,6 @@
+## Driveway access
+- Placing a plan now adds a driveway from the main house to the nearest property edge, with a written reason and length, so access is never disconnected.
+
 ## Layer opacity + gray existing buildings
 - Terrain map reference layers get opacity sliders (buildings, roads, trees, fields/woods).
 - Existing OSM buildings are now gray, per the map color scheme.
