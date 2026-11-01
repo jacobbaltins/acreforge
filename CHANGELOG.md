@@ -1,3 +1,7 @@
+## Homestead scores
+- Homestead plans show Food Production, Energy Independence and Expansion Capability scores (0-100) with tips, scaled to the household size in your prompt (e.g. 'for six people').
+- Rule-of-thumb scoring from growing area, livestock, solar, water and unused buildable land.
+
 ## Budget-driven costs
 - Type a target such as 'reduce to $300k' or 'cut 15%' (Ask box or new Budget field) and the plan is redesigned to fit: economy finishes, optional items dropped, homes shrunk.
 - Says honestly when the target can't be reached.
