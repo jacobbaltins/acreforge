@@ -1,3 +1,6 @@
+## v30
+- Utilities card reconciles with the plan total: shows the generic utility amount already in the plan and a layout-adjusted total.
+
 ## Venue check uses your layout
 - Venue card reads the placed parking, walking distance to the ceremony, and restroom count from the plan.
 
