@@ -1,5 +1,6 @@
 """AcreForge smoke test. Run: python tests/smoke.py  (serves the repo on :8766)"""
-import subprocess, sys, time, os, struct, zlib
+import subprocess, sys, time, os, struct, zlib, json, re
+from urllib.parse import parse_qs, urlparse
 from playwright.sync_api import sync_playwright
 
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -38,6 +39,32 @@ try:
         page.route("https://s3.amazonaws.com/elevation-tiles-prod/terrarium/**",
                    lambda route: route.fulfill(status=200, body=dem,
                        content_type="image/png", headers={"Access-Control-Allow-Origin": "*"}))
+        land_requests = {"fema": 0, "soil": 0}
+        land_mode = {"fema_case": "partial-high"}
+        def mock_fema(route):
+            land_requests["fema"] += 1
+            query = parse_qs(urlparse(route.request.url).query)
+            lon, lat = map(float, query["geometry"][0].split(","))
+            features = []
+            if land_mode["fema_case"] == "partial-high" and abs(lon + 123) < 0.0001 and abs(lat - 44) < 0.0001:
+                features = [{"attributes": {"FLD_ZONE": "A", "ZONE_SUBTY": "1% annual chance", "SFHA_T": "T"}}]
+            elif land_mode["fema_case"] == "partial-low" and abs(lon + 123) < 0.0001 and abs(lat - 44) < 0.0001:
+                features = [{"attributes": {"FLD_ZONE": "X", "ZONE_SUBTY": "Minimal hazard", "SFHA_T": "F"}}]
+            route.fulfill(json={"features": features})
+        def mock_soil(route):
+            land_requests["soil"] += 1
+            query = json.loads(route.request.post_data)["query"]
+            match = re.search(r"point\((-?[\d.]+)\s+(-?[\d.]+)\)", query)
+            if not match:
+                route.fulfill(status=400, json={"Message": "Missing sample point"})
+                return
+            lon = float(match.group(1))
+            row = ["Clay loam", "Poorly drained", "D"] if lon > -123 else ["Sandy loam", "Well drained", "A"]
+            route.fulfill(json={"Table": [row]})
+        page.route("https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query**", mock_fema)
+        page.route("https://sdmdataaccess.sc.egov.usda.gov/Tabular/post.rest", mock_soil)
+        page.route("https://epqs.nationalmap.gov/v1/json**",
+                   lambda route: route.fulfill(json={"value": 1000}))
         page.goto("http://localhost:8766/index.html")
         page.wait_for_timeout(800)
         for pg in ["dashboard", "planner", "designer", "reports", "settings"]:
@@ -55,6 +82,71 @@ try:
           return s.scenarios.flatMap(c=>c.items).filter(o=>o.fromPlan).length}""")
         check("plan placed items (%d)" % n, n > 0)
         check("no JS errors", not errors)
+        page.evaluate("""() => {
+          const key = 'oregon-estate-planner-v1';
+          const saved = JSON.parse(localStorage[key]);
+          saved.scenarios = [{id: 'sample-test', name: 'Sampling test',
+            items: [], fields: [], surfacePatches: []}];
+          saved.activeScenario = 'sample-test';
+          saved.project.parcelBoundary = {source: 'smoke test', coordinates: [[[
+            [-123.01, 43.99], [-122.99, 43.99], [-122.99, 44.01],
+            [-123.01, 44.01], [-123.01, 43.99]
+          ]]]};
+          saved.project.locationCoordinates = {lon: -123, lat: 44, state: 'OR'};
+          localStorage[key] = JSON.stringify(saved);
+        }""")
+        page.reload()
+        page.wait_for_timeout(800)
+        page.locator('[data-page="planner"]').first.click()
+        page.locator('[data-pl="land"]').click()
+        page.wait_for_function(
+            "() => JSON.parse(localStorage['oregon-estate-planner-v1']).land?.sampleCount === 9",
+            timeout=30000)
+        land = page.evaluate("() => JSON.parse(localStorage['oregon-estate-planner-v1']).land")
+        check("parcel flood and soil sampling covers nine points",
+              land["sampleCount"] == 9 and land_requests == {"fema": 9, "soil": 9})
+        check("partial flood risk and soil mix are explicit",
+              land["floodRisk"] == "high" and land["floodCounts"]["high"] == 1
+              and "1/9" in land["flood"] and "Sandy loam" in land["soil"]
+              and "Clay loam" in land["soil"] and "9 sampled points" in land["coverage"])
+        land_mode["fema_case"] = "partial-low"
+        page.locator('[data-pl="land"]').click()
+        page.wait_for_function(
+            "() => JSON.parse(localStorage['oregon-estate-planner-v1']).land?.floodCounts?.low === 1",
+            timeout=30000)
+        land = page.evaluate("() => JSON.parse(localStorage['oregon-estate-planner-v1']).land")
+        check("partial low-risk coverage remains unavailable overall",
+              land["floodRisk"] == "unavailable" and land["floodCounts"]["unmapped"] == 8)
+        land_mode["fema_case"] = "unmapped"
+        page.locator('[data-pl="land"]').click()
+        page.wait_for_function(
+            "() => JSON.parse(localStorage['oregon-estate-planner-v1']).land?.floodCounts?.unmapped === 9",
+            timeout=30000)
+        land = page.evaluate("() => JSON.parse(localStorage['oregon-estate-planner-v1']).land")
+        check("unmapped flood samples are not labeled low risk",
+              land["floodRisk"] == "unavailable" and "No mapped flood zone" in land["flood"]
+              and "FEMA 9/9 responded, 0 zones mapped" in land["coverage"])
+        page.evaluate("""() => {
+          const key = 'oregon-estate-planner-v1';
+          const saved = JSON.parse(localStorage[key]);
+          saved.project.parcelBoundary = {source: 'antimeridian smoke test', coordinates: [[[
+            [179.8, 43.99], [-179.8, 43.99], [-179.8, 44.01],
+            [179.8, 44.01], [179.8, 43.99]
+          ]]]};
+          localStorage[key] = JSON.stringify(saved);
+        }""")
+        page.reload()
+        page.wait_for_timeout(800)
+        page.locator('[data-page="planner"]').first.click()
+        page.locator('[data-pl="land"]').click()
+        page.wait_for_function(
+            "() => Math.abs(JSON.parse(localStorage['oregon-estate-planner-v1']).land?.lon || 0) > 179.5",
+            timeout=30000)
+        land = page.evaluate("() => JSON.parse(localStorage['oregon-estate-planner-v1']).land")
+        longitudes = [sample["lon"] for sample in land["samples"]]
+        check("antimeridian parcels sample on both sides of 180 degrees",
+              abs(land["lon"]) > 179.5 and all(abs(lon) > 179 for lon in longitudes)
+              and any(lon > 0 for lon in longitudes) and any(lon < 0 for lon in longitudes))
         page.click("[data-page=designer]")
         page.locator('[data-action="toggle-map-view"]').click()
         page.locator('#stateHits path[data-state-map="OR"]').click()

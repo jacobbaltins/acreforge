@@ -1,3 +1,7 @@
+## v34
+- Sample FEMA flood and USDA soil data at up to nine locations inside an imported parcel, with bounded request concurrency and explicit data-coverage counts.
+- Unmapped or incomplete flood samples are not classified as low risk; parcel sampling also handles antimeridian boundaries.
+
 ## v33
 - Flood and wetland overlay visibility and opacity now persist alongside slope and contour settings.
 
