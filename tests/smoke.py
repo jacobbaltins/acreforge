@@ -180,6 +180,47 @@ try:
         check("antimeridian parcels sample on both sides of 180 degrees",
               abs(land["lon"]) > 179.5 and all(abs(lon) > 179 for lon in longitudes)
               and any(lon > 0 for lon in longitudes) and any(lon < 0 for lon in longitudes))
+        page.evaluate("""() => {
+          const key = 'oregon-estate-planner-v1';
+          const saved = JSON.parse(localStorage[key]);
+          saved.project.parcelBoundary = {source: 'multipart with hole smoke test', coordinates: [
+            [
+              [[-123.01, 43.99], [-122.99, 43.99], [-122.99, 44.01],
+               [-123.01, 44.01], [-123.01, 43.99]],
+              [[-123.003, 43.997], [-122.997, 43.997], [-122.997, 44.003],
+               [-123.003, 44.003], [-123.003, 43.997]]
+            ],
+            [[[-122.81, 43.99], [-122.80, 43.99], [-122.80, 44.01],
+              [-122.81, 44.01], [-122.81, 43.99]]]
+          ]};
+          localStorage[key] = JSON.stringify(saved);
+        }""")
+        page.reload()
+        page.wait_for_timeout(800)
+        page.locator('[data-page="planner"]').first.click()
+        page.locator('[data-pl="land"]').click()
+        page.wait_for_function(
+            "() => JSON.parse(localStorage['oregon-estate-planner-v1']).land?.parcelParts === 2",
+            timeout=30000)
+        land = page.evaluate("() => JSON.parse(localStorage['oregon-estate-planner-v1']).land")
+        locations = [(sample["lon"], sample["lat"]) for sample in land["samples"]]
+        in_ring = lambda point, ring: page.evaluate("""([p, ring]) => {
+          let inside = false;
+          for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            const a = ring[i], b = ring[j];
+            if ((a[1] > p[1]) !== (b[1] > p[1])
+                && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside;
+          }
+          return inside;
+        }""", [point, ring])
+        hole = [[-123.003, 43.997], [-122.997, 43.997], [-122.997, 44.003],
+                [-123.003, 44.003], [-123.003, 43.997]]
+        check("multipart parcels receive samples on every component",
+              land["sampleCount"] == 9 and land["parcelParts"] == 2
+              and land["sampledParts"] == 2 and "parts 2/2 sampled" in land["coverage"]
+              and any(lon > -122.82 for lon, _ in locations))
+        check("hole interiors are excluded from parcel samples",
+              all(not in_ring(point, hole) for point in locations))
         page.click("[data-page=designer]")
         page.locator('[data-action="toggle-map-view"]').click()
         page.locator('#stateHits path[data-state-map="OR"]').click()

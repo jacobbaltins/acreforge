@@ -1,3 +1,7 @@
+## v36
+- Distribute land-data sample points across imported multipart parcels, exclude polygon holes, and report component coverage within the nine-point cap.
+- Improve fallback sampling for parcel components missed by the initial grid.
+
 ## v35
 - Extend sampled land lookups to USGS elevation at up to nine parcel points; report sampled minimum, maximum, average, and mapped coverage.
 - Document that Land Data sends sampled coordinates to public elevation, flood, and soil services.
