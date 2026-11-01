@@ -1,3 +1,6 @@
+## Cost range
+- Driveway plus utilities shown as low, likely and high estimates with assumptions.
+
 ## Utility routes
 - Property planner shows power, fiber, water and septic runs with distance, material, estimated cost and difficulty.
 
