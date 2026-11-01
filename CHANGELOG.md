@@ -1,3 +1,7 @@
+## Analysis-driven placement
+- 'Place on Site Designer' now uses the analyzer: the house goes on the best build zone, shop/barn/greenhouse on nearby flat ground, orchard and garden on gentler slopes, the pond on the lowest ground.
+- A 'Why AcreForge put things here' list explains every placement.
+
 ## Simple workflow menu
 - Nav cut to Projects, Property, Design, Reports, Settings with section tabs; 'All tools' restores the full menu.
 - 'Ask AcreForge' box and goal buttons (Homestead, Compound, Venue, Retreat, Subdivision) build a starter plan in one click.

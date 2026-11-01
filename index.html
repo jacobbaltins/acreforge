@@ -1750,8 +1750,25 @@ function plPlace(pr,mod){
   const cnt=Math.min(p.qty,p.homes?40:40),k=p.k==="house"||p.kind==="extra"?shrink:1;
   for(let i=0;i<cnt;i++){const w=Math.round(p.w*k),h=Math.round(p.h*k);if(x+w>240+W){x=240;y+=rowH+60;rowH=0}
    const it=makeItem(p.tmpl,x,y);it.w=w;it.h=h;it.name=p.label.replace(/ ×\d+$/,"")+(cnt>1?" "+(i+1):"");it.fromPlan=1;items().push(it);x+=w+50;rowH=Math.max(rowH,h);n++}
- });save();return n;
+ });afZone(items().filter(o=>o.fromPlan));save();return n;
 }
+function afZone(list){
+ const A=state.analysis;if(!A||!A.cells||!A.zones||!A.zones.length||!A.SL)return 0;
+ const gw=A.gw,gh=A.gh,cs=A.cell||100,z0=A.zones[0],ok=(r,q)=>r>=0&&q>=0&&r<gh&&q<gw&&A.cells[r][q]&&A.cells[r][q]!=="."&&A.cells[r][q]!=="s",cx=q=>240+(q+.5)*cs,cy=r=>240+(r+.5)*cs;
+ const all=[];for(let r=0;r<gh;r++)for(let q=0;q<gw;q++){const c=A.cells[r][q];if(c==="g"||c==="o")all.push({r,q,c,sl:A.SL[r*gw+q]||0,e:A.EV[r*gw+q],d:Math.hypot(r-z0.r,q-z0.q)})}
+ if(!all.length)return 0;
+ const flat=all.filter(k=>k.c==="g").sort((a,b)=>a.d-b.d),gentle=all.filter(k=>k.c==="o").sort((a,b)=>a.d-b.d),low=all.slice().sort((a,b)=>a.e-b.e),AG=/orchard|garden|pasture|field/,placed=[];
+ const fits=(k,it)=>{const x=cx(k.q)-it.w/2,y=cy(k.r)-it.h/2;if(![[x,y],[x+it.w,y],[x,y+it.h],[x+it.w,y+it.h]].every(([px,py])=>ok(Math.floor((py-240)/cs),Math.floor((px-240)/cs))))return null;if(placed.some(o=>x<o.x+o.w+30&&x+it.w+30>o.x&&y<o.y+o.h+30&&y+it.h+30>o.y))return null;return[x,y]};
+ const order=list.slice().sort((a,b)=>(b.type==="home")-(a.type==="home")||(AG.test(a.type)-AG.test(b.type)));let n=0;
+ order.forEach(it=>{
+ const pool=it.type==="pond"?low:AG.test(it.type)?gentle.concat(flat.slice().reverse()):flat.concat(gentle);
+ for(const k of pool){const p=fits(k,it);if(p){it.x=Math.round(p[0]);it.y=Math.round(p[1]);placed.push(it);n++;
+  it.why=it.type==="home"&&!placed.some(o=>o!==it&&o.type==="home")?"Best build zone: "+pzWhy(z0,A):it.type==="home"?"Next-best flat ground close to the main house, "+k.sl+"% slope.":it.type==="pond"?"Lowest ground here (about "+k.e+" ft) so water collects naturally.":AG.test(it.type)?(k.c==="o"?"Gentle "+k.sl+"% slope drains well and saves flat ground for buildings.":"Flat ground left over after buildings were placed."):"Flat ground ("+k.sl+"% slope) near the build zone keeps utility runs short.";break}}
+ if(!placed.includes(it)){placed.push(it);it.why=""}
+ });
+ return n;
+}
+function afWhy(){const L=items().filter(o=>o.fromPlan&&o.why);if(!L.length)return"";return`<section class="card" style="margin-top:14px"><div class="eyebrow">WHY ACREFORGE PUT THINGS HERE</div><ul class="small" style="margin:8px 0 0 18px">${L.map(o=>`<li><b>${esc(o.name)}</b>: ${esc(o.why)}</li>`).join("")}</ul></section>`}
 const AS_KEYS={barn:"barn",arena:"arena",shop:"shop",workshop:"shop",house:"home",home:"home",cabin:"home",pond:"pond",well:"well",septic:"septic",parking:"parking",orchard:"orchard",garden:"garden",greenhouse:"greenhouse",coop:"coop",chicken:"coop",solar:"solar",restroom:"restroom",pavilion:"pavilion",camping:"camping",campground:"camping",event:"event"};
 function asFree(w,h){const its=items(),X0=200,Y0=200,step=40,side=Math.sqrt((state.project.acres||200)*43560)*.9;for(let y=Y0;y<Y0+side;y+=step)for(let x=X0;x<X0+side;x+=step){if(!its.some(o=>x<o.x+o.w+20&&x+w+20>o.x&&y<o.y+o.h+20&&y+h+20>o.y))return[x,y]}return[X0,Y0]}
 function asRun(txt){
@@ -1779,7 +1796,7 @@ function afHero(){return`<section class="card"><div class="eyebrow">ASK ACREFORG
 function plannerPage(){
  const pl=state.plan||(state.plan={prompt:"",dist:600,mod:{tier:"standard",drop:[],shrink:1}});
  const out=pl.prompt?plHtml(pl):`<div class="empty">Describe what you want to build, then press Generate. Everything below is a planning-grade estimate.</div>`;
- return`${afHero()}<div style="height:14px"></div>${pzCard()}<section class="card" style="margin-top:14px"><div class="eyebrow">AI PLANNER</div><h2 id="plHead">Describe your vision</h2><p class="small muted">Plain text in, a costed and phased plan out. Rule-based estimator; not an engineering or bid document.</p><textarea id="plPrompt" class="input" rows="3" style="width:100%" aria-label="Project description" placeholder="${esc(PL_EX[0])}">${esc(pl.prompt)}</textarea><div class="actions" style="margin:8px 0">${PL_EX.map((e,i)=>`<button class="toolbtn" data-pl="ex" data-i="${i}">${esc(e.split(" with ")[0].slice(0,34))}</button>`).join("")}</div><label class="small">Distance from road / utilities (ft) <input id="plDist" class="input" type="number" min="0" style="width:100px" value="${pl.dist}"></label> <button class="btn primary" data-pl="gen">Generate plan</button> <button class="btn" data-pl="cut">Reduce cost by 20%</button> <button class="btn" data-pl="reset">Undo reductions</button> <button class="btn" data-pl="place">Place on Site Designer</button> <button class="btn ghost" data-pl="csv">⬇ Export CSV</button></section><section class="card" style="margin-top:14px"><div class="eyebrow">DESIGN ASSISTANT</div><p class="small muted">Edits your Site Designer plan. Try "add another house", "move the barn north", "remove the pond", "increase parking", "lower costs".</p><input id="plAsk" class="input" style="width:min(520px,100%)" aria-label="Design command" placeholder="add another house"> <button class="btn" data-pl="ask">Do it</button> <span id="plAskOut" class="small muted" role="status"></span></section>${landCard()}${out}`;
+ return`${afHero()}<div style="height:14px"></div>${pzCard()}<section class="card" style="margin-top:14px"><div class="eyebrow">AI PLANNER</div><h2 id="plHead">Describe your vision</h2><p class="small muted">Plain text in, a costed and phased plan out. Rule-based estimator; not an engineering or bid document.</p><textarea id="plPrompt" class="input" rows="3" style="width:100%" aria-label="Project description" placeholder="${esc(PL_EX[0])}">${esc(pl.prompt)}</textarea><div class="actions" style="margin:8px 0">${PL_EX.map((e,i)=>`<button class="toolbtn" data-pl="ex" data-i="${i}">${esc(e.split(" with ")[0].slice(0,34))}</button>`).join("")}</div><label class="small">Distance from road / utilities (ft) <input id="plDist" class="input" type="number" min="0" style="width:100px" value="${pl.dist}"></label> <button class="btn primary" data-pl="gen">Generate plan</button> <button class="btn" data-pl="cut">Reduce cost by 20%</button> <button class="btn" data-pl="reset">Undo reductions</button> <button class="btn" data-pl="place">Place on Site Designer</button> <button class="btn ghost" data-pl="csv">⬇ Export CSV</button></section><section class="card" style="margin-top:14px"><div class="eyebrow">DESIGN ASSISTANT</div><p class="small muted">Edits your Site Designer plan. Try "add another house", "move the barn north", "remove the pond", "increase parking", "lower costs".</p><input id="plAsk" class="input" style="width:min(520px,100%)" aria-label="Design command" placeholder="add another house"> <button class="btn" data-pl="ask">Do it</button> <span id="plAskOut" class="small muted" role="status"></span></section>${landCard()}${afWhy()}${out}`;
 }
 const PZ_SETBACK=25,PZ_STEEP=15;
 function pzTile(z,x,y){return new Promise((res,rej)=>{const im=new Image();im.crossOrigin="anonymous";const t=setTimeout(()=>rej(Error("tile timeout")),20000);im.onload=()=>{clearTimeout(t);const c=document.createElement("canvas");c.width=c.height=256;const g=c.getContext("2d");g.drawImage(im,0,0);res(g.getImageData(0,0,256,256).data)};im.onerror=()=>{clearTimeout(t);rej(Error("tile failed"))};im.src=`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`})}
@@ -1909,7 +1926,7 @@ document.addEventListener("click",e=>{
  else if(!pl.prompt)return plToast("Generate a plan first");
  else if(a==="cut"){pl.dist=Math.max(0,+$("plDist").value||pl.dist);plCut(pl)}
  else if(a==="reset")pl.mod={tier:"standard",drop:[],shrink:1};
- else if(a==="place"){const n=plPlace(plParse(pl.prompt),pl.mod);plToast(n+" objects added to the Site Designer");return}
+ else if(a==="place"){const n=plPlace(plParse(pl.prompt),pl.mod);plToast(n+" objects added to the Site Designer"+(state.analysis&&state.analysis.zones?", placed using your analysis":""));render();return}
  else if(a==="csv"){plCsv(pl);return}
  save();render();
 });
