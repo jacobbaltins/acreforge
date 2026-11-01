@@ -1,3 +1,7 @@
+## Budget-driven costs
+- Type a target such as 'reduce to $300k' or 'cut 15%' (Ask box or new Budget field) and the plan is redesigned to fit: economy finishes, optional items dropped, homes shrunk.
+- Says honestly when the target can't be reached.
+
 ## Analysis-driven placement
 - 'Place on Site Designer' now uses the analyzer: the house goes on the best build zone, shop/barn/greenhouse on nearby flat ground, orchard and garden on gentler slopes, the pond on the lowest ground.
 - A 'Why AcreForge put things here' list explains every placement.
