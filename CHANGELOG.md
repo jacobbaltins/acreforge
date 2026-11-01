@@ -1,3 +1,10 @@
+## Lot Builder tools 5
+- Added dedicated Undo/Redo buttons and keyboard shortcuts (Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y)
+- Whole-plan scaling and rotation now transform rooms, furniture dimensions, doors, windows, and dimension lines together
+- Snap-to-foot now rounds furniture sizes and dimension endpoints as well as plan geometry
+- Added a CSV export for room totals, estimated costs, and furniture counts by level
+- Preserved the existing Lot Builder summary stats while adding wall, door, window, and level totals
+
 ## Lot Builder tools 4
 - Snap 1 ft, Remove duplicates, Scale 125%/80%, Rotate design 90°
 - Delete key removes the selected item; R/Home resets the 3D view
@@ -224,4 +231,3 @@
 - Pick location: search an address, paste a Google Maps link or coordinates, or click the satellite map; one press captures the map and matches real features. OpenStreetMap is now read in three small requests (roads first) and includes roads just outside the land edge.
 - Imported buildings, scrub and woods keep their real rotation and footprint size.
 - Match real features: copy real roads, houses, other buildings, trees, bushes, scrub and waterways from OpenStreetMap into your plan as editable items.
-
