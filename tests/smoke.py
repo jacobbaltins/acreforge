@@ -64,10 +64,21 @@ try:
             page.wait_for_timeout(150)
         page.locator('[data-ov="slope"]').check()
         page.locator('[data-ov="contours"]').check()
+        page.locator('[data-ov="flood"]').check()
+        page.locator('[data-ov="wet"]').check()
         page.wait_for_function("document.querySelector('#terrainAnalysisStatus')?.textContent.includes('Elevation sampled')", timeout=30000)
-        page.locator('[data-ov-op="slope"]').evaluate("e => { e.value = '50'; e.dispatchEvent(new Event('input', {bubbles:true})); }")
+        for layer, value in [("slope", "50"), ("flood", "45"), ("wet", "55")]:
+            page.locator(f'[data-ov-op="{layer}"]').evaluate("(e, value) => { e.value = value; e.dispatchEvent(new Event('input', {bubbles:true})); }", value)
         prefs = page.evaluate("() => JSON.parse(localStorage['acreforge-layerprefs'])")
-        check("slope and contour overlays render and persist", prefs["analysis"] == {"slope": True, "contours": True} and prefs["op"]["slope"] == 0.5)
+        expected = {"slope": True, "contours": True, "flood": True, "wet": True}
+        check("terrain overlays and opacity save", prefs["analysis"] == expected and prefs["op"]["slope"] == 0.5 and prefs["op"]["flood"] == 0.45 and prefs["op"]["wet"] == 0.55)
+        page.reload()
+        page.wait_for_timeout(800)
+        page.locator('[data-page=designer]').first.click()
+        page.locator('[data-action="toggle-map-view"]').click()
+        page.locator('#stateHits path[data-state-map="OR"]').click()
+        page.wait_for_selector(".ovbar", timeout=30000)
+        check("overlay settings restore after reload", all(page.locator(f'[data-ov="{layer}"]').is_checked() for layer in expected) and page.locator('[data-ov-op="flood"]').input_value() == "45" and page.locator('[data-ov-op="wet"]').input_value() == "55")
         check("no JS errors after terrain overlays", not errors)
         b.close()
 finally:

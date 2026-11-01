@@ -1,3 +1,9 @@
+## v33
+- Flood and wetland overlay visibility and opacity now persist alongside slope and contour settings.
+
+## v33
+- Flood and wetland overlay visibility and opacity now persist alongside slope and contour settings.
+
 ## v32
 - Added on-demand, color-coded slope bands and adaptive contour lines to the terrain map, with saved visibility and opacity controls.
 
