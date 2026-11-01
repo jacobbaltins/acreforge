@@ -1,3 +1,6 @@
+## v32
+- Added on-demand, color-coded slope bands and adaptive contour lines to the terrain map, with saved visibility and opacity controls.
+
 ## v31
 - Layer opacity sliders and reference-layer toggles are remembered between visits and re-renders.
 
