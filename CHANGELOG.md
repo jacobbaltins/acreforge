@@ -1,3 +1,6 @@
+## Building info
+- Clicking a mapped building on the 3D terrain map now shows its footprint area and distance from your picked spot.
+
 ## Driveway cost
 - The driveway explanation now shows an approximate gravel cost.
 
