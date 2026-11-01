@@ -1,3 +1,6 @@
+## Layer manager additions
+- The terrain map's Reference layers panel now has opacity sliders for your design and the basemap, plus a color legend (gray existing, green proposed, blue selected).
+
 ## Green proposed, blue selected
 - On the 3D terrain map, houses and buildings you draw now show green (proposed) and turn blue when selected.
 
