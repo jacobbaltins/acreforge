@@ -1,3 +1,9 @@
+## Land overlays, retries, no-duplicate placing
+- Terrain map: toggle FEMA flood zones, NWI wetlands and slope shading (planning-grade).
+- Land data lookup retries slow sources once.
+- Fire layer places detectors in more rooms.
+- Place on Site Designer replaces earlier planner items instead of duplicating.
+
 ## Land data lookup
 - AI Planner: Land data card pulls elevation (USGS), FEMA flood zone and USDA soil/drainage for the parcel center; each source fails independently.
 
