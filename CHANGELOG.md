@@ -1,3 +1,6 @@
+## Green proposed, blue selected
+- On the 3D terrain map, houses and buildings you draw now show green (proposed) and turn blue when selected.
+
 ## Building info
 - Clicking a mapped building on the 3D terrain map now shows its footprint area and distance from your picked spot.
 
