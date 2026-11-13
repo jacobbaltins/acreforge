@@ -1,3 +1,275 @@
+## v94
+- AF-014: Add a local seasonal sun-position preview using explicit WGS84 coordinates and a chosen browser-local date/time, with approximate sunrise/sunset and azimuth/elevation.
+- Show selected-day and nominal June/December solstice elevation paths; validate coordinate bounds and disclose timezone/accuracy assumptions.
+- Do not infer a location or claim shade, obstruction, solar-panel, or building-orientation analysis.
+
+## v93
+- AF-023: Add a local side-by-side visual comparison of frozen saved concept layouts, with a selectable “After” snapshot and the existing numeric decision metrics.
+- Keep previews schematic and read-only; do not alter the active scenario, project data, or existing restore/export workflows.
+
+## v92
+- Replace ambiguous Pro/early-access copy with an explicitly unvalidated future paid-pilot hypothesis covering multiple projects, cloud backup/sync, collaboration, project history, and enhanced reports.
+- Keep the core local planning workflow free and useful; state that no price, pilot, paid feature, or payment is active, and link to user-controlled feedback rather than implying enrollment.
+
+## v91
+- Replace the public issue/waitlist path with a user-controlled, blank-recipient email draft and copy fallback.
+- Add an in-app feedback route with limited, non-sensitive prompts; no backend inbox, persistence, analytics, project-data access, or automatic sending.
+- Explain recipient/provider handling and the draft's local-only behavior; add focused browser smoke coverage.
+
+## v90
+- Improve the existing print-ready report with saved property assumptions, a schematic site layout, building-concept schedule, modeled land allocation, and explicit cost inputs versus estimates.
+- Focus the due-diligence section on open questions and include descriptions, priorities, report date, units, and source/accuracy caveats.
+- Keep report generation and printing local; preserve the existing project backup, CSV, PDF, and DXF exports.
+
+## v89
+- Keep save status accurate through saving, success, startup-storage errors, and recovery-only launches; leave it visible on narrow screens.
+- Preserve the first-property draft marker until a save succeeds, including when a workspace switch flushes pending edits.
+- Clarify local storage, recovery, backup/import warnings, and what leaves the device; add persistence and failure-safety checks.
+
+## v88
+- Clarify the first-project choice: create and name a new property or open an illustrative sample layout.
+- Keep sample data and recovery separate from the user project, with visible return and sample-reset actions.
+- Guide new projects to the planner or site designer and show a clear continuation path for saved work.
+
+## v87
+- AF-021: Add a selectable cost-sensitivity preview for overall contingency or a populated site-object type at −20%, current, and +20%.
+- Reconcile the current preview to conceptual CapEx, exclude unavailable object types, and keep saved project assumptions unchanged.
+
+## v86
+- AF-019: Add an RV park concept with a configurable site count and gross area allowance, check-in, restroom, and existing well/septic placeholders.
+- Keep each RV area as one editable footprint; validate bounded inputs, disclose planning-only assumptions, and preserve the previous generated objects on invalid requests.
+
+## v85
+- AF-018: Add a local ranch concept program with an outdoor arena, round pen, pasture and paddock placeholders, feed/tack, hay, and manure storage.
+- Include generated ranch-object costs in the existing low/medium/high estimate; disclose that footprints do not establish animal capacity, grazing suitability, water supply, welfare compliance, or permits.
+
+## v84
+- AF-015: Add a local downslope routing preview from known terrain nodes, with relative contributing-node counts, no-data gaps, flat/local-low stops, and explicit limits.
+- Keep this read-only terrain proxy separate from water-flow, runoff, flood, drainage design, project estimates, and external lookups.
+
+## v83
+- AF-013: Add a temporary, user-configurable slope-only what-if preview of sampled terrain cells, preserving unknowns and excluding outside-boundary cells.
+- Keep the preview separate from the existing analysis, plan, and budget; environmental, legal, access, and site constraints remain unverified.
+
+## v82
+- AF-010: Add a local conceptual septic occupancy, daily-flow, tank-volume/footprint, and drain-field-area estimator driven only by user-entered assumptions.
+- Keep septic results separate from the existing planner budget and explicitly disclaim Oregon permitting suitability, regulatory compliance, and site-specific design.
+
+## v81
+- Guard conceptual earthwork against invalid footprint dimensions or coordinates, and clarify that a saved relative target must be reviewed when terrain is replaced.
+- Add a mixed-slope cut/fill calculation check and refresh the release archive.
+
+## v80
+- Add an explicit relative target-elevation input for bounded conceptual cut/fill quantities over supported plan footprints.
+- Show gross cut/export and fill/material-import quantities, recalculate during terrain strokes and on undo/redo, persist the user-selected target, and suppress unsupported terrain/footprint cases.
+
+## v79
+- Add a local driveway material allowance calculator using user-entered length, width, depth, material label, and low / expected / high rates per cubic yard.
+- Leave market prices blank, validate ordered rates, persist inputs locally, and keep the material-only result separate from the existing planner budget with explicit exclusions.
+
+## v78
+- Add explicit direct-drag repositioning for the local reference-image underlay in Site Designer, saving its property-local anchor on release.
+- Keep other plan gestures inactive during underlay move mode; support Escape cancellation and preserve the image's approximate, non-survey status.
+
+## v77
+- Add local reference-image rotation about the top-left plan anchor, with explicit clockwise angle and saved-project compatibility.
+- Keep reference images beneath editable objects; image placement remains approximate and is not georeferencing or survey registration.
+
+## v76
+- Add local known-distance reference-image scaling from a measured horizontal or vertical pixel span, preserving image aspect ratio and requiring explicit placement.
+- Validate the measurement and image availability without changing the saved project on failure; calibration does not establish image position, rotation or survey registration.
+
+## v75
+- Add local, validated re-importable terrain CSV downloads for edited and synthetic grids, retaining no-data and relative relief without fabricating a vertical datum.
+- Reject unsupported extents and grids outside the existing import limits; original source, absolute elevations and provenance do not travel with the CSV.
+
+## v74
+- Start new browser profiles with a blank concept and a dismissible welcome offering a local rule-based planning prompt or free exploration.
+- Add an illustrative land-plan example; preserve returning projects and recovery data, and keep generation and placement explicit.
+
+## v73
+- Add named, project-scoped flat-plan view bookmarks that restore local center and zoom without changing the layout.
+- Views are included in backups and public exports; they do not capture geographic or 3D cameras, layer settings or layout changes.
+
+## v72
+- Add project-scoped reusable site-object presets with confirmed removal and undoable placement of independent editable copies.
+- Presets include bounded object settings in backups and public exports; they do not copy location, lock or verification status.
+
+## v71
+- Add a local PNG/JPEG reference underlay in Site Designer with explicit property-feet placement, opacity, visibility, replacement and removal.
+- Store image bytes separately in browser IndexedDB; backups retain only placement and public exports omit underlay metadata. The underlay is an approximate 2D tracing aid, not survey registration.
+
+## v70
+- Add strict, local-only property-feet CSV elevation grid import with bounded dimensions, uniform spacing, no-data masks, replacement confirmation, terrain undo and provenance.
+- Preserve unknown elevation cells; reject invalid or unsupported grids before replacing terrain. This is not LAS/LAZ, GeoTIFF or raw LiDAR support.
+
+## v69
+- Add a local user-supplied GeoJSON building/tree reference inventory with a distinct 3D map layer, review list, visibility control, replacement confirmation and removal.
+- Validate supported WGS84 geometry and bounded input before replacement. Backups include the inventory; public export removes it. References are unverified and are neither automatic detection nor proposed objects.
+
+## v68
+- Add temporary, scenario-scoped site-object group selection with atomic move, duplicate, confirmed delete, alignment and equal-gap distribution.
+- Reject locked or parcel-invalid group actions without partial changes; support one-step undo and redo. These remain conceptual layout tools, not collision or engineering checks.
+
+## v67
+- Validate new GeoJSON/KML parcel rings before replacement, with bounded input and legacy saved-project compatibility.
+- Add searchable site-object filters, version-aware snapshot deltas and a sampled utility-corridor terrain profile.
+- Preserve unknown terrain and explicitly distinguish centerline and privacy proxies from verified engineering measurements.
+
+## v66
+- Add local project milestones, reporting phase subtotals, contingency sensitivity, an assumptions register, and a compact current-scenario summary export.
+- Show local storage health and backup metadata before restore; add a public-export privacy confirmation and exclude new milestone data from that export.
+- Suppress conceptual earthwork for incomplete or unsupported terrain/footprint inputs, label new edits to imported elevation samples, export a local relative-height terrain grid CSV with no-data flags, and sample straight-line terrain cross-sections with unknown gaps.
+- Preserve existing saved-project format and add deterministic browser coverage.
+
+## v65
+- Include structured conceptual handoff provenance, units, boundary caveats, exclusions and professional review checklist in the downloadable project JSON backup.
+- Smoke-test the JSON backup metadata, in addition to the local TXT, CSV, DXF and PDF outputs.
+
+## v64
+- Add print-ready report disclosures for local feet coordinates, imported-boundary limits, exclusions and professional review.
+- Add conceptual disclaimers to the site-plan PDF/print-sheet notes and smoke coverage for report, DXF and PDF export behavior.
+
+## v63
+- Label both DXF exports with a conceptual / not-for-construction comment header.
+
+## v62
+- Add a local-only conceptual handoff CSV (units, coordinates, review checklist; nothing sent).
+- Add a subscriptions architecture proposal; no billing is implemented.
+
+## v61
+- Add a local-only, clearly labeled conceptual handoff text export on Reports (units, coordinate assumptions, exclusions, professional-review checklist); nothing is uploaded or sent and no surveyor/engineer review is implied.
+- Phase 4 scope limited to this export; billing (Phase 5) remains gated.
+
+## v60
+- Add an opt-in, bring-your-own-key AI layout proposal (separate from the rule-based planner): explicit consent, https endpoint, key kept in memory only, 30 s timeout and cancel.
+- Treat model output as untrusted: validate schema, types, bounds, parcel containment and overlaps; preview first and apply only on approval, with AI provenance.
+- Failures, malformed output and cancellation leave the plan unchanged; add mocked browser coverage.
+
+## v59
+- Add a shared WGS84/local-feet projection so parcels, proposed features, roads, buildings, pins and terrain align on the map.
+- Extend the terrain map context to a 1,000-acre square while the editable plan stays at its own size; mask elevation no-data cells.
+- Add a map source status line (origin, layers, retrieval time, empty/stale/failed/offline) that makes no requests.
+- Simplify dense OpenStreetMap geometry for display only (1 m), keep source geometry for measurements, and disclose the 4,000-feature display cap.
+- Add browser coverage for alignment, source status, offline behavior, and dense geometry.
+
+## v58
+- Add deterministic peak-hour route analysis for cars, guest vehicles, guest walking, deliveries, and a separate emergency-access probe with bottleneck locations.
+- Disable traffic simulation and analysis until the road network has vehicle-access gates and all destinations are connected; disclose route-demand assumptions and study limitations.
+- Add browser coverage for repeatability, movement arithmetic, emergency-route disclosure, disconnected destinations, and networks without vehicle-access gates.
+
+## v57
+- Add an event-venue concept preset with ceremony, reception, restroom, guest-parking, and connected guest-flow path objects.
+- Reconcile parking capacity and footprint to 2.4 guests per car, a 10% reserve, and 300 sq ft per car; estimate guest circulation at $10/ft with a pre-layout allowance.
+- Omit guest-flow paths that cross an imported parcel boundary and disclose the generated route lengths, costs, and omissions.
+- State that fire access, accessibility, occupancy, parking, and permit compliance are not assessed; add browser coverage for venue components, parking arithmetic, route connectivity, costs, and county/professional review caveats.
+
+## v56
+- Align proposed site-plan buildings, land areas, trees, roads, and water with parcel/location coordinates and 3D terrain in the MapLibre property view.
+- Distinguish proposed features from optional, incomplete OpenStreetMap reference context; disclose when the plan has no usable georeference.
+- Add accessible Orbit, Walkthrough, and Fly camera modes with keyboard movement/turn controls and reduced-motion-aware camera transitions.
+- Add browser coverage for georeferenced proposals, missing-reference disclosures, all camera modes, and keyboard/pointer navigation.
+
+## v55
+- Add a family compound starter for a main house, parent house, guest house, and shared 40 × 60 ft shop.
+- Keep compound objects within imported parcel boundaries and reject undersized layouts without replacing the prior generated layout.
+- Show privacy spacing, straight-line travel, shared-trench estimates, and ranked utility-first, balanced, and privacy-first alternatives as heuristic comparisons.
+- Add browser coverage for building fit, parcel containment, overlap prevention, metric consistency, alternative ranking, and constrained-site failure behavior.
+
+## v54
+- Add a one-command homestead concept with a 2,500 sq ft house, garden, orchard, coop, barn, greenhouse, pond, well, septic assumptions, and an estimated budget.
+- Keep imported-parcel homestead footprints inside the supplied boundary and disclose terrain/placement rationale and unverified assumptions.
+- On constrained sites, place components that fit and list omitted features with reasons; preserve the prior layout when the house itself cannot fit.
+- Add smoke coverage for complete and constrained homesteads, parcel containment, rationale, cost totals, and safe failure behavior.
+
+## v53
+- Add water, power, fiber, and septic route distances, per-foot cost estimates, and short/moderate/long difficulty bands to the Property planner.
+- Use named Site Designer Utility Corridor layout geometry when available; identify endpoint straight-lines and planner-distance fallbacks as estimates, and keep unavailable routes unpriced.
+- Let users edit and persist route distances and per-foot rates; propagate utility and septic route costs into the corresponding low/mid/high budget lines and CSV.
+- Disclose shared-sewer concepts, connection-point uncertainty, and unverified route, service, and septic conditions; add regression coverage for route arithmetic, cost propagation, geometry sources, and missing endpoints.
+
+## v52
+- Add transparent low/mid/high concept budgets for roads, utilities, buildings, site preparation, septic, design/permit allowances, and contingency.
+- Make road rate, utility-rate factor, septic allowance, site-preparation, design/permit, and contingency assumptions editable and persistent per plan.
+- Keep budget line items and totals reconcilable in the UI and CSV; clearly label shared sewer assumptions and when private septic is not included.
+- Add regression coverage for range arithmetic, distance and building-size changes, editable assumptions, persistence, and subdivision septic disclosure.
+
+## v51
+- Save up to 12 named, frozen scenario comparison snapshots without changing the active layout.
+- Compare estimated cost, home-spacing privacy, property-level buildability, generated utility routes, and self-sufficiency only when the relevant inputs exist; identify shared context and keep missing evidence unavailable.
+- Restore a snapshot as a new editable scenario, or delete one with confirmation; preserve existing scenarios and snapshots.
+- Retain layout-generator prompt and distance assumptions per scenario, and ensure the solar-array site-object template is available when saved projects are reloaded.
+- Add browser smoke coverage for three-scenario comparison, metric mapping, unavailable values, reload persistence, active-scenario preservation, and safe restore/delete behavior.
+
+## v50
+- Generate editable concept layouts from requested home square footage and shop dimensions while checking spacing and available planning or parcel extents before replacing an existing generated layout.
+- Add a conceptual driveway stub where space and parcel constraints allow, utility assumptions, per-object placement rationale, and explicit limits around access, service, permits, setbacks, and costs.
+- Preserve undo behavior; reject invalid, oversized, or unplaceable plans without changing the existing layout.
+- Add smoke coverage for exact dimensions, parcel extent fit, utility/access caveats, rationale, undo, safe rejection, and request-to-layout time.
+
+## v49
+- Consolidate property questions, plan starters, cost adjustments, and supported site-object edits into one rule-based Property Copilot command bar.
+- Return property analysis and explicit evidence limitations; make unsupported commands fail clearly instead of implying successful AI generation.
+- Extend undo snapshots to restore plan settings and goal state as well as site-plan edits; confirm each action and preserve the selected property.
+- Add smoke coverage for buildability questions, homestead/compound/venue prompts, cost and object edits, undo, unsupported commands, and property retention.
+
+## v48
+- Add up to three spatially distinct, deterministically ranked build zones with lettered map markers, factor scores, rationale, tradeoffs, and keyboard-accessible details.
+- Rank only candidate/caution terrain, reuse opportunity fit evidence, treat mapped-road proximity as optional context, and avoid cells with mapped high/moderate flood sample points.
+- Keep privacy and unverified constraints explicit; return no zones when available terrain is constrained, unknown, or otherwise unsuitable.
+- Add smoke coverage for score consistency, stable ranking, parcel containment, flood-point handling, keyboard interaction, and zero-zone results.
+
+## v47
+- Add deterministic, evidence-aware suggestions for house, shop, pond, solar, orchard, and event sites, with ranked cards, distinct map markers, rationale, and explicit evidence gaps.
+- Keep suggestions reviewable and separate from saved site-plan placements; use optional mapped-road proximity only as context, never as proof of legal access.
+- Add smoke coverage for all suggestion types, stable ranking, parcel containment, missing evidence, and selecting each map marker.
+
+## v46
+- Add an evidence-aware buildability map with parcel-aware candidate, caution, constrained, and unknown terrain cells, point-only flood sample markers, and click explanations.
+- Exclude parcel holes and outside cells from buildability classes; reject unknown or constrained cells for generated site-plan placements.
+- Add browser regressions for mixed slopes, flood markers, partial/no elevation data, parcel holes, outside geometry, and layout placement; document conceptual thresholds and unverified constraints.
+
+## v45
+- Add an evidence-aware Property Health dashboard with mapped terrain/soil indicators, explicit coverage, unavailable privacy and missing-source states, and clearly labeled distance-based access/utility estimates excluded from the composite score.
+- Reject transparent or insufficient in-parcel elevation samples instead of treating no-data as flat terrain; clear stale scores before each analysis run.
+- Add complete, partial, missing-source, and transparent-elevation browser regressions; document score and data-request limitations.
+
+## v44
+- Center state terrain on a selected property at neighborhood scale and report the current view center and zoom.
+- Add AWS Terrarium-derived hillshade with visibility and opacity controls; align slope calculations to feet-based elevation and distance units.
+- Mask transparent/no-data samples and show coverage, tile zoom, sample-grid resolution, elevation range, and analysis legend; hide overlays and relief when coverage is insufficient or requests fail.
+- Add mocked terrain coverage for property-centered navigation, mapped elevation, no-data, request failures, 3D relief controls, and saved hillshade preferences.
+
+## v43
+- Add an on-demand Property building-footprint lookup with selectable mapped polygons, geodesic footprint areas, source labels, and explicitly tagged versus illustrative heights.
+- Keep existing-building references temporary and separate from proposed designs; clear stale results on location or parcel changes and disclose incomplete OSM coverage and request details.
+- Add mocked tests for missing/open geometry, measurements, selection, tagged/estimated heights, empty results, service errors, and proposal separation.
+
+## v42
+- Add an explicit Property road-context lookup for attributed OpenStreetMap roads, driveways, tracks, hierarchy, and supplied road names.
+- Keep mapped roads temporary and separate from proposed site-plan roads; add category visibility toggles and clear incomplete-coverage, access, and request-extent limitations.
+- Clear stale road references when the selected property changes; add mocked road-service coverage for user-triggered requests, classifications, labels, toggles, empty data, and service failure.
+
+## v41
+- Report imported parcel source, geodesic area, and total perimeter in Property Search; make road-frontage and adjacent-parcel gaps explicit when supporting data is unavailable.
+- Keep imported parcel outlines screen-stable at different map zoom levels.
+- Add multipart/interior-ring perimeter and zoomed-boundary smoke coverage.
+
+## v40
+- Add Property Search for addresses, coordinates, full Google Maps URLs, interactive map pins, and eight saved recent locations.
+- Move location selection out of the Site Designer map-snapshot panel and use the selected location in property analysis.
+- Explicitly distinguish location selection from parcel lookup/boundary data; retain import from assessor/GIS or survey files.
+- Add mocked geocoding, failure-preservation, recent-search, pin-drop, and response-time smoke coverage.
+
+## v39
+- Replace the extra All tools/Simple menu with exactly five primary navigation destinations and open the Projects command center by default.
+- Add a responsive, non-editable conceptual site-plan preview and property snapshot to the dashboard.
+- Add smoke coverage for primary navigation, secondary-screen reachability, and desktop/mobile map-first layout.
+
+## v38
+- Cancel superseded Land Data lookups and discard results when the active parcel or location changes.
+- Show lookup progress and prevent duplicate Land Data button submissions.
+
 ## v37
 - Add a scanline fallback to fill the nine-point land-sampling cap for narrow or diagonal parcel shapes missed by the regular grid.
 
