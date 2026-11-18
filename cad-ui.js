@@ -220,7 +220,7 @@ function bind(){
     if(ev.button===0){const c=cursorFrom(ev);U.drag={a:c.raw,b:c.raw,sx:c.x,sy:c.y,box:false,snapP:c.p}}});
   window.addEventListener("mouseup",ev=>{const d=U.drag;U.drag=null;if(!d)return;if(d.pan){after();return}if(ev.button!==0){after();return}
     const c=cursorFrom(ev);
-    if(d.box){const ids=C.selectBox(d.a,c.raw,c.raw[0]<d.a[0]);M.windowSelect(ids);after();return}
+    if(d.box||Math.hypot(c.x-d.sx,c.y-d.sy)>4){const ids=C.selectBox(d.a,c.raw,c.raw[0]<d.a[0]);M.windowSelect(ids);after();return}
     if(R.req&&R.req.k==="pt"){M.clickPoint(c.p);if(R.viewReq)viewOp();after();return}
     const e=C.pick(c.raw,8/U.s);
     if(R.req&&(R.req.k==="ent"||R.req.k==="sel")){if(e)M.clickEnt(e);after();return}

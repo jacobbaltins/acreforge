@@ -202,7 +202,7 @@ Pastures and crop fields are **land zones** (Land zones card), not placeable obj
 
 Finishing or cancelling returns to Ready, unless objects remain selected.
 
-The Mode display is a derived, priority-ordered resolver, not the planned declarative interaction transition table; explicit transition rules remain queued.
+The Mode display is a derived, priority-ordered resolver, not the planned declarative interaction transition table; explicit transition rules remain queued. Window and crossing selection classify the drag from its release point as well as intermediate pointer motion, so a coalesced move event does not turn a drag into a click.
 
 **Export wizard (v106):** Choose **Export…** to download a conceptual vector PDF drawing set or an R12 DXF. PDF exports let you choose paper size and include the available cover, floor plan, elevations, section/roof, foundation, and electrical/plumbing CONCEPT sheets; DXF contains model-space geometry in inches. Canceling leaves the saved paper size unchanged. Downloads are local; DXF is not DWG, and neither format is construction-ready. PDF sheet selection, an in-app preview, and PNG export are not implemented yet.
 

@@ -1,3 +1,8 @@
+## v109
+
+- Make CAD window/crossing selection classify from the final mouseup coordinates as well as intermediate movement, avoiding missed selections when browser move events are coalesced.
+- Add a regression test for a selection drag with no intermediate mousemove event.
+
 ## v108
 
 - Add a local ASCII R12 DXF importer for LINE, straight 2D POLYLINE, CIRCLE, ARC, and TEXT with explicit unit conversion, preview, source-layer mapping, append-only import, and one-step undo.
