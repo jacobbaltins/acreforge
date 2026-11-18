@@ -235,11 +235,19 @@ function build(opts){
   const txt=buildPDF(pages);
   return {pdf:txt,pages:pages.length,paper:size,size:[w,h],failed,message,sheets:pages.map(pg=>pg.sheetId)};
 }
+function pdfBlob(pdf){
+  const bytes=new Uint8Array(pdf.length);for(let i=0;i<pdf.length;i++)bytes[i]=pdf.charCodeAt(i)&255;
+  return new Blob([bytes],{type:"application/pdf"});
+}
+function preview(opts){
+  const r=build(opts);if(!r.pdf)return {...r,url:""};
+  return {...r,url:URL.createObjectURL(pdfBlob(r.pdf))};
+}
 function download(opts){
-  const r=build(opts);if(!r.pdf)return r;const bytes=new Uint8Array(r.pdf.length);for(let i=0;i<r.pdf.length;i++)bytes[i]=r.pdf.charCodeAt(i)&255;
+  const r=build(opts);if(!r.pdf)return r;
   window.__cadLastPdf=r.pdf;
-  const bl=new Blob([bytes],{type:"application/pdf"}),a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download="acreforge-cad-sheets.pdf";document.body.appendChild(a);a.click();a.remove();
+  const a=document.createElement("a");a.href=URL.createObjectURL(pdfBlob(r.pdf));a.download="acreforge-cad-sheets.pdf";document.body.appendChild(a);a.click();a.remove();
   return r;
 }
-window.AcreCADSheets={PAPER,ROOFS,availableSheets,bbox,takeoff,roof,roofCfg,elevation,section,build,download,buildPDF,Page};
+window.AcreCADSheets={PAPER,ROOFS,availableSheets,bbox,takeoff,roof,roofCfg,elevation,section,build,preview,download,buildPDF,Page};
 })();

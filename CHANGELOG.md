@@ -1,8 +1,14 @@
+## v115
+
+- Add an embedded, browser-local PDF preview for the selected CAD drawing sheets; revoke its temporary object URL when the preview closes or CAD remounts.
+- Keep preview paper selection separate from saved project settings until download; disable preview and download when no PDF sheets are selected.
+- Keep PNG export and the declarative CAD interaction-transition table queued.
+
 ## v114
 
 - Add individual PDF sheet selection in the CAD export wizard, preserving canonical sheet order and showing only available sheets.
 - Disable PDF download when no sheets are selected; selected-sheet exports omit unrequested pages and update the cover's included-sheet list.
-- Keep in-app PDF preview, PNG export, and the declarative CAD interaction-transition table queued.
+- Keep PNG export and the declarative CAD interaction-transition table queued.
 
 ## v113
 
@@ -16,7 +22,7 @@
 - Collect parcel or planning-area assumptions, house goals, and site-spacing preference; preview planning ranges and a schematic floor plan before applying.
 - Save the applied configuration locally and generate editable Site Designer objects; clarify that this is distinct from the CAD room wizard and is not AI or professional design.
 - Track the original specification's remaining gaps: terrain, bathroom/garage/story requirements, building style/budget, full purpose and site-feature choices, a three-goal limit, generation progress and specified metrics/actions, a separate floor-plan stage, Advanced Design, and helper suggestions.
-- Keep the PDF sheet-selection, in-app preview, PNG export, and declarative CAD interaction-transition-table gaps queued.
+- Keep the PDF sheet-selection, PNG export, and declarative CAD interaction-transition-table gaps queued.
 
 ## v111
 
