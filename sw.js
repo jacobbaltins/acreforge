@@ -1,5 +1,5 @@
-const CACHE="acreforge-shell-v103";
-const SHELL=["./","index.html","cad-studio.js","cad-cmd.js","cad-sheets.js","cad-ui.js","manifest.webmanifest","icon.svg"];
+const CACHE="acreforge-shell-v104";
+const SHELL=["./","index.html","cad-studio.js","cad-cmd.js","cad-sheets.js","cad-3d.js","cad-ui.js","manifest.webmanifest","icon.svg"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>n!==CACHE).map(n=>caches.delete(n)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{
