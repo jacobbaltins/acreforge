@@ -229,6 +229,120 @@ function exportDXF(){
   });
   g(0,"ENDSEC");g(0,"EOF");return o.join("\r\n")+"\r\n";
 }
+function parseDXF(text){
+  if(typeof text!=="string"||!text.trim())throw new Error("The selected file is empty.");
+  if(text.length>5*1024*1024)throw new Error("DXF files must be 5 MiB or smaller.");
+  const lines=text.replace(/^\uFEFF/,"").split(/\r?\n/);
+  while(lines.length&&lines[lines.length-1].trim()==="")lines.pop();
+  if(lines.length%2)throw new Error("The DXF ends with an incomplete group pair.");
+  const pairs=[];
+  for(let i=0;i<lines.length;i+=2){
+    const raw=lines[i].trim();if(!/^\d+$/.test(raw))throw new Error("Invalid DXF group code near line "+(i+1)+".");
+    const code=Number(raw);if(!Number.isInteger(code)||code>1071)throw new Error("Unsupported DXF group code near line "+(i+1)+".");
+    pairs.push({code,value:lines[i+1].trim()});
+  }
+  let unitCode=0,hasUnits=false;
+  for(let i=0;i<pairs.length;i++)if(pairs[i].code===9&&pairs[i].value.toUpperCase()==="$INSUNITS"){
+    const unit=pairs[i+1];if(!unit||unit.code!==70)throw new Error("The DXF unit declaration is incomplete.");
+    unitCode=Number(unit.value);hasUnits=true;break;
+  }
+  const unitInfo={0:{factor:1,label:"unitless; assumed inches"},1:{factor:1,label:"inches"},2:{factor:12,label:"feet"},4:{factor:1/25.4,label:"millimeters"},5:{factor:1/2.54,label:"centimeters"},6:{factor:1/0.0254,label:"meters"}}[unitCode];
+  if(!unitInfo)throw new Error("Unsupported DXF units code "+unitCode+". Use inches, feet, millimeters, centimeters or meters.");
+  const factor=unitInfo.factor,records=[];let section="",record=null,foundEntities=false,closedEntities=false;
+  const saveRecord=()=>{if(record){records.push(record);record=null;if(records.length>50000)throw new Error("The DXF contains too many records.")}};
+  for(let i=0;i<pairs.length;i++){
+    const p=pairs[i],v=p.value.toUpperCase();
+    if(p.code===0&&v==="SECTION"){
+      saveRecord();const name=pairs[++i];if(!name||name.code!==2)throw new Error("A DXF section is missing its name.");
+      section=name.value.toUpperCase();if(section==="ENTITIES")foundEntities=true;continue;
+    }
+    if(p.code===0&&v==="ENDSEC"){saveRecord();if(section==="ENTITIES")closedEntities=true;section="";continue}
+    if(section!=="ENTITIES")continue;
+    if(p.code===0){saveRecord();record={type:v,groups:[]}}
+    else if(record)record.groups.push(p);
+  }
+  saveRecord();
+  if(!foundEntities||!closedEntities)throw new Error("The file has no complete ENTITIES section.");
+  const group=(r,code)=>{const p=r.groups.find(g=>g.code===code);return p&&p.value};
+  const number=(r,code,label,optional)=>{
+    const raw=group(r,code);if(raw===undefined&&optional)return 0;
+    if(raw===undefined||raw==="")throw new Error("Missing "+label+" in DXF "+r.type+".");
+    const n=Number(raw);if(!Number.isFinite(n))throw new Error("Invalid "+label+" in DXF "+r.type+".");return n;
+  };
+  const checkExtrusion=r=>{
+    const x=number(r,210,"extrusion X",true),y=number(r,220,"extrusion Y",true),z=group(r,230)===undefined?1:number(r,230,"extrusion Z");
+    if(Math.abs(x)>1e-8||Math.abs(y)>1e-8||Math.abs(z-1)>1e-8)throw new Error("Only 2D DXF geometry in the XY plane is supported.");
+  };
+  const scaled=(n,label)=>{const v=n*factor;if(!Number.isFinite(v)||Math.abs(v)>1e7)throw new Error(label+" exceeds the supported coordinate range.");return v};
+  const point=(r,xCode,yCode,zCode,label)=>{
+    const z=number(r,zCode,label+" elevation",true);if(Math.abs(z)>1e-8)throw new Error("Only 2D DXF geometry at zero elevation is supported.");
+    return [scaled(number(r,xCode,label+" X"),label+" X"),scaled(number(r,yCode,label+" Y"),label+" Y")];
+  };
+  const layerOf=r=>{const name=group(r,8)||"0";if(name.length>255)throw new Error("A DXF layer name is too long.");return name};
+  const entities=[],layerNames=new Set();let skipped=0,vertices=0;
+  const add=(entity,layer)=>{if(entities.length>=10000)throw new Error("DXF imports are limited to 10,000 supported entities.");layerNames.add(layer);if(layerNames.size>64)throw new Error("DXF imports are limited to 64 source layers.");entities.push(Object.assign(entity,{layer}))};
+  for(let i=0;i<records.length;i++){
+    const r=records[i],layer=layerOf(r);
+    if(r.type==="LINE"){
+      checkExtrusion(r);
+      const a=point(r,10,20,30,"line start"),b=point(r,11,21,31,"line end");
+      if(C.dist(a,b)<=1e-9)throw new Error("Zero-length DXF lines are not supported.");
+      add({t:"line",a,b},layer);
+    }else if(r.type==="POLYLINE"){
+      checkExtrusion(r);
+      const flags=Math.trunc(number(r,70,"polyline flags",true));
+      if(flags&((1<<3)|(1<<4)|(1<<6)))throw new Error("Only 2D DXF polylines are supported.");
+      if(Math.abs(number(r,30,"polyline elevation",true))>1e-8)throw new Error("Only 2D DXF geometry at zero elevation is supported.");
+      const pts=[];let j=i+1;
+      while(j<records.length&&records[j].type==="VERTEX"){
+        if(++vertices>50000)throw new Error("DXF imports are limited to 50,000 polyline vertices.");
+        if(Math.abs(number(records[j],42,"polyline bulge",true))>1e-12)throw new Error("Curved DXF polyline segments are not supported.");
+        pts.push(point(records[j],10,20,30,"polyline vertex"));j++;
+      }
+      if(j>=records.length||records[j].type!=="SEQEND")throw new Error("A DXF polyline is missing its sequence end.");
+      i=j;if(pts.length<2)throw new Error("DXF polylines need at least two vertices.");
+      add({t:"pline",pts,closed:!!(flags&1)},layer);
+    }else if(r.type==="CIRCLE"){
+      checkExtrusion(r);
+      const c=point(r,10,20,30,"circle center"),radius=scaled(number(r,40,"circle radius"),"Circle radius");
+      if(radius<=0)throw new Error("DXF circles need a positive radius.");
+      add({t:"circle",c,r:radius},layer);
+    }else if(r.type==="ARC"){
+      checkExtrusion(r);
+      const c=point(r,10,20,30,"arc center"),radius=scaled(number(r,40,"arc radius"),"Arc radius");
+      const a0=number(r,50,"arc start angle"),a1=number(r,51,"arc end angle");
+      if(radius<=0||Math.abs(a0)>360000||Math.abs(a1)>360000)throw new Error("DXF arcs have invalid radius or angles.");
+      add({t:"arc",c,r:radius,a0:C.norm(a0),a1:C.norm(a1)},layer);
+    }else if(r.type==="TEXT"){
+      checkExtrusion(r);
+      const p=point(r,10,20,30,"text position"),h=scaled(number(r,40,"text height"),"Text height"),s=group(r,1);
+      if(h<=0||s===undefined)throw new Error("DXF text needs a positive height and content.");
+      add({t:"text",p,h,s},layer);
+    }else if(r.type!=="VERTEX"&&r.type!=="SEQEND")skipped++;
+  }
+  return {entities,layers:Array.from(layerNames),skipped,units:hasUnits?unitInfo.label:"unitless; assumed inches"};
+}
+function commitDXFImport(parsed){
+  if(!parsed||!Array.isArray(parsed.entities)||!parsed.entities.length)throw new Error("No supported 2D entities are ready to import.");
+  const D=C.doc,reserved=new Set(Object.keys(D.layers)),layerMap=new Map(),newLayers=[];
+  parsed.layers.forEach(source=>{
+    if(source==="0"){layerMap.set(source,"0");return}
+    const safe=String(source).toUpperCase().replace(/[^A-Z0-9_-]/g,"_").replace(/_+/g,"_").replace(/^_+|_+$/g,"").slice(0,26)||"IMPORT";
+    const base=("DXF-"+safe).slice(0,31);let name=base,n=2;
+    while(reserved.has(name)){const suffix="_"+n++;name=base.slice(0,31-suffix.length)+suffix}
+    reserved.add(name);layerMap.set(source,name);newLayers.push(name);
+  });
+  if(Object.keys(D.layers).length+newLayers.length>128)throw new Error("This drawing has reached the 128-layer limit.");
+  C.snapshot();
+  newLayers.forEach(name=>{D.layers[name]={color:7,ltype:"CONTINUOUS",on:true,lock:false}});
+  parsed.entities.forEach(source=>{
+    const e=Object.assign({},source,{id:D.nid++,layer:layerMap.get(source.layer)||"0"});
+    if(e.a)e.a=e.a.slice();if(e.b)e.b=e.b.slice();if(e.c)e.c=e.c.slice();if(e.p)e.p=e.p.slice();if(e.pts)e.pts=e.pts.map(p=>p.slice());
+    D.ents.push(e);
+  });
+  C.save();
+  return {added:parsed.entities.length,layers:newLayers.length,skipped:parsed.skipped||0};
+}
 function roomSize(e){const xs=e.pts.map(p=>p[0]),ys=e.pts.map(p=>p[1]);return C.fmtIn(Math.max(...xs)-Math.min(...xs))+" x "+C.fmtIn(Math.max(...ys)-Math.min(...ys))}
-window.AcreCADCmd={R,cmds,NAMES,HELP,start,feed,cancel,clickPoint,clickEnt,windowSelect,exportDXF,roomSize,resolve,USER_ALIAS,USER_KEYS,USER_UNMAPPED};
+window.AcreCADCmd={R,cmds,NAMES,HELP,start,feed,cancel,clickPoint,clickEnt,windowSelect,exportDXF,parseDXF,commitDXFImport,roomSize,resolve,USER_ALIAS,USER_KEYS,USER_UNMAPPED};
 })();

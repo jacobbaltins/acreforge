@@ -1,3 +1,9 @@
+## v108
+
+- Add a local ASCII R12 DXF importer for LINE, straight 2D POLYLINE, CIRCLE, ARC, and TEXT with explicit unit conversion, preview, source-layer mapping, append-only import, and one-step undo.
+- Reject malformed, out-of-range, elevated, non-XY, and curved-polyline geometry without modifying the drawing; skip and report unsupported entity records.
+- Document DXF subset, parser limits, local-only behavior, and remaining CAD import limitations.
+
 ## v107
 
 - Add CAD Studio conceptual takeoffs for room floor area, wall centerline length, gross wall area, and door/window counts, with optional user-entered rates and a local CSV download.
