@@ -1,8 +1,14 @@
+## v116
+
+- Add local PNG export for one selected available CAD sheet, rasterized from the same page primitives as the vector PDF.
+- Use the selected paper size at up to 96 DPI, cap either image dimension at 4,096 pixels, and persist the paper choice only after PNG creation and download initiation succeed.
+- Disallow multi-sheet PNG output rather than silently combining or dropping pages; keep PNG previews, batch archives, and the declarative interaction transition table out of scope.
+
 ## v115
 
 - Add an embedded, browser-local PDF preview for the selected CAD drawing sheets; revoke its temporary object URL when the preview closes or CAD remounts.
 - Keep preview paper selection separate from saved project settings until download; disable preview and download when no PDF sheets are selected.
-- Keep PNG export and the declarative CAD interaction-transition table queued.
+- Keep the declarative CAD interaction-transition table queued.
 
 ## v114
 

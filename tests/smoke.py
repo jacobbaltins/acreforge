@@ -5369,6 +5369,28 @@ try:
           return ok;
         }""")
         check("PDF preview builds a local blob containing only selected sheets", preview_pdf)
+        png_multi = cs.evaluate("""async () => {
+          const r = await AcreCADSheets.renderPNG({paper:"Letter",sheets:["cover","floor-plan"]});
+          return !r.blob && r.pages === 0 && r.message.includes("exactly one");
+        }""")
+        check("PNG export requires exactly one selected drawing sheet", png_multi)
+        png_sheet = cs.evaluate("""async () => {
+          const r = await AcreCADSheets.renderPNG({paper:"Letter",sheets:["cover"]});
+          if (!r.blob) return {ok:false,message:r.message};
+          const data = new Uint8Array(await r.blob.arrayBuffer());
+          const bitmap = await createImageBitmap(r.blob);
+          const canvas = document.createElement("canvas");
+          canvas.width = bitmap.width; canvas.height = bitmap.height;
+          const ctx = canvas.getContext("2d"); ctx.drawImage(bitmap,0,0); bitmap.close();
+          const pixels = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+          let ink = false;
+          for (let i=0; i<pixels.length; i+=4) if (pixels[i]<220 || pixels[i+1]<220 || pixels[i+2]<220) { ink=true; break; }
+          return {ok:r.blob.type==="image/png" && data[0]===137 && data[1]===80
+            && r.pages===1 && r.sheets[0]==="cover" && r.width===1056 && r.height===816
+            && r.dpi===96 && ink, width:r.width, height:r.height, dpi:r.dpi};
+        }""")
+        check("PNG renderer creates a paper-sized local image with visible sheet content",
+              png_sheet["ok"] and png_sheet["width"] > 0 and png_sheet["height"] > 0)
         paper_before_export = cs.evaluate("AcreCAD.core.doc.paper")
         cs.locator("#cadexportopen").click()
         check("export wizard opens with a PDF format, paper choice, and concept disclosure",
@@ -5443,13 +5465,40 @@ try:
               and cs.evaluate("AcreCAD.core.doc.paper") == "ARCH D"
               and not cs.locator("#cadexport").is_visible())
         cs.locator("#cadexportopen").click()
+        cs.select_option("#cadexportformat", "png")
+        check("PNG wizard requires exactly one sheet and hides PDF preview",
+              cs.locator("#cadexportsheetswrap").is_visible()
+              and not cs.locator("#cadexportpreview").is_visible()
+              and cs.locator("#cadexportgo").is_disabled()
+              and "exactly one" in cs.locator("#cadexportdescription").inner_text())
+        for sheet in cs.locator("[data-cad-export-sheet]").all():
+            sheet.uncheck()
+        cs.locator('[data-cad-export-sheet][value="cover"]').check()
+        cs.locator('[data-cad-export-sheet][value="floor-plan"]').check()
+        check("PNG wizard prevents multi-sheet raster exports",
+              cs.locator("#cadexportgo").is_disabled())
+        cs.locator('[data-cad-export-sheet][value="floor-plan"]').uncheck()
+        cs.select_option("#cadexportpaper", "A3")
+        with cs.expect_download() as png_dl:
+            cs.locator("#cadexportgo").click()
+        png_data = open(png_dl.value.path(), "rb").read()
+        cs.wait_for_function("() => AcreCAD.core.doc.paper === 'A3'")
+        png_width = int.from_bytes(png_data[16:20], "big") if len(png_data) >= 24 else 0
+        png_height = int.from_bytes(png_data[20:24], "big") if len(png_data) >= 24 else 0
+        check("export wizard downloads a valid selected-sheet PNG and saves paper size",
+              png_dl.value.suggested_filename == "acreforge-cad-cover.png"
+              and png_data.startswith(b"\x89PNG\r\n\x1a\n")
+              and 0 < png_width <= 4096 and 0 < png_height <= 4096
+              and cs.evaluate("AcreCAD.core.doc.paper") == "A3"
+              and not cs.locator("#cadexport").is_visible())
+        cs.locator("#cadexportopen").click()
         cs.select_option("#cadexportformat", "dxf")
         with cs.expect_download() as dxf_dl:
             cs.locator("#cadexportgo").click()
         dxf_data = open(dxf_dl.value.path(), encoding="utf-8").read()
         check("export wizard downloads R12 DXF without changing the saved paper size",
               dxf_dl.value.suggested_filename.endswith(".dxf") and "AC1009" in dxf_data
-              and dxf_data.rstrip().endswith("EOF") and cs.evaluate("AcreCAD.core.doc.paper") == "ARCH D")
+              and dxf_data.rstrip().endswith("EOF") and cs.evaluate("AcreCAD.core.doc.paper") == "A3")
         takeoff_context = b.new_context(service_workers="block", accept_downloads=True, reduced_motion="reduce")
         takeoff_page = takeoff_context.new_page()
         takeoff_errors = []
