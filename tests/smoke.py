@@ -5470,6 +5470,95 @@ try:
               import_page.evaluate("AcreCAD.core.undo() && AcreCAD.core.doc.ents.length === 1 && !AcreCAD.core.doc.layers['DXF-IMPORTED_LAYER']"))
         check("DXF import workflow produced no page errors", not import_errors)
         import_context.close()
+        quickbuild_context = b.new_context(service_workers="block", accept_downloads=True, reduced_motion="reduce")
+        quickbuild_page = quickbuild_context.new_page()
+        quickbuild_errors = []
+        quickbuild_page.on("pageerror", lambda e: quickbuild_errors.append(str(e)))
+        quickbuild_page.add_init_script("localStorage.setItem('acreforge-guide-seen','1')")
+        quickbuild_page.goto("http://127.0.0.1:8766/?spatial-test=1")
+        quickbuild_page.locator("#nav [data-page=cad]").click()
+        quickbuild_page.evaluate("""() => {
+          const C = AcreCAD.core;
+          C.doc.ents = [{id:1,t:"line",a:[10,20],b:[70,20],layer:"0"}];
+          C.doc.nid = 2;
+          C.doc.hist = [];
+          C.doc.redo = [];
+          C.save();
+          AcreCAD.refresh();
+        }""")
+        baseline_quickbuild = quickbuild_page.evaluate("JSON.stringify(AcreCAD.core.doc.ents)")
+        quickbuild_page.locator("#cadquickbuildopen").click()
+        check("Quick Build wizard opens with editable layout and dimension fields",
+              quickbuild_page.locator("#cadquickbuild").is_visible()
+              and quickbuild_page.locator("#cadquickbuildlayout").is_visible()
+              and quickbuild_page.locator("#cadquickbuildwidth").input_value() == "40")
+        quickbuild_page.locator("#cadquickbuildcancel").click()
+        check("canceling Quick Build leaves the drawing unchanged",
+              not quickbuild_page.locator("#cadquickbuild").is_visible()
+              and quickbuild_page.evaluate("JSON.stringify(AcreCAD.core.doc.ents)") == baseline_quickbuild)
+        quickbuild_page.locator("#cadquickbuildopen").click()
+        quickbuild_page.locator("#cadquickbuildwidth").fill("17")
+        quickbuild_page.locator("#cadquickbuildgo").click()
+        check("Quick Build rejects out-of-range dimensions without mutating the drawing",
+              "18 to 200 feet" in quickbuild_page.locator("#cadquickbuildstatus").inner_text()
+              and quickbuild_page.evaluate("JSON.stringify(AcreCAD.core.doc.ents)") == baseline_quickbuild)
+        quickbuild_page.locator("#cadquickbuildwidth").fill("40")
+        quickbuild_page.evaluate("AcreCAD.core.doc.layers['A-WALL'].lock = true")
+        quickbuild_page.locator("#cadquickbuildgo").click()
+        check("Quick Build refuses locked target layers without partial geometry",
+              "unlock these layers" in quickbuild_page.locator("#cadquickbuildstatus").inner_text()
+              and quickbuild_page.evaluate("JSON.stringify(AcreCAD.core.doc.ents)") == baseline_quickbuild)
+        quickbuild_page.evaluate("AcreCAD.core.doc.layers['A-WALL'].lock = false")
+        quickbuild_page.evaluate("""() => {
+          const C = AcreCAD.core;
+          C.doc.ents = [{id:1,t:"line",a:[9999800,20],b:[9999990,20],layer:"0"}];
+          C.doc.nid = 2;
+          C.doc.hist = [];
+          C.doc.redo = [];
+          C.save();
+        }""")
+        edge_baseline = quickbuild_page.evaluate("JSON.stringify(AcreCAD.core.doc.ents)")
+        quickbuild_page.locator("#cadquickbuildgo").click()
+        check("Quick Build rejects drawings without coordinate room and preserves them",
+              "not enough coordinate range" in quickbuild_page.locator("#cadquickbuildstatus").inner_text()
+              and quickbuild_page.evaluate("JSON.stringify(AcreCAD.core.doc.ents)") == edge_baseline)
+        quickbuild_page.evaluate("""() => {
+          const C = AcreCAD.core;
+          C.doc.ents = JSON.parse(%s);
+          C.doc.nid = 2;
+          C.doc.hist = [];
+          C.doc.redo = [];
+          C.save();
+        }""" % json.dumps(baseline_quickbuild))
+        for layout, expected_rooms, expected_entities in (("open", 1, 7), ("two", 2, 9), ("three", 3, 11)):
+            quickbuild_page.locator("#cadquickbuildlayout").select_option(layout)
+            quickbuild_page.locator("#cadquickbuildgo").click()
+            built = quickbuild_page.evaluate("""() => {
+              const d = AcreCAD.core.doc;
+              return {
+                entities:d.ents.slice(1).map(e=>({t:e.t,a:e.a,b:e.b,pts:e.pts,name:e.name,layer:e.layer,wall:e.wall,pos:e.pos,w:e.w})),
+                saved:JSON.parse(localStorage.getItem(AcreCAD.core.KEY)).ents.length,
+                history:d.hist.length,
+                layers:Object.keys(d.layers)
+              };
+            }""")
+            check("Quick Build %s layout appends the expected editable plan entities" % layout,
+                  len(built["entities"]) == expected_entities
+                  and built["saved"] == expected_entities + 1
+                  and built["history"] == 1
+                  and sum(e["t"] == "room" for e in built["entities"]) == expected_rooms
+                  and sum(e["t"] == "wall" for e in built["entities"]) == expected_entities - expected_rooms - 2
+                  and sum(e["t"] == "door" for e in built["entities"]) == 1
+                  and sum(e["t"] == "window" for e in built["entities"]) == 1
+                  and built["entities"][0]["a"] == [190,20]
+                  and built["entities"][0]["b"] == [670,20]
+                  and all(e["layer"] in built["layers"] for e in built["entities"]))
+            check("Quick Build %s layout is removed by one Undo, preserving prior geometry" % layout,
+                  quickbuild_page.evaluate("AcreCAD.core.undo() && JSON.stringify(AcreCAD.core.doc.ents) === %s" % json.dumps(baseline_quickbuild)))
+            quickbuild_page.locator("#cadquickbuildopen").click()
+        quickbuild_page.locator("#cadquickbuildcancel").click()
+        check("Quick Build workflow produced no page errors", not quickbuild_errors)
+        quickbuild_context.close()
         cs_cmd("PDF"); cs_cmd("Letter")
         check("PDF command honors paper choice", cs.evaluate("AcreCAD.core.doc.paper") == "Letter" and "PDF with 10 page" in cs_log())
         cs.evaluate("AcreCAD.core.doc.cur='0'")
