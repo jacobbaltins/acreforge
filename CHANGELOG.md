@@ -1,3 +1,12 @@
+## v119
+
+- Add a Property Quick Build terrain-placement choice: use existing terrain-ranked zones when available or skip terrain ranking and use parcel/planning-area fit only. The wizard never fetches terrain.
+
+## v118
+
+- Expand Property Quick Build's site-goal choices and enforce a three-goal maximum, including custom text; only selected goals affect the homestead concept program.
+- Capture and persist bathroom, garage-space, story, style, and optional budget preferences, and show them in results and the saved concept brief without implying they change the footprint, schematic, or cost allowances.
+
 ## v117
 
 - Replace CAD Studio's priority-ordered interaction-mode resolver with an explicit event transition table for command prompts, cancellation, drag/window/crossing selection, pan, and pointer release.
