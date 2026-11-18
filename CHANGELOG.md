@@ -1,3 +1,9 @@
+## v107
+
+- Add CAD Studio conceptual takeoffs for room floor area, wall centerline length, gross wall area, and door/window counts, with optional user-entered rates and a local CSV download.
+- Validate rates, preserve them in the browser, and disclose quantity assumptions and the limits of partial cost allowances.
+- Track remaining gaps: PDF sheet selection, preview, PNG export, and a declarative interaction transition table.
+
 ## v106
 
 - Add a CAD Studio export wizard for conceptual vector PDF sets and R12 DXF files, with a PDF paper choice and a clear local-download/format disclosure.

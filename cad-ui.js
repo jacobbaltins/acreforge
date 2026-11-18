@@ -30,8 +30,9 @@ function updateInteraction(){
 function mount(root){
   if(!root)return;U.root=root;
   root.innerHTML='<div id="cadwrap" class="cadwrap'+(U.full?" cadfull":"")+'">'+
-  '<div class="cadtop"><b>📐 CAD Studio</b> <span id="cadmodes"></span> <span class="cadspc"></span><button class="btn" id="cad3d" type="button" aria-pressed="false" title="Show a linked 3D model beside the plan">Split 3D</button><button class="btn" id="cadfs" type="button">'+(U.full?"Exit full view":"Full viewport")+'</button><button class="btn" id="cadexportopen" type="button">Export…</button></div>'+
+  '<div class="cadtop"><b>📐 CAD Studio</b> <span id="cadmodes"></span> <span class="cadspc"></span><button class="btn" id="cad3d" type="button" aria-pressed="false" title="Show a linked 3D model beside the plan">Split 3D</button><button class="btn" id="cadfs" type="button">'+(U.full?"Exit full view":"Full viewport")+'</button><button class="btn" id="cadtakeoffopen" type="button">Takeoffs / cost</button><button class="btn" id="cadexportopen" type="button">Export…</button></div>'+
   '<dialog id="cadexport" aria-labelledby="cadexporttitle" aria-describedby="cadexportdescription"><h3 id="cadexporttitle">Export drawing</h3><p>Choose a file format for this CAD Studio drawing.</p><label>File format <select id="cadexportformat"><option value="pdf">PDF drawing set</option><option value="dxf">R12 DXF</option></select></label><label id="cadexportpaperwrap">Paper size <select id="cadexportpaper" aria-label="PDF paper size">'+Object.keys(window.AcreCADSheets.PAPER).map(k=>'<option'+(C.doc.paper===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label><p id="cadexportdescription" role="status" aria-live="polite"></p><p class="cadexportlimit">Downloads are created locally. Files are conceptual, not construction documents; DXF is not DWG.</p><div class="cadexportactions"><button class="btn" id="cadexportcancel" type="button">Cancel</button><button class="btn" id="cadexportgo" type="button">Download PDF</button></div></dialog>'+
+  '<dialog id="cadtakeoff" aria-labelledby="cadtakeofftitle" aria-describedby="cadtakeoffdescription"><h3 id="cadtakeofftitle">Conceptual takeoffs and cost allowance</h3><p id="cadtakeoffdescription">Quantities are derived from the current CAD drawing. Enter your own unit rates to calculate an allowance for those categories.</p><table class="cadtakeofftable"><thead><tr><th>Category</th><th>Quantity</th><th>Unit</th><th>Rate (USD)</th><th>Allowance</th></tr></thead><tbody><tr><th scope="row">Floor area</th><td data-quantity="floor"></td><td>sq ft</td><td><input type="number" min="0" max="1000000" step="0.01" data-rate="floor" aria-label="Floor finish rate per square foot"></td><td data-cost="floor"></td></tr><tr><th scope="row">Wall length</th><td data-quantity="wallLength"></td><td>ft</td><td>—</td><td data-cost="wallLength">Not priced</td></tr><tr><th scope="row">Gross wall area</th><td data-quantity="wall"></td><td>sq ft</td><td><input type="number" min="0" max="1000000" step="0.01" data-rate="wall" aria-label="Wall rate per square foot"></td><td data-cost="wall"></td></tr><tr><th scope="row">Doors</th><td data-quantity="door"></td><td>each</td><td><input type="number" min="0" max="1000000" step="0.01" data-rate="door" aria-label="Door rate each"></td><td data-cost="door"></td></tr><tr><th scope="row">Windows</th><td data-quantity="window"></td><td>each</td><td><input type="number" min="0" max="1000000" step="0.01" data-rate="window" aria-label="Window rate each"></td><td data-cost="window"></td></tr></tbody></table><p id="cadtakeofftotal" role="status" aria-live="polite"></p><p class="cadexportlimit">Gross wall area is wall centerline length × drawing ceiling height; openings are not deducted. Overlapping rooms can double-count floor area. Hidden layers are included. Blank rates are excluded from the subtotal. No market prices, labor, waste, engineering, or code checks are supplied; this is not a bid.</p><div class="cadexportactions"><button class="btn" id="cadtakeoffclose" type="button">Close</button><button class="btn" id="cadtakeoffcsv" type="button">Download takeoff CSV</button></div></dialog>'+
   '<div class="cadmain"><div id="cadtools" class="cadtools"></div><div class="cadcvwrap"><canvas id="cadcv" tabindex="0"></canvas></div><div id="cad3dwrap" class="cad3dwrap" hidden><canvas id="cad3dcv" tabindex="0" aria-label="3D model of your plan. Drag to orbit, wheel to zoom."></canvas><div class="viewcube" role="group" aria-label="3D view buttons">'+Object.keys(window.AcreCAD3D.VIEWS).map(k=>'<button type="button" class="btn" data-v3="'+k+'">'+window.AcreCAD3D.VIEWS[k].label+'</button>').join("")+'</div><div class="cad3dnote">Concept block model from your plan. Not an engineered model.</div></div><div id="cadside" class="cadside"></div></div>'+
   '<div id="cadhealth" class="cadhealth" role="status" aria-live="polite"></div>'+
   '<div id="cadlog" class="cadlog" aria-live="polite"></div>'+
@@ -66,6 +67,45 @@ function updateExportDetails(){
     ?"Creates the available conceptual vector-PDF sheets using "+d.querySelector("#cadexportpaper").value+" paper."
     :"Creates an R12 DXF of model-space entities. Geometry remains in inches; this is not a DWG file.";
   d.querySelector("#cadexportgo").textContent=pdf?"Download PDF":"Download DXF";
+}
+const TAKEOFF_ITEMS=[
+  {key:"floor",label:"Floor area",quantity:"floorAreaSqFt",unit:"sq ft"},
+  {key:"wallLength",label:"Wall length",quantity:"wallLengthFt",unit:"ft",rated:false},
+  {key:"wall",label:"Gross wall area",quantity:"grossWallAreaSqFt",unit:"sq ft"},
+  {key:"door",label:"Doors",quantity:"doorCount",unit:"each"},
+  {key:"window",label:"Windows",quantity:"windowCount",unit:"each"}
+];
+const takeoffNumber=n=>Number(n||0).toLocaleString("en-US",{maximumFractionDigits:2});
+const takeoffMoney=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n);
+function updateTakeoffs(){
+  const d=U.root&&U.root.querySelector("#cadtakeoff");if(!d)return;
+  const q=window.AcreCADSheets.takeoff(),rates=C.doc.takeoffRates||{};let subtotal=0,configured=0;
+  TAKEOFF_ITEMS.forEach(i=>{
+    const qty=q[i.quantity],raw=i.rated===false?null:rates[i.key],rate=raw===null||raw===undefined||raw===""?null:Number(raw);
+    const amount=i.rated!==false&&rate!==null&&Number.isFinite(rate)&&rate>=0&&rate<=1000000?qty*rate:null;
+    if(amount!==null){subtotal+=amount;configured++}
+    d.querySelector('[data-quantity="'+i.key+'"]').textContent=takeoffNumber(qty);
+    d.querySelector('[data-cost="'+i.key+'"]').textContent=amount===null?(i.rated===false?"Not priced":"—"):takeoffMoney(amount);
+  });
+  d.querySelector("#cadtakeofftotal").textContent=configured
+    ?"Configured-category subtotal: "+takeoffMoney(subtotal)+". Categories without rates are excluded."
+    :"Enter one or more non-negative rates to calculate a partial allowance.";
+}
+function openTakeoffs(){
+  const d=U.root.querySelector("#cadtakeoff"),rates=C.doc.takeoffRates||{};
+  d.querySelectorAll("[data-rate]").forEach(el=>{const n=rates[el.dataset.rate];el.value=n===null||n===undefined?"":String(n)});
+  updateTakeoffs();if(!d.open)d.showModal();
+}
+function downloadTakeoffCSV(){
+  const q=window.AcreCADSheets.takeoff(),rates=C.doc.takeoffRates||{};
+  const cell=v=>{const s=String(v===null||v===undefined?"":v);return /[",]/.test(s)||s.indexOf(String.fromCharCode(10))>=0||s.indexOf(String.fromCharCode(13))>=0?'"'+s.replace(/"/g,'""')+'"':s};
+  const rows=[["Category","Quantity","Unit","Rate (USD/unit)","Allowance (USD)"]];
+  TAKEOFF_ITEMS.forEach(i=>{const raw=i.rated===false?null:rates[i.key],rate=raw===null||raw===undefined||raw===""?null:Number(raw);
+    const valid=i.rated!==false&&rate!==null&&Number.isFinite(rate)&&rate>=0&&rate<=1000000;rows.push([i.label,takeoffNumber(q[i.quantity]),i.unit,valid?rate:"",valid?takeoffMoney(q[i.quantity]*rate):""])});
+  rows.push(["Note","Conceptual quantities only; gross wall area does not deduct openings.","","",""]);
+  rows.push(["Note","User-entered rates only; blank-rate categories are excluded from the subtotal.","","",""]);
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([rows.map(r=>r.map(cell).join(",")).join(String.fromCharCode(13,10))],{type:"text/csv;charset=utf-8"}));
+  a.download="acreforge-cad-takeoff.csv";document.body.appendChild(a);a.click();a.remove();C.note("Concept takeoff CSV downloaded locally.");after();
 }
 function prompt(){const p=U.root.querySelector("#cadprompt"),l=U.root.querySelector("#cadlog");if(p)p.textContent=R.prompt;if(l){l.innerHTML=C.log.slice(-6).map(esc).join("<br>");l.scrollTop=l.scrollHeight}}
 function status(){
@@ -200,6 +240,9 @@ function bind(){
     const b=ev.target.closest("[data-cmd]");if(b){M.cancel();run(b.dataset.cmd);inp.focus();return}
     const t=ev.target.closest("[data-tg]");if(t){U[t.dataset.tg]=!U[t.dataset.tg];refresh();return}
     if(ev.target.id==="cadfs"){U.full=!U.full;mount(U.root);return}
+    if(ev.target.id==="cadtakeoffopen"){openTakeoffs();return}
+    if(ev.target.id==="cadtakeoffclose"){root.querySelector("#cadtakeoff").close();return}
+    if(ev.target.id==="cadtakeoffcsv"){downloadTakeoffCSV();return}
     if(ev.target.id==="cadexportopen"){const d=root.querySelector("#cadexport");root.querySelector("#cadexportpaper").value=window.AcreCADSheets.PAPER[C.doc.paper]?C.doc.paper:"Letter";root.querySelector("#cadexportformat").value="pdf";updateExportDetails();if(!d.open)d.showModal();return}
     if(ev.target.id==="cadexportcancel"){root.querySelector("#cadexport").close();return}
     if(ev.target.id==="cadexportgo"){
@@ -214,6 +257,12 @@ function bind(){
       if(a==="set")C.doc.cur=n;if(a==="on")L.on=!L.on;if(a==="lock")L.lock=!L.lock;C.save();refresh()}
   });
   root.addEventListener("change",ev=>{
+    if(ev.target.dataset.rate){
+      const key=ev.target.dataset.rate,raw=ev.target.value.trim(),rate=raw===""?null:Number(raw);
+      if(rate!==null&&(!Number.isFinite(rate)||rate<0||rate>1000000)){root.querySelector("#cadtakeofftotal").textContent="Enter a rate from $0 to $1,000,000.";return}
+      if(!C.doc.takeoffRates||typeof C.doc.takeoffRates!=="object"||Array.isArray(C.doc.takeoffRates))C.doc.takeoffRates={floor:null,wall:null,door:null,window:null};
+      C.doc.takeoffRates[key]=rate;C.save();updateTakeoffs();return
+    }
     if(ev.target.id==="cadexportformat"){updateExportDetails();return}
     if(ev.target.id==="cadunits"){C.setUnits(ev.target.value);C.note("Units: "+C.unit().n);refresh();return}
     if(ev.target.id==="cadprofile"){R.profile=ev.target.value;try{localStorage.setItem("acreforge-cad-profile",R.profile)}catch(e){}C.note("Profile: "+R.profile);refresh();return}

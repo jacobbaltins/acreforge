@@ -5,6 +5,16 @@ const C=window.AcreCADCore;
 const PAPER={Letter:[11,8.5],Legal:[14,8.5],"11x17":[17,11],"ARCH D":[36,24],"ARCH E":[48,36],A:[11,8.5],B:[17,11],A4:[11.69,8.27],A3:[16.54,11.69]};
 const ROOFS=["gable","hip","shed","gambrel","barn"];
 const walls=()=>C.doc.ents.filter(e=>e.t==="wall");
+function takeoff(){
+  const ents=C.doc.ents,rooms=ents.filter(e=>e.t==="room"&&Array.isArray(e.pts)&&e.pts.length>=3);
+  const w=ents.filter(e=>e.t==="wall"&&Array.isArray(e.a)&&Array.isArray(e.b));
+  const floorAreaIn2=rooms.reduce((sum,e)=>{const a=Math.abs(C.area(e.pts));return sum+(Number.isFinite(a)?a:0)},0);
+  const wallLengthIn=w.reduce((sum,e)=>{const n=C.dist(e.a,e.b);return sum+(Number.isFinite(n)?n:0)},0);
+  const ceilingIn=Math.max(0,Number(C.doc.ceil)||0);
+  return {roomCount:rooms.length,wallCount:w.length,floorAreaSqFt:floorAreaIn2/144,wallLengthFt:wallLengthIn/12,
+    grossWallAreaSqFt:wallLengthIn*ceilingIn/144,doorCount:ents.filter(e=>e.t==="door").length,
+    windowCount:ents.filter(e=>e.t==="window").length,ceilingIn};
+}
 function bbox(){
   const w=walls();if(!w.length)return null;
   let x0=1e18,y0=1e18,x1=-1e18,y1=-1e18;
@@ -219,5 +229,5 @@ function download(opts){
   const bl=new Blob([bytes],{type:"application/pdf"}),a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download="acreforge-cad-sheets.pdf";document.body.appendChild(a);a.click();a.remove();
   return r;
 }
-window.AcreCADSheets={PAPER,ROOFS,bbox,roof,roofCfg,elevation,section,build,download,buildPDF,Page};
+window.AcreCADSheets={PAPER,ROOFS,bbox,takeoff,roof,roofCfg,elevation,section,build,download,buildPDF,Page};
 })();

@@ -5268,7 +5268,7 @@ try:
               and cs.locator("#cadexportpaper").is_visible()
               and cs.locator("#cadexportpaper").input_value() == (paper_before_export or "Letter")
               and "conceptual vector-PDF" in cs.locator("#cadexportdescription").inner_text()
-              and "not construction documents" in cs.locator(".cadexportlimit").inner_text())
+              and "not construction documents" in cs.locator("#cadexport .cadexportlimit").inner_text())
         cs.select_option("#cadexportpaper", "Legal")
         cs.locator("#cadexportcancel").click()
         check("canceling the export wizard leaves the saved paper size unchanged",
@@ -5298,6 +5298,77 @@ try:
         check("export wizard downloads R12 DXF without changing the saved paper size",
               dxf_dl.value.suggested_filename.endswith(".dxf") and "AC1009" in dxf_data
               and dxf_data.rstrip().endswith("EOF") and cs.evaluate("AcreCAD.core.doc.paper") == "ARCH D")
+        takeoff_context = b.new_context(service_workers="block", accept_downloads=True, reduced_motion="reduce")
+        takeoff_page = takeoff_context.new_page()
+        takeoff_errors = []
+        takeoff_page.on("pageerror", lambda e: takeoff_errors.append(str(e)))
+        takeoff_page.add_init_script("localStorage.setItem('acreforge-guide-seen','1')")
+        takeoff_page.goto("http://127.0.0.1:8766/?spatial-test=1")
+        takeoff_page.locator("#nav [data-page=cad]").click()
+        takeoff_page.evaluate("""() => {
+          const C = AcreCAD.core;
+          C.doc.ents = [
+            {id:1,t:"wall",a:[0,0],b:[216,0],th:6,layer:"0"},
+            {id:2,t:"wall",a:[216,0],b:[216,288],th:6,layer:"0"},
+            {id:3,t:"wall",a:[216,288],b:[0,288],th:6,layer:"0"},
+            {id:4,t:"wall",a:[0,288],b:[0,0],th:6,layer:"0"},
+            {id:5,t:"room",pts:[[0,0],[216,0],[216,288],[0,288]],name:"Takeoff room",layer:"0"},
+            {id:6,t:"door",wall:1,pos:24,w:36,sill:0,head:80,layer:"0"},
+            {id:7,t:"window",wall:2,pos:48,w:48,sill:36,head:80,layer:"0"}
+          ];
+          C.doc.ceil = 96;
+          C.doc.takeoffRates = {floor:null, wall:null, door:null, window:null};
+          C.save();
+          AcreCAD.refresh();
+        }""")
+        takeoff = takeoff_page.evaluate("AcreCADSheets.takeoff()")
+        check("CAD takeoff measures room area, wall length and gross wall area",
+              takeoff["roomCount"] == 1 and takeoff["floorAreaSqFt"] == 432
+              and takeoff["wallLengthFt"] == 84 and takeoff["grossWallAreaSqFt"] == 672
+              and takeoff["doorCount"] == 1 and takeoff["windowCount"] == 1)
+        takeoff_page.locator("#cadtakeoffopen").click()
+        check("takeoff dialog shows measured quantities and warns about exclusions",
+              takeoff_page.locator("#cadtakeoff").is_visible()
+              and takeoff_page.locator('[data-quantity="floor"]').inner_text() == "432"
+              and takeoff_page.locator('[data-quantity="wallLength"]').inner_text() == "84"
+              and takeoff_page.locator('[data-quantity="wall"]').inner_text() == "672"
+              and "openings are not deducted" in takeoff_page.locator("#cadtakeoff").inner_text())
+        for rate_key, rate_value in (("floor", "10"), ("wall", "2"), ("door", "100"), ("window", "50")):
+            rate_input = takeoff_page.locator('[data-rate="%s"]' % rate_key)
+            rate_input.fill(rate_value)
+            rate_input.press("Tab")
+        check("user-entered rates calculate only configured categories",
+              "5,814.00" in takeoff_page.locator("#cadtakeofftotal").inner_text()
+              and takeoff_page.evaluate("AcreCAD.core.doc.takeoffRates.floor === 10 && AcreCAD.core.doc.takeoffRates.wall === 2 && AcreCAD.core.doc.takeoffRates.door === 100 && AcreCAD.core.doc.takeoffRates.window === 50"))
+        takeoff_page.locator('[data-rate="floor"]').fill("-1")
+        takeoff_page.locator('[data-rate="floor"]').press("Tab")
+        check("negative takeoff rates are rejected without overwriting the saved rate",
+              "Enter a rate from $0 to $1,000,000." in takeoff_page.locator("#cadtakeofftotal").inner_text()
+              and takeoff_page.evaluate("AcreCAD.core.doc.takeoffRates.floor === 10"))
+        with takeoff_page.expect_download() as takeoff_dl:
+            takeoff_page.locator("#cadtakeoffcsv").click()
+        takeoff_bytes = open(takeoff_dl.value.path(), "rb").read()
+        takeoff_rows = list(csv.reader(io.StringIO(takeoff_bytes.decode("utf-8"))))
+        takeoff_by_category = {row[0]: row for row in takeoff_rows[1:] if row and row[0] != "Note"}
+        check("takeoff CSV is parsed with CRLF rows and matching quantities and allowances",
+              takeoff_dl.value.suggested_filename == "acreforge-cad-takeoff.csv"
+              and b"\r\n" in takeoff_bytes
+              and takeoff_rows[0] == ["Category", "Quantity", "Unit", "Rate (USD/unit)", "Allowance (USD)"]
+              and takeoff_by_category["Wall length"][1:3] == ["84", "ft"]
+              and takeoff_by_category["Floor area"][3:] == ["10", "$4,320.00"]
+              and takeoff_by_category["Gross wall area"][3:] == ["2", "$1,344.00"])
+        takeoff_page.reload()
+        takeoff_page.locator("#nav [data-page=cad]").click()
+        takeoff_page.wait_for_selector("#cadcv")
+        check("takeoff rates persist across page reload",
+              takeoff_page.evaluate("AcreCAD.core.doc.takeoffRates.floor === 10 && AcreCAD.core.doc.takeoffRates.wall === 2 && AcreCAD.core.doc.takeoffRates.door === 100 && AcreCAD.core.doc.takeoffRates.window === 50"))
+        takeoff_page.locator("#cadtakeoffopen").click()
+        check("reloaded takeoff dialog restores rates and calculated subtotal",
+              takeoff_page.locator('[data-rate="floor"]').input_value() == "10"
+              and "5,814.00" in takeoff_page.locator("#cadtakeofftotal").inner_text())
+        takeoff_page.locator("#cadtakeoffclose").click()
+        takeoff_context.close()
+        check("takeoff workflow produced no page errors", not takeoff_errors)
         cs_cmd("PDF"); cs_cmd("Letter")
         check("PDF command honors paper choice", cs.evaluate("AcreCAD.core.doc.paper") == "Letter" and "PDF with 10 page" in cs_log())
         cs.evaluate("AcreCAD.core.doc.cur='0'")
@@ -5342,7 +5413,9 @@ try:
         cs.evaluate("(()=>{const C=AcreCAD.core;localStorage.setItem(C.SKEY,JSON.stringify({open:true}));C.load();AcreCAD.refresh()})()")
         cs.locator("[data-hl=discard]").click()
         bk = cs.evaluate("JSON.parse(localStorage.getItem(AcreCAD.core.BKEY)).doc.ents.length")
-        check("Discard starts fresh but keeps a backup of the prior drawing", cs.evaluate("AcreCAD.core.doc.ents.length") == 0 and bk == before)
+        check("Discard starts fresh, clears takeoff rates, and keeps a backup of the prior drawing",
+              cs.evaluate("AcreCAD.core.doc.ents.length") == 0 and bk == before
+              and cs.evaluate("Object.values(AcreCAD.core.doc.takeoffRates).every(rate => rate === null)"))
         cs_cmd("ROOM"); cs_cmd("0,0"); cs_cmd("216,288"); cs_cmd("Living Room")
         pf = cs.evaluate("AcreCADSheets.build({paper:'Letter',failSheet:'Plumbing'})")
         check("PDF export skips a failed sheet and reports a partial set", pf["pages"] == 9 and len(pf["failed"]) == 1 and "9 of 10 sheets generated" in pf["message"] and pf["pdf"].startswith("%PDF-"))

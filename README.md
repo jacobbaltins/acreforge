@@ -202,9 +202,13 @@ Pastures and crop fields are **land zones** (Land zones card), not placeable obj
 
 Finishing or cancelling returns to Ready, unless objects remain selected.
 
-**Export wizard (v106):** Choose **Export…** to download a conceptual vector PDF drawing set or an R12 DXF. PDF exports let you choose paper size and include the available cover, floor plan, elevations, section/roof, foundation, and electrical/plumbing CONCEPT sheets; DXF contains model-space geometry in inches. Canceling leaves the saved paper size unchanged. Downloads are local; DXF is not DWG, and neither format is construction-ready.
+The Mode display is a derived, priority-ordered resolver, not the planned declarative interaction transition table; explicit transition rules remain queued.
 
-**Elevations, roof and PDF sheets:** ELEV, ROOF and PDF commands remain available from the command line. The PDF has a title block, scale, north arrow and page numbers. Papers: Letter, Legal, 11x17, ARCH D, ARCH E, A, B, A4, A3. Roofs are simplified; there is no site-plan sheet or quantity takeoff.
+**Export wizard (v106):** Choose **Export…** to download a conceptual vector PDF drawing set or an R12 DXF. PDF exports let you choose paper size and include the available cover, floor plan, elevations, section/roof, foundation, and electrical/plumbing CONCEPT sheets; DXF contains model-space geometry in inches. Canceling leaves the saved paper size unchanged. Downloads are local; DXF is not DWG, and neither format is construction-ready. PDF sheet selection, an in-app preview, and PNG export are not implemented yet.
+
+**Takeoffs and cost allowance (v107):** CAD Studio reports summed room floor area, wall centerline length, gross wall area, and door/window counts; enter optional rates to calculate a partial cost allowance and download a local CSV. Rates are user-supplied, blank categories are excluded, gross wall area does not deduct openings, overlapping rooms may double-count, and hidden layers are included. These conceptual quantities are not market pricing, a bid, labor/waste estimates, engineering, or code checks.
+
+**Elevations, roof and PDF sheets:** ELEV, ROOF and PDF commands remain available from the command line. The PDF has a title block, scale, north arrow and page numbers. Papers: Letter, Legal, 11x17, ARCH D, ARCH E, A, B, A4, A3. Roofs are simplified; there is no site-plan sheet.
 
 **Units and crisp lines:** inches by default; feet-and-inches (3'6") is rejected. UNITS mm|cm|m changes display/input only (geometry and DXF stay in inches; areas in sq in / sq mm / sq cm / sq m). The canvas is devicePixelRatio-aware with per-layer lineweights (screen only; DXF R12 has none).
 **Commands added:** ROTATE, MIRROR, SCALE, OFFSET (line/wall/circle/arc), TRIM/EXTEND/FILLET (lines only), ARC, HATCH (ANSI31/CROSS/SOLID line patterns, exported as lines), ID, UNITS, PROFILE.
