@@ -5237,8 +5237,9 @@ try:
               dxf.startswith("0\r\nSECTION") and "AC1009" in dxf and "A-WALL" in dxf and all(k in dxf for k in ("\r\nLINE\r\n", "\r\nPOLYLINE\r\n", "\r\nCIRCLE\r\n", "\r\nTEXT\r\n")) and dxf.rstrip().endswith("EOF"))
         check("DXF contains the room label with size and area", "Living Room 216\" x 288\" 62208 sq in" in dxf)
         cs_cmd("HELP")
-        check("CAD help states DXF-only and conceptual limits",
-              "DXF export only" in cs.locator("#cadhelptxt").text_content() and "DWG" in cs.locator("#cadhelptxt").text_content())
+        check("CAD help states the limited DXF import/export and conceptual limits",
+              "limited ASCII R12 import" in cs.locator("#cadhelptxt").text_content()
+              and "DWG" in cs.locator("#cadhelptxt").text_content())
         cs.locator("#cadfs").click()
         check("full viewport toggle fills the screen", cs.locator("#cadwrap.cadfull").count() == 1)
         # Chunk 3: elevations, roof, section, vector PDF
@@ -5369,6 +5370,98 @@ try:
         takeoff_page.locator("#cadtakeoffclose").click()
         takeoff_context.close()
         check("takeoff workflow produced no page errors", not takeoff_errors)
+        import_context = b.new_context(service_workers="block", accept_downloads=True, reduced_motion="reduce")
+        import_page = import_context.new_page()
+        import_errors = []
+        import_page.on("pageerror", lambda e: import_errors.append(str(e)))
+        import_page.add_init_script("localStorage.setItem('acreforge-guide-seen','1')")
+        import_page.goto("http://127.0.0.1:8766/?spatial-test=1")
+        import_page.locator("#nav [data-page=cad]").click()
+        import_page.evaluate("""() => {
+          const C = AcreCAD.core;
+          C.doc.ents = [{id:1,t:"line",a:[0,0],b:[1,1],layer:"0"}];
+          C.doc.nid = 2;
+          C.save();
+          AcreCAD.refresh();
+        }""")
+        dxf_import = "\r\n".join([
+            "0","SECTION","2","HEADER","9","$INSUNITS","70","4","0","ENDSEC",
+            "0","SECTION","2","ENTITIES",
+            "0","LINE","8","Imported Layer","10","0","20","0","11","254","21","508",
+            "0","POLYLINE","8","Imported Layer","66","1","70","1",
+            "0","VERTEX","8","Imported Layer","10","0","20","0",
+            "0","VERTEX","8","Imported Layer","10","254","20","0",
+            "0","VERTEX","8","Imported Layer","10","254","20","508",
+            "0","SEQEND",
+            "0","CIRCLE","8","Imported Layer","10","50.8","20","76.2","40","25.4",
+            "0","ARC","8","Imported Layer","10","0","20","0","40","50.8","50","0","51","90",
+            "0","TEXT","8","Imported Layer","10","76.2","20","101.6","40","25.4","1","Imported",
+            "0","ELLIPSE","0","ENDSEC","0","EOF",""
+        ])
+        import_file = {"name":"local-import.dxf","mimeType":"application/dxf","buffer":dxf_import.encode("utf-8")}
+        import_page.locator("#cadimportfile").set_input_files(import_file)
+        import_page.wait_for_function("!document.querySelector('#cadimportgo').disabled")
+        check("DXF import previews supported entities, skips unsupported records, and identifies units",
+              "5 supported entities" in import_page.locator("#cadimportstatus").inner_text()
+              and "1 unsupported records" in import_page.locator("#cadimportstatus").inner_text()
+              and "millimeters" in import_page.locator("#cadimportstatus").inner_text())
+        import_page.locator("#cadimportcancel").click()
+        check("canceling DXF import preserves the existing drawing and layers",
+              import_page.evaluate("AcreCAD.core.doc.ents.length === 1 && Object.keys(AcreCAD.core.doc.layers).length === 11"))
+        import_page.locator("#cadimportfile").set_input_files(import_file)
+        import_page.wait_for_function("!document.querySelector('#cadimportgo').disabled")
+        import_page.locator("#cadimportgo").click()
+        imported = import_page.evaluate("""() => {
+          const d = AcreCAD.core.doc;
+          return {
+            entities:d.ents.map(e=>({t:e.t,a:e.a,b:e.b,pts:e.pts,c:e.c,r:e.r,p:e.p,h:e.h,s:e.s,closed:e.closed,layer:e.layer})),
+            layers:Object.keys(d.layers)
+          };
+        }""")
+        imported_entities = imported["entities"]
+        check("DXF import appends and converts LINE, POLYLINE, CIRCLE, ARC, and TEXT to inches",
+              len(imported_entities) == 6 and imported_entities[0]["t"] == "line"
+              and imported_entities[1]["t"] == "line" and imported_entities[1]["b"] == [10,20]
+              and imported_entities[2]["t"] == "pline" and imported_entities[2]["closed"]
+              and imported_entities[2]["pts"] == [[0,0],[10,0],[10,20]]
+              and imported_entities[3]["t"] == "circle"
+              and all(abs(actual - expected) < 1e-9
+                      for actual, expected in zip(imported_entities[3]["c"], [2,3]))
+              and abs(imported_entities[3]["r"] - 1) < 1e-9
+              and imported_entities[4]["t"] == "arc"
+              and abs(imported_entities[4]["r"] - 2) < 1e-9
+              and imported_entities[5]["t"] == "text"
+              and all(abs(actual - expected) < 1e-9
+                      for actual, expected in zip(imported_entities[5]["p"], [3,4]))
+              and abs(imported_entities[5]["h"] - 1) < 1e-9
+              and imported_entities[5]["s"] == "Imported")
+        check("DXF import namespaces source layers and records the skipped entity",
+              "DXF-IMPORTED_LAYER" in imported["layers"]
+              and "Imported 5 DXF entities; skipped 1 unsupported records." in import_page.locator("#cadlog").inner_text())
+        import_page.reload()
+        import_page.locator("#nav [data-page=cad]").click()
+        import_page.wait_for_selector("#cadcv")
+        check("imported DXF entities persist after reload",
+              import_page.evaluate("AcreCAD.core.doc.ents.length === 6 && AcreCAD.core.doc.ents.filter(e=>e.t==='pline').length === 1"))
+        for invalid_name, invalid_data, expected_error in (
+            ("broken.dxf", "not-a-code\r\nbad\r\n", "Invalid DXF group code"),
+            ("3d.dxf", "\r\n".join(["0","SECTION","2","ENTITIES","0","LINE","10","0","20","0","30","1","11","10","21","0","31","1","0","ENDSEC","0","EOF",""]), "Only 2D DXF geometry"),
+            ("extruded.dxf", "\r\n".join(["0","SECTION","2","ENTITIES","0","LINE","10","0","20","0","11","10","21","0","210","0","220","1","230","0","0","ENDSEC","0","EOF",""]), "Only 2D DXF geometry in the XY plane"),
+            ("curved-polyline.dxf", "\r\n".join(["0","SECTION","2","ENTITIES","0","POLYLINE","66","1","70","0","0","VERTEX","10","0","20","0","42","0.5","0","VERTEX","10","10","20","0","0","SEQEND","0","ENDSEC","0","EOF",""]), "Curved DXF polyline segments are not supported")
+        ):
+            import_page.locator("#cadimportfile").set_input_files({
+                "name":invalid_name,"mimeType":"application/dxf","buffer":invalid_data.encode("utf-8")
+            })
+            import_page.wait_for_function("document.querySelector('#cadimportstatus').textContent.includes('Import not ready:')")
+            check("invalid DXF input is rejected without modifying the drawing",
+                  expected_error in import_page.locator("#cadimportstatus").inner_text()
+                  and import_page.locator("#cadimportgo").is_disabled()
+                  and import_page.evaluate("AcreCAD.core.doc.ents.length === 6"))
+        import_page.locator("#cadimportcancel").click()
+        check("one undo removes the imported DXF batch and its layers",
+              import_page.evaluate("AcreCAD.core.undo() && AcreCAD.core.doc.ents.length === 1 && !AcreCAD.core.doc.layers['DXF-IMPORTED_LAYER']"))
+        check("DXF import workflow produced no page errors", not import_errors)
+        import_context.close()
         cs_cmd("PDF"); cs_cmd("Letter")
         check("PDF command honors paper choice", cs.evaluate("AcreCAD.core.doc.paper") == "Letter" and "PDF with 10 page" in cs_log())
         cs.evaluate("AcreCAD.core.doc.cur='0'")
