@@ -5159,6 +5159,8 @@ try:
         check("3D stays linked after plan edit", cs.evaluate("()=>AcreCAD.state.v3.last!==undefined&&!AcreCAD.state.v3.err"))
         cs.click("#cad3d")
         check("Split 3D toggles off", cs.evaluate("()=>document.querySelector('#cad3dwrap').hidden"))
+        cs_cmd("VIEW3D"); cs_cmd("top")
+        check("VIEW3D command sets top view and opens split", cs.evaluate("()=>AcreCAD.state.v3.on&&AcreCAD.state.v3.pitch===90"))
         check("CAD Studio produced no page errors", not cs_errors)
         cs_context.close()
         rotation_context = b.new_context(service_workers="block", reduced_motion="no-preference")

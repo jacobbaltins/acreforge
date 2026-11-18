@@ -8,7 +8,7 @@ const ALIAS={L:"LINE",PL:"PLINE",REC:"RECT",RECTANG:"RECT",C:"CIRCLE",M:"MOVE",C
 const USER_ALIAS={C:"CIRCLE",R:"RECT"};
 const USER_KEYS={"Ctrl+Shift+C":"CIRCLE","Ctrl+Shift+T":"TEXT","Ctrl+Shift+M":"MIRROR","Ctrl+Shift+F":"FILLET","Home":"ZOOM E","Ctrl+R":"@ortho","Ctrl+Shift+P":"@snap"};
 const USER_UNMAPPED="Not mapped (no equivalent here): Inventor-only commands (Mold, Frame, Assembly, Part), F6 (3D toggle), Ctrl+P (print).";
-const HELP="Commands: PDF ROOF ELEV LINE PLINE RECT CIRCLE ARC HATCH MOVE COPY ROTATE MIRROR SCALE OFFSET TRIM EXTEND FILLET ID UNITS PROFILE ERASE WALL ROOM DOOR WINDOW OUTLET FIXTURE STAIR DIM TEXT DIST AREA LAYER ZOOM SELECTALL UNDO REDO CEILING WALLTH GRID DXF BACKUP HELP. Aliases: L PL REC C A H M CO RO MI SC OF TR EX FI E U Z W D WIN O DI T LA UN PR. Points: x,y  @dx,dy  @dist<angle  or a bare distance toward the cursor. Lengths are in the selected unit (inches by default): 12, 12\", 12in, 300mm, 30cm, 2m. Feet-and-inches notation (3'6\") is not accepted.";
+const HELP="Commands: PDF ROOF ELEV LINE PLINE RECT CIRCLE ARC HATCH MOVE COPY ROTATE MIRROR SCALE OFFSET TRIM EXTEND FILLET ID UNITS PROFILE ERASE WALL ROOM DOOR WINDOW OUTLET FIXTURE STAIR DIM TEXT DIST AREA LAYER ZOOM SELECTALL UNDO REDO CEILING WALLTH GRID DXF BACKUP VIEW3D HELP. Aliases: L PL REC C A H M CO RO MI SC OF TR EX FI E U Z W D WIN O DI T LA UN PR. Points: x,y  @dx,dy  @dist<angle  or a bare distance toward the cursor. Lengths are in the selected unit (inches by default): 12, 12\", 12in, 300mm, 30cm, 2m. Feet-and-inches notation (3'6\") is not accepted.";
 const KWS={};
 const cmds={};
 function say(m){C.note(m)}
@@ -138,6 +138,7 @@ cmds.GRID=function*(){const h=yield num("Grid spacing in inches <"+C.doc.grid+">
 cmds.ZOOM=function*(){const o=yield kw("Zoom [Extents/In/Out]:",["E","IN","OUT"]);R.viewReq={op:o}};
 cmds.HELP=function*(){say(HELP)};
 cmds.DXF=function*(){R.viewReq={op:"DXF"}};
+cmds.VIEW3D=function*(){const k=yield kw("View [Top/Front/Right/Back/Left/Home/Off] <Home>:",["Top","Front","Right","Back","Left","Home","Off"]);const s=String(k||"Home").toLowerCase();R.viewReq={op:"3D",k:s==="home"?"iso":s}};
 cmds.BACKUP=function*(){C.exportBackup();say("Backup file downloaded (JSON, inches). Keep it somewhere safe.")};
 cmds.PDF=function*(){const S=window.AcreCADSheets;const p=yield kw("Paper ["+Object.keys(S.PAPER).join("/")+"] <"+(C.doc.paper||"Letter")+">:",Object.keys(S.PAPER).concat([""]));if(p&&S.PAPER[p])C.doc.paper=p;R.viewReq={op:"PDF"}};
 cmds.ROOF=function*(){const S=window.AcreCADSheets;const ty=yield kw("Roof type ["+S.ROOFS.join("/")+"]:",S.ROOFS);if(!S.ROOFS.includes(ty)){say("Unknown roof type");return}const pi=yield num("Pitch rise per 12 <"+S.roofCfg().pitch+">:",S.roofCfg().pitch);const ov=yield num("Overhang in inches <"+S.roofCfg().ov+">:",S.roofCfg().ov);if(!(pi>0&&pi<=24)||!(ov>=0)){say("Pitch must be 0-24 and overhang >= 0");return}C.doc.roof={type:ty,pitch:pi,ov};C.save();const r=S.roof();if(!r){say("Roof set; draw walls to compute area");return}say(r.type+" roof "+r.pitch+"/12: area "+Math.round(r.area)+" sq in, ridge "+C.fmtIn(r.ridgeLength)+", ridge height "+C.fmtIn(r.ridgeHeight)+" (conceptual)")};

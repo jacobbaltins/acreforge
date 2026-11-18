@@ -131,6 +131,7 @@ function viewOp(){
   const v=R.viewReq;R.viewReq=null;if(!v)return;
   if(v.op==="E")fit();else if(v.op==="IN")U.s*=1.5;else if(v.op==="OUT")U.s/=1.5;
   else if(v.op==="W")C.note("Window zoom: use the mouse wheel or ZOOM IN/OUT/E");
+  else if(v.op==="3D"){if(v.k==="off")U.v3.on=false;else{const V=window.AcreCAD3D.VIEWS[v.k]||window.AcreCAD3D.VIEWS.iso;U.v3.on=true;U.v3.yaw=V.yaw;U.v3.pitch=V.pitch;U.v3.zoom=1}}
   else if(v.op==="PDF"){const r=window.AcreCADSheets.download({paper:C.doc.paper});C.note("PDF with "+r.pages+" page(s), "+r.paper+" ("+r.size[0]+" x "+r.size[1]+" in). Vector PDF; conceptual, not for construction.")}
   else if(v.op==="DXF"){const t=M.exportDXF();window.__cadLastDxf=t;const b=new Blob([t],{type:"application/dxf"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="acreforge-cad-studio.dxf";document.body.appendChild(a);a.click();a.remove();C.note("DXF R12 exported ("+t.split("\r\n").length+" lines). DXF only; not DWG.")}
 }

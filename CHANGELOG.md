@@ -1,6 +1,6 @@
 ## v104
 
-- Linked 3D view: **Split 3D** button shows a concept block model (walls, door/window openings, simplified roof) beside the plan, with ViewCube buttons (Top/Front/Right/Back/Left/Home), drag to orbit, wheel to zoom. It updates as you draw. Gambrel and barn roofs show as gable. Not an engineered model; not saved in the drawing.
+- Linked 3D view: **Split 3D** button shows a concept block model (walls, door/window openings, simplified roof) beside the plan, with ViewCube buttons (Top/Front/Right/Back/Left/Home), drag to orbit, wheel to zoom. It updates as you draw. Gambrel and barn roofs show as gable. Not an engineered model; not saved in the drawing. Command: VIEW3D (Top/Front/Right/Back/Left/Home/Off). ZIP is now built from LF-normalized text so it matches the committed files.
 
 ## v103
 
