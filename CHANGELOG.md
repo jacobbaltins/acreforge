@@ -1,3 +1,9 @@
+## v114
+
+- Add individual PDF sheet selection in the CAD export wizard, preserving canonical sheet order and showing only available sheets.
+- Disable PDF download when no sheets are selected; selected-sheet exports omit unrequested pages and update the cover's included-sheet list.
+- Keep in-app PDF preview, PNG export, and the declarative CAD interaction-transition table queued.
+
 ## v113
 
 - Begin AF-022 with a bounded local acquisition worksheet: user-supplied purchase, transaction, due-diligence, and reserve amounts plus an optional user-entered planning budget.
@@ -9,6 +15,7 @@
 - Add a separate property Quick Build wizard for home, homestead, family compound, and ranch concepts.
 - Collect parcel or planning-area assumptions, house goals, and site-spacing preference; preview planning ranges and a schematic floor plan before applying.
 - Save the applied configuration locally and generate editable Site Designer objects; clarify that this is distinct from the CAD room wizard and is not AI or professional design.
+- Track the original specification's remaining gaps: terrain, bathroom/garage/story requirements, building style/budget, full purpose and site-feature choices, a three-goal limit, generation progress and specified metrics/actions, a separate floor-plan stage, Advanced Design, and helper suggestions.
 - Keep the PDF sheet-selection, in-app preview, PNG export, and declarative CAD interaction-transition-table gaps queued.
 
 ## v111

@@ -4,6 +4,8 @@
 const C=window.AcreCADCore;
 const PAPER={Letter:[11,8.5],Legal:[14,8.5],"11x17":[17,11],"ARCH D":[36,24],"ARCH E":[48,36],A:[11,8.5],B:[17,11],A4:[11.69,8.27],A3:[16.54,11.69]};
 const ROOFS=["gable","hip","shed","gambrel","barn"];
+const SHEETS=[["cover","Cover"],["floor-plan","Floor plan"],["front-elevation","Front elevation"],["rear-elevation","Rear elevation"],["left-elevation","Left elevation"],["right-elevation","Right elevation"],["section-roof","Section and roof"],["foundation","Foundation plan"],["electrical","Electrical plan (concept)"],["plumbing","Plumbing plan (concept)"]];
+const SHEET_IDS=new Set(SHEETS.map(([id])=>id));
 const walls=()=>C.doc.ents.filter(e=>e.t==="wall");
 function takeoff(){
   const ents=C.doc.ents,rooms=ents.filter(e=>e.t==="room"&&Array.isArray(e.pts)&&e.pts.length>=3);
@@ -21,6 +23,7 @@ function bbox(){
   w.forEach(e=>[e.a,e.b].forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1])}));
   return {x0,y0,x1,y1,w:x1-x0,d:y1-y0};
 }
+function availableSheets(){return (bbox()?SHEETS:SHEETS.slice(0,1)).map(([id,label])=>({id,label}))}
 function roofCfg(){const r=C.doc.roof||{};return {type:ROOFS.includes(r.type)?r.type:"gable",pitch:r.pitch>0?r.pitch:6,ov:r.ov>=0?r.ov:12}}
 /* Roof from footprint bounding box. Hip/gambrel/barn are simplified approximations. */
 function roof(cfg){
@@ -189,25 +192,34 @@ function drawSection(pg,box,s){
 /* Pages: cover, floor plan, 4 elevations, section+roof, foundation, electrical concept, plumbing concept */
 function build(opts){
   opts=opts||{};const size=PAPER[opts.paper]?opts.paper:"Letter";const [w,h]=PAPER[size];
+  const available=new Set(availableSheets().map(sheet=>sheet.id));
+  let selected=null;
+  if(opts.sheets!==undefined){
+    if(!Array.isArray(opts.sheets))return {pdf:"",pages:0,paper:size,size:[w,h],failed:[],message:"PDF sheet selection must be a list.",sheets:[]};
+    selected=new Set(opts.sheets);
+    if([...selected].some(id=>!SHEET_IDS.has(id)))return {pdf:"",pages:0,paper:size,size:[w,h],failed:[],message:"PDF sheet selection contains an unknown sheet.",sheets:[]};
+    if([...selected].some(id=>!available.has(id)))return {pdf:"",pages:0,paper:size,size:[w,h],failed:[],message:"A selected PDF sheet is unavailable for this drawing.",sheets:[]};
+    if(!selected.size)return {pdf:"",pages:0,paper:size,size:[w,h],failed:[],message:"Select at least one PDF sheet.",sheets:[]};
+  }
   const b=bbox();const pages=[];const r=roof(),own=[];
-  const mk=(title,fn,north)=>{const pg=new Page(w,h,title);own.push([pg,title,fn,north]);pages.push(pg)};
-  const N=b?11:1;
-  mk("Cover",(pg,box)=>{
+  const mk=(id,title,fn,north)=>{if(selected&&!selected.has(id))return;const pg=new Page(w,h,title);pg.sheetId=id;own.push([pg,title,fn,north]);pages.push(pg)};
+  mk("cover","Cover",(pg,box)=>{
     pg.text(box.x+0.2,box.y+box.h-0.5,C.doc.title||"AcreForge CAD Studio project",0.35,true);
     pg.text(box.x+0.2,box.y+box.h-0.95,"Conceptual drawing set (inches) - not construction documents",0.16);
     pg.text(box.x+0.2,box.y+box.h-1.3,"Paper: "+size+"   Date: "+new Date().toISOString().slice(0,10),0.14);
     if(b){pg.text(box.x+0.2,box.y+box.h-1.7,"Footprint "+C.fmtIn(b.w)+" x "+C.fmtIn(b.d)+"   Ceiling "+C.fmtIn(C.doc.ceil),0.14);
       pg.text(box.x+0.2,box.y+box.h-2.0,"Roof: "+r.type+", "+r.pitch+"/12, area "+Math.round(r.area)+" sq in, ridge "+C.fmtIn(r.ridgeLength),0.14)}
     else pg.text(box.x+0.2,box.y+box.h-1.7,"No walls drawn yet.",0.14);
-    pg.text(box.x+0.2,box.y+box.h-2.4,"Sheets: floor plan, 4 elevations, section/roof, foundation, electrical concept, plumbing concept.",0.12);
+    const included=selected?SHEETS.filter(([id])=>selected.has(id)&&id!=="cover").map(([,label])=>label).join(", ")||"none":"floor plan, 4 elevations, section/roof, foundation, electrical concept, plumbing concept";
+    pg.text(box.x+0.2,box.y+box.h-2.4,"Sheets: "+included+".",0.12);
   },false);
   if(b){
-    mk("Floor plan",(pg,box)=>drawPlan(pg,box).n,true);
-    SIDES.forEach(s=>mk(s[0].toUpperCase()+s.slice(1)+" elevation",(pg,box)=>drawElev(pg,box,elevation(s)),false));
-    mk("Section and roof ("+r.type+" "+r.pitch+"/12, area "+Math.round(r.area)+" sq in, ridge "+C.fmtIn(r.ridgeLength)+")",(pg,box)=>drawSection(pg,box,section()),false);
-    mk("Foundation plan (concept)",(pg,box)=>drawPlan(pg,box,"found").n,true);
-    mk("Electrical plan (CONCEPT)",(pg,box)=>{const m=drawPlan(pg,box,"found");C.doc.ents.filter(e=>e.t==="outlet").forEach(e=>{pg.circle(m.X(e.p[0]),m.Y(e.p[1]),0.05)});return m.n},true);
-    mk("Plumbing plan (CONCEPT)",(pg,box)=>{const m=drawPlan(pg,box,"found");C.doc.ents.filter(e=>e.t==="fixture"&&e.layer==="P-PLMB").forEach(e=>{pg.rect(m.X(e.p[0]-e.w/2),m.Y(e.p[1]-e.d/2),e.w/m.n,e.d/m.n);pg.text(m.X(e.p[0]),m.Y(e.p[1]),e.kind,0.08,false,"c")});return m.n},true);
+    mk("floor-plan","Floor plan",(pg,box)=>drawPlan(pg,box).n,true);
+    SIDES.forEach(s=>mk(s+"-elevation",s[0].toUpperCase()+s.slice(1)+" elevation",(pg,box)=>drawElev(pg,box,elevation(s)),false));
+    mk("section-roof","Section and roof ("+r.type+" "+r.pitch+"/12, area "+Math.round(r.area)+" sq in, ridge "+C.fmtIn(r.ridgeLength)+")",(pg,box)=>drawSection(pg,box,section()),false);
+    mk("foundation","Foundation plan (concept)",(pg,box)=>drawPlan(pg,box,"found").n,true);
+    mk("electrical","Electrical plan (CONCEPT)",(pg,box)=>{const m=drawPlan(pg,box,"found");C.doc.ents.filter(e=>e.t==="outlet").forEach(e=>{pg.circle(m.X(e.p[0]),m.Y(e.p[1]),0.05)});return m.n},true);
+    mk("plumbing","Plumbing plan (CONCEPT)",(pg,box)=>{const m=drawPlan(pg,box,"found");C.doc.ents.filter(e=>e.t==="fixture"&&e.layer==="P-PLMB").forEach(e=>{pg.rect(m.X(e.p[0]-e.w/2),m.Y(e.p[1]-e.d/2),e.w/m.n,e.d/m.n);pg.text(m.X(e.p[0]),m.Y(e.p[1]),e.kind,0.08,false,"c")});return m.n},true);
   }
   const failed=[];
   own.forEach(([pg,title,fn,north],i)=>{
@@ -221,13 +233,13 @@ function build(opts){
   let message="";
   if(failed.length){message=pages.length+" of "+own.length+" sheets generated. "+failed.join(", ")+" could not be created. The rest of your set is complete and your drawing is unchanged.";if(C.setHealth)C.setHealth("WARNING",message)}
   const txt=buildPDF(pages);
-  return {pdf:txt,pages:pages.length,paper:size,size:[w,h],failed,message};
+  return {pdf:txt,pages:pages.length,paper:size,size:[w,h],failed,message,sheets:pages.map(pg=>pg.sheetId)};
 }
 function download(opts){
-  const r=build(opts);const bytes=new Uint8Array(r.pdf.length);for(let i=0;i<r.pdf.length;i++)bytes[i]=r.pdf.charCodeAt(i)&255;
+  const r=build(opts);if(!r.pdf)return r;const bytes=new Uint8Array(r.pdf.length);for(let i=0;i<r.pdf.length;i++)bytes[i]=r.pdf.charCodeAt(i)&255;
   window.__cadLastPdf=r.pdf;
   const bl=new Blob([bytes],{type:"application/pdf"}),a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download="acreforge-cad-sheets.pdf";document.body.appendChild(a);a.click();a.remove();
   return r;
 }
-window.AcreCADSheets={PAPER,ROOFS,bbox,takeoff,roof,roofCfg,elevation,section,build,download,buildPDF,Page};
+window.AcreCADSheets={PAPER,ROOFS,availableSheets,bbox,takeoff,roof,roofCfg,elevation,section,build,download,buildPDF,Page};
 })();
