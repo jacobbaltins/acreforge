@@ -1,3 +1,10 @@
+## v111
+
+- Add an accessible CAD command filter that searches toolbar labels and command keywords while preserving category grouping.
+- Hide empty command groups, provide a no-match status, and retain the query when remounting CAD Studio in full-viewport mode.
+- Rebind delegated toolbar handlers after remounts so repeated viewport toggles do not duplicate actions.
+- Add smoke coverage for matching, no results, reset, and filter persistence.
+
 ## v110
 
 - Add a CAD Studio Quick Build wizard for appending editable one-, two-, or three-room rectangular concepts with user dimensions, room names, a door, and a window.

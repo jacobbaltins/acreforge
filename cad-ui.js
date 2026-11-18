@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 const C=window.AcreCADCore,M=window.AcreCADCmd,R=M.R;
-const U={v3:{on:false,yaw:35,pitch:28,zoom:1},osnap:true,grid:true,snap:false,ortho:false,polar:false,cx:120,cy:90,s:2,w:800,h:500,dpr:1,mx:0,my:0,snapHit:null,drag:null,interaction:"READY",root:null,cv:null,fresh:true,listeners:false,full:false,importedDXF:null};
+const U={v3:{on:false,yaw:35,pitch:28,zoom:1},osnap:true,grid:true,snap:false,ortho:false,polar:false,cx:120,cy:90,s:2,w:800,h:500,dpr:1,mx:0,my:0,snapHit:null,drag:null,interaction:"READY",root:null,cv:null,fresh:true,listeners:false,full:false,importedDXF:null,toolFilter:"",rootListenerController:null};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const toS=p=>[(p[0]-U.cx)*U.s+U.w/2,U.h/2-(p[1]-U.cy)*U.s];
 const toW=(x,y)=>[(x-U.w/2)/U.s+U.cx,U.cy-(y-U.h/2)/U.s];
@@ -26,6 +26,22 @@ function updateInteraction(){
   const t=interactionState(),el=U.root&&U.root.querySelector("#cadmode");
   U.interaction=t.state;
   if(el){const label="Mode: "+t.label;if(el.textContent!==label){el.textContent=label;el.dataset.state=t.state}}
+}
+function filterTools(value){
+  const term=String(value||"").trim().toLowerCase(),root=U.root;
+  if(!root)return;
+  let visible=0;
+  root.querySelectorAll(".cadgrp").forEach(group=>{
+    let groupVisible=0;
+    group.querySelectorAll("[data-cmd]").forEach(button=>{
+      const match=!term||(button.dataset.cmd+" "+button.textContent).toLowerCase().includes(term);
+      button.hidden=!match;
+      if(match){visible++;groupVisible++}
+    });
+    group.hidden=groupVisible===0;
+  });
+  const status=root.querySelector("#cadtoolfilterstatus");
+  if(status){status.hidden=!term||visible>0;status.textContent="No CAD commands match “"+String(value).trim()+"”."}
 }
 function quickBuildDialog(){
   return '<dialog id="cadquickbuild" aria-labelledby="cadquickbuildtitle" aria-describedby="cadquickbuilddescription"><h3 id="cadquickbuildtitle">Quick Build Wizard</h3><p id="cadquickbuilddescription">Create an editable rectangular building concept without using command prompts. New geometry is appended beside the current drawing and can be removed with one Undo.</p><div class="quickbuildfields"><label>Plan name <input id="cadquickbuildname" maxlength="40" value="Quick Build"></label><label>Room layout <select id="cadquickbuildlayout"><option value="open">Open plan · 1 room</option><option value="two">Two rooms</option><option value="three">Three rooms</option></select></label><label>Outside width (ft) <input id="cadquickbuildwidth" type="number" min="18" max="200" step="1" value="40"></label><label>Outside depth (ft) <input id="cadquickbuilddepth" type="number" min="18" max="200" step="1" value="30"></label></div><p class="cadexportlimit">Adds 6 in conceptual walls, room labels, one 36 in door, and one 36 in window. Dimensions are converted to drawing inches. No building code, structure, egress, or construction details are evaluated.</p><p id="cadquickbuildstatus" role="status" aria-live="polite"></p><div class="cadexportactions"><button class="btn" id="cadquickbuildcancel" type="button">Cancel</button><button class="btn" id="cadquickbuildgo" type="button">Add plan</button></div></dialog>';
@@ -54,8 +70,8 @@ function tools(){
     ["Annotate",[["DIM","Dimension"],["TEXT","Text"]]],
     ["Inquiry",[["DIST","Distance"],["AREA","Area"],["ID","Point ID"]]],
     ["History / View",[["UNDO","Undo"],["REDO","Redo"],["ZOOM E","Zoom ext"]]]];
-  U.root.querySelector("#cadtools").innerHTML=G.map(g=>'<div class="cadgrp"><span class="cadgl">'+g[0]+'</span>'+g[1].map(t=>'<button type="button" class="btn" data-cmd="'+t[0]+'">'+t[1]+'</button>').join("")+'</div>').join("");
-  U.root.querySelector("#cadtools").insertAdjacentHTML("afterbegin",'<button type="button" class="btn" id="cadquickbuildopen">Quick Build…</button>');
+  U.root.querySelector("#cadtools").innerHTML='<label class="cadtoolfilter"><span>Find a command</span><input id="cadtoolfilter" type="search" aria-label="Filter CAD commands" placeholder="Filter commands" autocomplete="off" value="'+esc(U.toolFilter)+'"></label><div id="cadtoolfilterstatus" class="cadtoolfilterstatus" role="status" aria-live="polite" hidden></div><button type="button" class="btn" id="cadquickbuildopen">Quick Build…</button>'+G.map(g=>'<div class="cadgrp"><span class="cadgl">'+g[0]+'</span>'+g[1].map(t=>'<button type="button" class="btn" data-cmd="'+t[0]+'">'+t[1]+'</button>').join("")+'</div>').join("");
+  filterTools(U.toolFilter);
   U.root.querySelector("#cadhelptxt").innerHTML='<p>'+esc(M.HELP)+'</p><p><b>Hotkeys:</b> F3 object snap · F7 grid · F8 ortho · F9 grid snap · F10 polar · Esc cancel · Enter/Space repeat last command · Del erase selection · Ctrl+Z / Ctrl+Y undo/redo · Ctrl+A select all · Home zoom extents (User profile) · right-click = Enter · wheel zoom · middle-drag pan. Drag right = window select, drag left = crossing select.</p><p><b>Limits:</b> Conceptual drafting only. DXF R12 export and limited ASCII R12 import; no DWG. No DWG/AutoCAD compatibility claim. Not construction-grade, no code compliance. Snaps: endpoint, midpoint, center, intersection (line-to-line), perpendicular, grid. TRIM, EXTEND and FILLET work on LINEs only; OFFSET works on lines, walls, circles and arcs; HATCH is a simple line pattern (ANSI31, CROSS, SOLID) in the DXF as exploded lines; lineweights show on screen only (DXF R12 has none); doors and windows follow their walls and are skipped by MOVE/COPY/ROTATE/MIRROR/SCALE. Units: inches by default; UNITS switches display/input to mm, cm or m (geometry and DXF stay in inches); feet-and-inches notation is not accepted. Not yet implemented: additional DXF entity types, grips, ZOOM window, editable in-workspace elevation/section/layout views, DWG. ELEV and ROOF reports feed the conceptual PDF sheets; linked Split 3D is a simplified visual model.</p><p><b>User profile</b> (PROFILE command or the selector): aliases C=CIRCLE, R=RECT; Ctrl+Shift+C circle, Ctrl+Shift+T text, Ctrl+Shift+M mirror, Ctrl+Shift+F fillet, Ctrl+R ortho, Ctrl+Shift+P grid snap, Home zoom extents. Some browsers reserve Ctrl+Shift shortcuts. "+esc(M.USER_UNMAPPED)+"</p>';
 }
 function layout(){const w=U.root.querySelector(".cadcvwrap");if(!w)return;U.w=Math.max(300,w.clientWidth);U.h=Math.max(280,w.clientHeight);U.dpr=Math.max(1,window.devicePixelRatio||1);U.cv.width=Math.round(U.w*U.dpr);U.cv.height=Math.round(U.h*U.dpr);U.cv.style.width=U.w+"px";U.cv.style.height=U.h+"px"}
@@ -260,6 +276,9 @@ function fit(){
 }
 function bind(){
   const root=U.root,cv=U.cv,inp=root.querySelector("#cadcmd");
+  if(U.rootListenerController)U.rootListenerController.abort();
+  U.rootListenerController=new AbortController();
+  const rootListenerOptions={signal:U.rootListenerController.signal};
   cv.addEventListener("mousemove",ev=>{if(U.drag&&U.drag.pan){U.cx-=(ev.clientX-U.drag.x)/U.s;U.cy+=(ev.clientY-U.drag.y)/U.s;U.drag.x=ev.clientX;U.drag.y=ev.clientY}
     const c=cursorFrom(ev);if(U.drag&&!U.drag.pan){U.drag.b=c.raw;if(Math.hypot(c.x-U.drag.sx,c.y-U.drag.sy)>4)U.drag.box=true}draw()});
   cv.addEventListener("mousedown",ev=>{cv.focus();if(ev.button===1){U.drag={pan:true,x:ev.clientX,y:ev.clientY};ev.preventDefault();return}
@@ -314,7 +333,12 @@ function bind(){
     const vv=ev.target.getAttribute&&ev.target.getAttribute("data-v3");if(vv){const V=window.AcreCAD3D.VIEWS[vv];U.v3.yaw=V.yaw;U.v3.pitch=V.pitch;U.v3.zoom=1;draw3d();return}
     const l=ev.target.closest(".cadlay");if(l&&ev.target.closest("button")){const n=l.dataset.lay,L=C.doc.layers[n],a=ev.target.closest("button").dataset.act;C.snapshot();
       if(a==="set")C.doc.cur=n;if(a==="on")L.on=!L.on;if(a==="lock")L.lock=!L.lock;C.save();refresh()}
-  });
+  },rootListenerOptions);
+  root.addEventListener("input",ev=>{
+    if(ev.target.id!=="cadtoolfilter")return;
+    U.toolFilter=ev.target.value;
+    filterTools(U.toolFilter);
+  },rootListenerOptions);
   root.addEventListener("change",async ev=>{
     if(ev.target.id==="cadimportfile"){
       const input=ev.target,file=input.files&&input.files[0],d=root.querySelector("#cadimport"),go=root.querySelector("#cadimportgo"),status=root.querySelector("#cadimportstatus");
@@ -349,7 +373,7 @@ function bind(){
       const lim={th:[2,36],w:[6,240],pos:[0,1e5],sill:[0,240],head:[12,240],h:[0,240],d:[6,240],r:[0.5,1e5]}[k]||[0,1e5];
       if(v<lim[0]||v>lim[1]){C.note(k+" must be "+C.fmtIn(lim[0])+" to "+C.fmtIn(lim[1]));refresh();return}
       if((e.t==="door"||e.t==="window")&&(k==="w"||k==="pos")){const wl=C.byId(e.wall),L=C.dist(wl.a,wl.b);const w2=k==="w"?v:e.w,p2=k==="pos"?v:e.pos;if(p2+w2>L+1e-6){C.note("Opening does not fit on the wall ("+C.fmtIn(L)+")");refresh();return}}
-      C.snapshot();e[k]=v;C.save();refresh()}});
+      C.snapshot();e[k]=v;C.save();refresh()}},rootListenerOptions);
   if(!U.listeners){U.listeners=true;window.addEventListener("keydown",gkey)}
   const a=cv.getBoundingClientRect;
 }
