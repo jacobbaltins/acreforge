@@ -50,7 +50,7 @@ function mount(root){
   if(!root)return;U.root=root;
   root.innerHTML='<div id="cadwrap" class="cadwrap'+(U.full?" cadfull":"")+'">'+
   '<div class="cadtop"><b>📐 CAD Studio</b> <span id="cadmodes"></span> <span class="cadspc"></span><button class="btn" id="cad3d" type="button" aria-pressed="false" title="Show a linked 3D model beside the plan">Split 3D</button><button class="btn" id="cadfs" type="button">'+(U.full?"Exit full view":"Full viewport")+'</button><button class="btn" id="cadtakeoffopen" type="button">Takeoffs / cost</button><button class="btn" id="cadimportopen" type="button">Import DXF…</button><button class="btn" id="cadexportopen" type="button">Export…</button></div>'+
-  '<dialog id="cadexport" aria-labelledby="cadexporttitle" aria-describedby="cadexportdescription"><h3 id="cadexporttitle">Export drawing</h3><p>Choose a file format for this CAD Studio drawing.</p><label>File format <select id="cadexportformat"><option value="pdf">PDF drawing set</option><option value="dxf">R12 DXF</option></select></label><label id="cadexportpaperwrap">Paper size <select id="cadexportpaper" aria-label="PDF paper size">'+Object.keys(window.AcreCADSheets.PAPER).map(k=>'<option'+(C.doc.paper===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label><p id="cadexportdescription" role="status" aria-live="polite"></p><p class="cadexportlimit">Downloads are created locally. Files are conceptual, not construction documents; DXF is not DWG.</p><div class="cadexportactions"><button class="btn" id="cadexportcancel" type="button">Cancel</button><button class="btn" id="cadexportgo" type="button">Download PDF</button></div></dialog>'+
+  '<dialog id="cadexport" aria-labelledby="cadexporttitle" aria-describedby="cadexportdescription"><h3 id="cadexporttitle">Export drawing</h3><p>Choose a file format for this CAD Studio drawing.</p><label>File format <select id="cadexportformat"><option value="pdf">PDF drawing set</option><option value="dxf">R12 DXF</option></select></label><label id="cadexportpaperwrap">Paper size <select id="cadexportpaper" aria-label="PDF paper size">'+Object.keys(window.AcreCADSheets.PAPER).map(k=>'<option'+(C.doc.paper===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label><fieldset id="cadexportsheetswrap" style="border:1px solid #ccd5dc;border-radius:8px;margin:12px 0;padding:10px"><legend>PDF sheets to include</legend><div id="cadexportsheets"></div></fieldset><p id="cadexportdescription" role="status" aria-live="polite"></p><p class="cadexportlimit">Downloads are created locally. Files are conceptual, not construction documents; DXF is not DWG.</p><div class="cadexportactions"><button class="btn" id="cadexportcancel" type="button">Cancel</button><button class="btn" id="cadexportgo" type="button">Download PDF</button></div></dialog>'+
   '<input id="cadimportfile" type="file" accept=".dxf,application/dxf,text/plain" hidden><dialog id="cadimport" aria-labelledby="cadimporttitle" aria-describedby="cadimportstatus"><h3 id="cadimporttitle">Import 2D DXF</h3><p>Only ASCII R12 LINE, straight-segment 2D POLYLINE, CIRCLE, ARC, and TEXT entities are imported. Geometry is appended to the current drawing; nothing is replaced. Coordinates are converted to inches. Source layers are prefixed with DXF-; layer 0 maps to the existing layer 0.</p><p class="cadexportlimit">Unsupported entities are skipped. Curved polyline segments and non-XY or nonzero-Z geometry are rejected. Imported walls, doors, windows, dimensions, and hatches are ordinary supported primitives, not editable CAD objects. Local file only; no upload.</p><p id="cadimportstatus" role="status" aria-live="polite">Choose a DXF file to preview.</p><div class="cadexportactions"><button class="btn" id="cadimportcancel" type="button">Cancel</button><button class="btn" id="cadimportchoose" type="button">Choose file</button><button class="btn" id="cadimportgo" type="button" disabled>Add to drawing</button></div></dialog>'+
   '<dialog id="cadtakeoff" aria-labelledby="cadtakeofftitle" aria-describedby="cadtakeoffdescription"><h3 id="cadtakeofftitle">Conceptual takeoffs and cost allowance</h3><p id="cadtakeoffdescription">Quantities are derived from the current CAD drawing. Enter your own unit rates to calculate an allowance for those categories.</p><table class="cadtakeofftable"><thead><tr><th>Category</th><th>Quantity</th><th>Unit</th><th>Rate (USD)</th><th>Allowance</th></tr></thead><tbody><tr><th scope="row">Floor area</th><td data-quantity="floor"></td><td>sq ft</td><td><input type="number" min="0" max="1000000" step="0.01" data-rate="floor" aria-label="Floor finish rate per square foot"></td><td data-cost="floor"></td></tr><tr><th scope="row">Wall length</th><td data-quantity="wallLength"></td><td>ft</td><td>—</td><td data-cost="wallLength">Not priced</td></tr><tr><th scope="row">Gross wall area</th><td data-quantity="wall"></td><td>sq ft</td><td><input type="number" min="0" max="1000000" step="0.01" data-rate="wall" aria-label="Wall rate per square foot"></td><td data-cost="wall"></td></tr><tr><th scope="row">Doors</th><td data-quantity="door"></td><td>each</td><td><input type="number" min="0" max="1000000" step="0.01" data-rate="door" aria-label="Door rate each"></td><td data-cost="door"></td></tr><tr><th scope="row">Windows</th><td data-quantity="window"></td><td>each</td><td><input type="number" min="0" max="1000000" step="0.01" data-rate="window" aria-label="Window rate each"></td><td data-cost="window"></td></tr></tbody></table><p id="cadtakeofftotal" role="status" aria-live="polite"></p><p class="cadexportlimit">Gross wall area is wall centerline length × drawing ceiling height; openings are not deducted. Overlapping rooms can double-count floor area. Hidden layers are included. Blank rates are excluded from the subtotal. No market prices, labor, waste, engineering, or code checks are supplied; this is not a bid.</p><div class="cadexportactions"><button class="btn" id="cadtakeoffclose" type="button">Close</button><button class="btn" id="cadtakeoffcsv" type="button">Download takeoff CSV</button></div></dialog>'+
   '<div class="cadmain"><div id="cadtools" class="cadtools"></div><div class="cadcvwrap"><canvas id="cadcv" tabindex="0"></canvas></div><div id="cad3dwrap" class="cad3dwrap" hidden><canvas id="cad3dcv" tabindex="0" aria-label="3D model of your plan. Drag to orbit, wheel to zoom."></canvas><div class="viewcube" role="group" aria-label="3D view buttons">'+Object.keys(window.AcreCAD3D.VIEWS).map(k=>'<button type="button" class="btn" data-v3="'+k+'">'+window.AcreCAD3D.VIEWS[k].label+'</button>').join("")+'</div><div class="cad3dnote">Concept block model from your plan. Not an engineered model.</div></div><div id="cadside" class="cadside"></div></div>'+
@@ -85,10 +85,17 @@ function updateExportDetails(){
   const d=U.root&&U.root.querySelector("#cadexport");if(!d)return;
   const pdf=d.querySelector("#cadexportformat").value==="pdf";
   d.querySelector("#cadexportpaperwrap").hidden=!pdf;
+  d.querySelector("#cadexportsheetswrap").hidden=!pdf;
+  const selected=d.querySelectorAll("[data-cad-export-sheet]:checked").length,total=d.querySelectorAll("[data-cad-export-sheet]").length;
   d.querySelector("#cadexportdescription").textContent=pdf
-    ?"Creates the available conceptual vector-PDF sheets using "+d.querySelector("#cadexportpaper").value+" paper."
+    ?(selected?"Creates "+selected+" of "+total+" selected conceptual vector-PDF sheets using "+d.querySelector("#cadexportpaper").value+" paper.":"Select at least one PDF sheet.")
     :"Creates an R12 DXF of model-space entities. Geometry remains in inches; this is not a DWG file.";
   d.querySelector("#cadexportgo").textContent=pdf?"Download PDF":"Download DXF";
+  d.querySelector("#cadexportgo").disabled=pdf&&!selected;
+}
+function renderExportSheets(){
+  const list=U.root&&U.root.querySelector("#cadexportsheets");if(!list)return;
+  list.innerHTML=window.AcreCADSheets.availableSheets().map(sheet=>'<label style="display:inline-flex;align-items:center;gap:6px;margin:4px 12px 4px 0"><input type="checkbox" data-cad-export-sheet value="'+esc(sheet.id)+'" checked> '+esc(sheet.label)+'</label>').join("");
 }
 const TAKEOFF_ITEMS=[
   {key:"floor",label:"Floor area",quantity:"floorAreaSqFt",unit:"sq ft"},
@@ -267,7 +274,7 @@ function viewOp(){
   if(v.op==="E")fit();else if(v.op==="IN")U.s*=1.5;else if(v.op==="OUT")U.s/=1.5;
   else if(v.op==="W")C.note("Window zoom: use the mouse wheel or ZOOM IN/OUT/E");
   else if(v.op==="3D"){if(v.k==="off")U.v3.on=false;else{const V=window.AcreCAD3D.VIEWS[v.k]||window.AcreCAD3D.VIEWS.iso;U.v3.on=true;U.v3.yaw=V.yaw;U.v3.pitch=V.pitch;U.v3.zoom=1}}
-  else if(v.op==="PDF"){const r=window.AcreCADSheets.download({paper:C.doc.paper});C.note(r.message||("PDF with "+r.pages+" page(s), "+r.paper+" ("+r.size[0]+" x "+r.size[1]+" in). Vector PDF; conceptual, not for construction."))}
+  else if(v.op==="PDF"){const r=window.AcreCADSheets.download({paper:C.doc.paper,sheets:v.sheets});C.note(r.message||("PDF with "+r.pages+" page(s), "+r.paper+" ("+r.size[0]+" x "+r.size[1]+" in). Vector PDF; conceptual, not for construction."))}
   else if(v.op==="DXF"){const t=M.exportDXF();window.__cadLastDxf=t;const b=new Blob([t],{type:"application/dxf"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="acreforge-cad-studio.dxf";document.body.appendChild(a);a.click();a.remove();C.note("DXF R12 exported ("+t.split("\r\n").length+" lines). DXF only; not DWG.")}
 }
 function fit(){
@@ -321,12 +328,12 @@ function bind(){
       catch(e){root.querySelector("#cadimportstatus").textContent=e.message}
       return
     }
-    if(ev.target.id==="cadexportopen"){const d=root.querySelector("#cadexport");root.querySelector("#cadexportpaper").value=window.AcreCADSheets.PAPER[C.doc.paper]?C.doc.paper:"Letter";root.querySelector("#cadexportformat").value="pdf";updateExportDetails();if(!d.open)d.showModal();return}
+    if(ev.target.id==="cadexportopen"){const d=root.querySelector("#cadexport");root.querySelector("#cadexportpaper").value=window.AcreCADSheets.PAPER[C.doc.paper]?C.doc.paper:"Letter";root.querySelector("#cadexportformat").value="pdf";renderExportSheets();updateExportDetails();if(!d.open)d.showModal();return}
     if(ev.target.id==="cadexportcancel"){root.querySelector("#cadexport").close();return}
     if(ev.target.id==="cadexportgo"){
       const d=root.querySelector("#cadexport"),format=root.querySelector("#cadexportformat").value;
       if(format==="pdf"){C.doc.paper=root.querySelector("#cadexportpaper").value;C.save()}
-      d.close();R.viewReq={op:format==="dxf"?"DXF":"PDF"};viewOp();after();return
+      d.close();      R.viewReq={op:format==="dxf"?"DXF":"PDF",sheets:format==="pdf"?[...d.querySelectorAll("[data-cad-export-sheet]:checked")].map(input=>input.value):undefined};viewOp();after();return
     }
     const hl=ev.target.getAttribute&&ev.target.getAttribute("data-hl");if(hl){if(hl==="restore")C.restoreSession();else if(hl==="discard")C.discardSession();else if(hl==="backup")C.exportBackup();refresh();return}
     if(ev.target.id==="cad3d"){if(ev.__c3)return;ev.__c3=1;U.v3.on=!U.v3.on;refresh();return}
@@ -361,7 +368,7 @@ function bind(){
       if(!C.doc.takeoffRates||typeof C.doc.takeoffRates!=="object"||Array.isArray(C.doc.takeoffRates))C.doc.takeoffRates={floor:null,wall:null,door:null,window:null};
       C.doc.takeoffRates[key]=rate;C.save();updateTakeoffs();return
     }
-    if(ev.target.id==="cadexportformat"){updateExportDetails();return}
+    if(ev.target.id==="cadexportformat"||ev.target.id==="cadexportpaper"||ev.target.matches("[data-cad-export-sheet]")){updateExportDetails();return}
     if(ev.target.id==="cadunits"){C.setUnits(ev.target.value);C.note("Units: "+C.unit().n);refresh();return}
     if(ev.target.id==="cadprofile"){R.profile=ev.target.value;try{localStorage.setItem("acreforge-cad-profile",R.profile)}catch(e){}C.note("Profile: "+R.profile);refresh();return}
     if(ev.target.dataset.act==="lw"){const l=ev.target.closest(".cadlay");C.snapshot();C.doc.layers[l.dataset.lay].lw=+ev.target.value;C.save();refresh();return}

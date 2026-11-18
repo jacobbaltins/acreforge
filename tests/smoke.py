@@ -5222,6 +5222,12 @@ try:
         cs.locator("#cadcmd").press("Escape")
         check("canvas clicks supply points to the active command", len([e for e in cs_doc()["ents"] if e["t"] == "line"]) == nl0 + 1)
         # window / crossing selection
+        selection_snap_states = {}
+        for toggle in ("osnap", "snap"):
+            button = cs.locator(f'[data-tg="{toggle}"]')
+            selection_snap_states[toggle] = button.get_attribute("aria-pressed") == "true"
+            if selection_snap_states[toggle]:
+                button.click()
         cs.evaluate("AcreCAD.cmd.R.sel=[];AcreCAD.fit()")
         cs.mouse.move(box["x"] + 2, box["y"] + 2); cs.mouse.down(); cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2, steps=4); cs.mouse.up()
         check("dragging right makes a window selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3 and cs.evaluate("AcreCAD.state.drag===null"))
@@ -5229,6 +5235,9 @@ try:
         box = cs.locator("#cadcv").bounding_box()
         cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2); cs.mouse.down(); cs.mouse.move(box["x"] + 2, box["y"] + 2, steps=4); cs.mouse.up()
         check("dragging left makes a crossing selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3 and cs.evaluate("AcreCAD.state.drag===null"))
+        for toggle, was_on in selection_snap_states.items():
+            if was_on:
+                cs.locator(f'[data-tg="{toggle}"]').click()
         cs.evaluate("""() => {
           AcreCAD.cmd.R.sel=[];
           const cv=document.querySelector("#cadcv"),r=cv.getBoundingClientRect();
@@ -5331,12 +5340,29 @@ try:
         check("PDF has 10 sheets with ARCH D 36x24 in MediaBox", pdf_info["pages"] == 10 and "/Count 10" in pdf and "[0 0 2592 1728]" in pdf)
         check("PDF has title block, sheet numbers, north arrow, concept labels and inch units", all(k in pdf for k in ("Sheet 2 of 10", "Units: inches", "(N) Tj", "Electrical plan \\(CONCEPT\\)", "Plumbing plan \\(CONCEPT\\)", "NOT FOR CONSTRUCTION", "Front elevation", "Scale: 1:")))
         check("PDF sheet sizes for Letter, ARCH E, B, A", all(cs.evaluate("AcreCADSheets.build({paper:'%s'}).size" % k) == v for k, v in (("Letter", [11, 8.5]), ("ARCH E", [48, 36]), ("B", [17, 11]), ("A", [11, 8.5]))))
+        selected_pdf = cs.evaluate("AcreCADSheets.build({paper:'ARCH D',sheets:['cover','floor-plan']})")
+        check("PDF sheet selection keeps only requested sheets in canonical order",
+              selected_pdf["pages"] == 2
+              and selected_pdf["sheets"] == ["cover", "floor-plan"]
+              and "(Floor plan)" in selected_pdf["pdf"]
+              and "Sheets: Floor plan." in selected_pdf["pdf"]
+              and "Front elevation" not in selected_pdf["pdf"])
+        empty_pdf = cs.evaluate("AcreCADSheets.build({sheets:[]})")
+        check("PDF export rejects an empty sheet selection",
+              empty_pdf["pages"] == 0 and not empty_pdf["pdf"]
+              and "at least one" in empty_pdf["message"])
+        invalid_pdf = cs.evaluate("AcreCADSheets.build({sheets:['unknown']})")
+        check("PDF export rejects unknown sheet identifiers",
+              invalid_pdf["pages"] == 0 and not invalid_pdf["pdf"]
+              and "unknown sheet" in invalid_pdf["message"])
         paper_before_export = cs.evaluate("AcreCAD.core.doc.paper")
         cs.locator("#cadexportopen").click()
         check("export wizard opens with a PDF format, paper choice, and concept disclosure",
               cs.locator("#cadexport").is_visible()
               and cs.locator("#cadexportformat").input_value() == "pdf"
               and cs.locator("#cadexportpaper").is_visible()
+              and cs.locator("[data-cad-export-sheet]").count() == 10
+              and cs.locator("[data-cad-export-sheet]:checked").count() == 10
               and cs.locator("#cadexportpaper").input_value() == (paper_before_export or "Letter")
               and "conceptual vector-PDF" in cs.locator("#cadexportdescription").inner_text()
               and "not construction documents" in cs.locator("#cadexport .cadexportlimit").inner_text())
@@ -5349,16 +5375,25 @@ try:
         cs.select_option("#cadexportformat", "dxf")
         check("DXF wizard option hides paper and explains inch-based R12 output",
               not cs.locator("#cadexportpaper").is_visible()
+              and not cs.locator("#cadexportsheetswrap").is_visible()
               and "R12 DXF" in cs.locator("#cadexportdescription").inner_text()
               and "inches" in cs.locator("#cadexportdescription").inner_text())
         cs.select_option("#cadexportformat", "pdf")
         cs.select_option("#cadexportpaper", "ARCH D")
+        for sheet in cs.locator("[data-cad-export-sheet]").all():
+            sheet.uncheck()
+        check("export wizard requires at least one selected PDF sheet",
+              cs.locator("#cadexportgo").is_disabled()
+              and "Select at least one PDF sheet" in cs.locator("#cadexportdescription").inner_text())
+        cs.locator('[data-cad-export-sheet][value="cover"]').check()
+        cs.locator('[data-cad-export-sheet][value="floor-plan"]').check()
         with cs.expect_download() as dl:
             cs.locator("#cadexportgo").click()
         dpath = dl.value.path(); data = open(dpath, "rb").read()
-        check("export wizard downloads the selected vector PDF and saves its paper size",
+        check("export wizard downloads only selected vector-PDF sheets and saves paper size",
               dl.value.suggested_filename.endswith(".pdf") and data.startswith(b"%PDF-")
-              and b"/Count 10" in data and b"[0 0 2592 1728]" in data
+              and b"/Count 2" in data and b"[0 0 2592 1728]" in data
+              and b"(Floor plan)" in data and b"(Front elevation)" not in data
               and cs.evaluate("AcreCAD.core.doc.paper") == "ARCH D"
               and not cs.locator("#cadexport").is_visible())
         cs.locator("#cadexportopen").click()
