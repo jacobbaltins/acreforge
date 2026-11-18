@@ -2884,6 +2884,7 @@ try:
           const key = 'oregon-estate-planner-v1', state = JSON.parse(localStorage.getItem(key));
           state.scenarios[0].items.push({id: 'smoke-power-corridor', type: 'utility',
             name: 'Power', x: 1200, y: 1200, w: 750, h: 12, unitCost: 0, fromPlan: false});
+          state.plan.cost = {...(state.plan.cost || {}), utilityFactor: 100};
           localStorage.setItem(key, JSON.stringify(state));
         }""")
         budget_page.reload()
@@ -5228,11 +5229,14 @@ try:
             selection_snap_states[toggle] = button.get_attribute("aria-pressed") == "true"
             if selection_snap_states[toggle]:
                 button.click()
+        cs.locator("#cadcv").scroll_into_view_if_needed()
+        box = cs.locator("#cadcv").bounding_box()
         cs.evaluate("AcreCAD.cmd.R.sel=[];AcreCAD.fit()")
         cs.mouse.move(box["x"] + 2, box["y"] + 2); cs.mouse.down(); cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2, steps=4); cs.mouse.up()
         check("dragging right makes a window selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3 and cs.evaluate("AcreCAD.state.drag===null"))
-        cs.evaluate("AcreCAD.cmd.R.sel=[];AcreCAD.refresh();AcreCAD.fit()")
+        cs.locator("#cadcv").scroll_into_view_if_needed()
         box = cs.locator("#cadcv").bounding_box()
+        cs.evaluate("AcreCAD.cmd.R.sel=[];AcreCAD.refresh();AcreCAD.fit()")
         cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2); cs.mouse.down(); cs.mouse.move(box["x"] + 2, box["y"] + 2, steps=4); cs.mouse.up()
         check("dragging left makes a crossing selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3 and cs.evaluate("AcreCAD.state.drag===null"))
         for toggle, was_on in selection_snap_states.items():
@@ -5355,6 +5359,16 @@ try:
         check("PDF export rejects unknown sheet identifiers",
               invalid_pdf["pages"] == 0 and not invalid_pdf["pdf"]
               and "unknown sheet" in invalid_pdf["message"])
+        preview_pdf = cs.evaluate("""async () => {
+          const r = AcreCADSheets.preview({paper:"ARCH D",sheets:["cover","floor-plan"]});
+          const data = r.url ? new Uint8Array(await (await fetch(r.url)).arrayBuffer()) : [];
+          const text = String.fromCharCode(...data.slice(0, 40));
+          const ok = r.pages === 2 && r.sheets.join(",") === "cover,floor-plan"
+            && r.url.startsWith("blob:") && text.startsWith("%PDF-1.4");
+          URL.revokeObjectURL(r.url);
+          return ok;
+        }""")
+        check("PDF preview builds a local blob containing only selected sheets", preview_pdf)
         paper_before_export = cs.evaluate("AcreCAD.core.doc.paper")
         cs.locator("#cadexportopen").click()
         check("export wizard opens with a PDF format, paper choice, and concept disclosure",
@@ -5384,9 +5398,41 @@ try:
             sheet.uncheck()
         check("export wizard requires at least one selected PDF sheet",
               cs.locator("#cadexportgo").is_disabled()
+              and cs.locator("#cadexportpreview").is_disabled()
               and "Select at least one PDF sheet" in cs.locator("#cadexportdescription").inner_text())
         cs.locator('[data-cad-export-sheet][value="cover"]').check()
         cs.locator('[data-cad-export-sheet][value="floor-plan"]').check()
+        cs.evaluate("""() => {
+          window.__cadRevokedPreviewUrls = [];
+          window.__cadOriginalRevokeObjectURL = URL.revokeObjectURL.bind(URL);
+          URL.revokeObjectURL = url => {
+            window.__cadRevokedPreviewUrls.push(url);
+            window.__cadOriginalRevokeObjectURL(url);
+          };
+        }""")
+        cs.locator("#cadexportpreview").click()
+        preview_url = cs.locator("#cadpdfpreviewframe").get_attribute("src")
+        preview_bytes = cs.evaluate("""async url => Array.from(new Uint8Array(await (await fetch(url)).arrayBuffer()).slice(0, 100))""", preview_url)
+        check("export wizard previews selected PDF sheets in an embedded local document",
+              cs.locator("#cadpdfpreview").is_visible()
+              and preview_url.startswith("blob:")
+              and bytes(preview_bytes).startswith(b"%PDF-1.4")
+              and "2 selected" in cs.locator("#cadpdfpreviewstatus").inner_text()
+              and cs.evaluate("AcreCAD.core.doc.paper") == paper_before_export)
+        cs.locator("#cadpdfpreviewclose").click()
+        check("closing PDF preview revokes its temporary local URL",
+              not cs.locator("#cadpdfpreview").is_visible()
+              and cs.locator("#cadpdfpreviewframe").get_attribute("src") == "about:blank"
+              and cs.evaluate("(url) => window.__cadRevokedPreviewUrls.includes(url)", preview_url))
+        cs.locator("#cadexportpreview").click()
+        escape_preview_url = cs.locator("#cadpdfpreviewframe").get_attribute("src")
+        cs.locator("#cadpdfpreviewclose").focus()
+        cs.keyboard.press("Escape")
+        cs.locator("#cadpdfpreview").wait_for(state="hidden")
+        cs.wait_for_function("(url) => window.__cadRevokedPreviewUrls.includes(url)", arg=escape_preview_url)
+        check("dismissing PDF preview with Escape revokes its temporary local URL",
+              cs.locator("#cadpdfpreviewframe").get_attribute("src") == "about:blank")
+        cs.evaluate("URL.revokeObjectURL=window.__cadOriginalRevokeObjectURL;delete window.__cadRevokedPreviewUrls;delete window.__cadOriginalRevokeObjectURL")
         with cs.expect_download() as dl:
             cs.locator("#cadexportgo").click()
         dpath = dl.value.path(); data = open(dpath, "rb").read()
