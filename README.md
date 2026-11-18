@@ -114,7 +114,7 @@ The app opens on **Projects**, a map-first command center with a non-editable co
 
 **Mapped roads:** In **Property → Roads near this property**, explicitly load an attributed OpenStreetMap road reference, grouped by major road, collector, local road, mapped driveway, or track/path. Labels appear only for mapped names. Category toggles affect the temporary map display only; these references are never copied into proposed site-plan roads. Coverage may be incomplete, and mapped lines do not confirm legal access or road condition. The request sends an approximate planning extent to the public Overpass API.
 
-**Commercial status:** AcreForge is a working name, not trademark-cleared. The app is a prototype; paid plans, account sign-in, and fundraising are not active. The About page describes one explicitly unvalidated future paid-pilot hypothesis: multiple projects, cloud backup/sync, collaboration, project history, and enhanced reports. This is not a price, offer, enrollment, or evidence that users will pay; none of those features is available as paid access. Core local planning remains useful without payment. Share feedback through the user-controlled draft if you choose; no responses are sent or collected by AcreForge.
+**Product status:** AcreForge is a working name, not trademark-cleared. All available AcreForge features are free until further notice; there are no paid tiers or payment options in the app. Account sign-in and cloud sync are not available. An optional external model provider may charge under its own terms. Share feedback through the user-controlled draft if you choose; no responses are sent or collected by AcreForge.
 
 ## Site designer
 
@@ -184,8 +184,35 @@ Pastures and crop fields are **land zones** (Land zones card), not placeable obj
 
 - **Real-map synchronization:** parcels, proposed features, terrain and optional OpenStreetMap context share one WGS84-to-local-feet projection anchored on the imported parcel (or picked location) so roads, buildings and pins line up with the map. The terrain view frames a 1,000-acre context square around the 80-acre (or imported) lot; the editable plan stays at its own size. A **map source status** line reports the spatial origin, which layers (aerial/topo, terrain relief, OSM context) are available, last retrieval time, empty, stale, failed or offline states, and makes no network requests itself. Elevation no-data cells are masked rather than drawn. Dense OSM roads and outlines are simplified (1 m) for display only; measurements use source geometry, and a display cap of 4,000 features is disclosed when reached. Limits: OSM coverage is incomplete and community-edited, elevation comes from Terrarium tiles at limited resolution, and nothing here is survey data or proof that a feature does not exist.
 
+## CAD Studio (conceptual drafting)
+
+**Elevations, roof and PDF sheets:** ELEV, ROOF and PDF commands (or the Paper select + Download PDF button) generate a real vector PDF: cover, floor plan, front/rear/left/right elevations derived from the plan, section/roof, foundation, electrical and plumbing CONCEPT sheets, with title block, scale, north arrow and page numbers. Papers: Letter, Legal, 11x17, ARCH D, ARCH E, A, B, A4, A3. Roofs are simplified; no site-plan sheet, takeoffs, or linked 3D yet; not construction-grade.
+
+**Units and crisp lines:** inches by default; feet-and-inches (3'6") is rejected. UNITS mm|cm|m changes display/input only (geometry and DXF stay in inches; areas in sq in / sq mm / sq cm / sq m). The canvas is devicePixelRatio-aware with per-layer lineweights (screen only; DXF R12 has none).
+**Commands added:** ROTATE, MIRROR, SCALE, OFFSET (line/wall/circle/arc), TRIM/EXTEND/FILLET (lines only), ARC, HATCH (ANSI31/CROSS/SOLID line patterns, exported as lines), ID, UNITS, PROFILE.
+**User profile:** selectable keyboard preset (C=CIRCLE, R=RECT; Ctrl+Shift+C circle, Ctrl+Shift+T text, Ctrl+Shift+M mirror, Ctrl+Shift+F fillet, Ctrl+R ortho, Ctrl+Shift+P snap, Home zoom extents). Inventor-only commands are not mapped. No Autodesk files are included; DXF only, no DWG.
+
+Open **CAD Studio** from the main nav or the dashboard card. It is a local drafting canvas (inches, saved in this browser) over a command line. Free until further notice.
+
+- **Commands:** LINE, PLINE, RECT, CIRCLE, ERASE, MOVE, COPY, WALL, ROOM, DOOR, WINDOW, OUTLET, FIXTURE, STAIR, DIM, TEXT, DIST, AREA, LAYER, SELECTALL, UNDO, REDO, CEILING, WALLTH, GRID, ZOOM (E/IN/OUT), HELP, DXF. Aliases include L, PL, REC, C, M, CO, E, U, Z, DI, T, LA, W, D, WIN, O.
+- **Input:** type distances (`18'`, `6'3"`), angles (`<45`), absolute (`x,y`) or `@dx,dy` relative points; Enter/Space repeats, right-click = Enter.
+- **Hotkeys:** F3 object snap, F7 grid, F8 ortho, F9 snap, F10 polar, Esc cancel, Ctrl+Z/Y undo/redo, Ctrl+A select all, Del erase.
+- **Snaps:** grid, endpoint, midpoint, center, intersection (line-to-line), perpendicular.
+- **Not supported yet:** OFFSET, TRIM, EXTEND, ROTATE, MIRROR, FILLET, ARC, HATCH, DXF import, grips, in-workspace elevations/3D/layout, roofs, sections, PDF sets, DWG. MOVE/COPY skip doors/windows (they follow walls). Output is conceptual only, not construction drawings, and DXF is not AutoCAD-compatible editing. Verify everything with licensed professionals.
 ## Building & Lot Builder
+
+**Recovery:** a status chip shows Normal / Warning / Error / Recovery in plain words. Drawings autosave locally every 20 s with a rolling backup; if storage is full use Download backup (or the BACKUP command). A damaged file is restored from backup, and after a crash you can Restore or Discard. Cloud sync is a future feature.
 Open **Building & Lot Builder** in the sidebar. Pick a starter (3-bed home, horse barn, shop/garage, retail, full lot) and a drawing area (72–600 ft). Browse 12 library folders (rooms, kitchen, bath, garage/shop, barn, commercial, lot items). With the Move tool, click a room or item to edit its size, position, rotation, type and height, or duplicate/delete it. Keys: 1 Move, 2 Room, 3 Wall, 4 Door, 5 Window, 6 Erase, R rotate, Delete remove, Ctrl+Z undo. Toggle 3D to spin the model; **Place on site plan** drops it on the property. Export a letter-landscape **Print-ready PDF** with floor labels, room areas and dimensions, or export a layered DXF with room labels for CAD.
+
+For an office, choose **Office** under Room type and draw a room. Select it with Move to enter a ceiling height in whole inches (24–360); blank leaves the existing default. Matching full room walls use the height in 3D, while near walls remain cut away and independently drawn or partial walls retain their default height. To mark an outlet, choose **Electrical outlet (concept)** from Office & utility, click its position, then use Move to reposition it. Outlets are symbols, not wired circuits or electrical designs.
+
+Place doors and windows on walls using their tools, then select an opening with Move to enter its width and height in whole inches (1–240). Width updates in the plan and floor-plan PDF/DXF; height is shown in the schematic 3D preview, with windows at a fixed 3-ft sill. Openings are not checked for wall fit, collisions, framing or code compliance, and wall geometry is not cut in 3D. Ceiling heights, opening heights and outlet symbols are not included in the floor-plan PDF/DXF. Lot Builder data is separate from project backups. **Command line and hotkeys:** type below the plan (press / to focus). Commands: MOVE, ROOM, WALL, DOOR, WINDOW, DIM, ERASE select tools; ROOM x y w h [type], WALL x1 y1 x2 y2 (horizontal/vertical) and DIM x1 y1 x2 y2 draw in feet within the drawing area; LEVEL n, UNDO, REDO, FIT (sets the drawing-area preset; not a pan/zoom), 2D, 3D, DXF, HELP. Hotkeys when no text box is focused: 1–7 tools, / command line, F fit, V 2D/3D, X export DXF, ? help, Ctrl/Cmd+Z undo, Ctrl/Cmd+Y redo. Invalid commands are reported and change nothing. This is a small CAD-style subset: DXF is a conceptual export, DWG and other AutoCAD commands are not supported. The interactive 3D is a conceptual shaded model, not photorealistic, architectural, or construction-ready.
+
+Choose **Print concept sheets** in the Space & building builder to open a printable view, then **Print / save as PDF**. It includes a floor-plan sheet for each level with room dimensions and ceilings, opening dimensions, and outlet coordinates, plus sheets for nonempty manual elevations with each line's coordinates. The plan uses labeled furniture location markers, not furniture footprints; 3D views, wiring, structural details and regulatory checks are excluded. Pages fit the paper rather than using a fixed print scale, and all sheets are conceptual, not for construction. Allow pop-ups if the view is blocked.
+
+The **Elevation sketch** below the plan offers independent front, right, rear and left views. Click two grid points per line (snapped to half feet), or enter start and end coordinates and choose **Add line**. Horizontal positions range from 0 to 100 ft and heights from 0 to 40 ft above an arbitrary baseline. Remove the last line or clear the current side after confirmation; each side holds up to 300 lines. Sketches are manual concepts, not projections from the floor plan, and do not update the 3D model. They are saved with the separate, browser-local Lot Builder design, shared across properties and the sample; project JSON backups and existing floor-plan PDF/DXF exports do not include them. They are not architectural or construction drawings.
+
+In **Design → Site Designer**, open **Landscape quantities** to see counts and approximate footprint areas for the current scenario's landscape templates and selected plaza, parking and food-court templates, plus walking-path length. Values update with object edits and count placed objects, not individual plants. Summed footprints may overlap and are not land-use totals; land zones, roads, irrigation and other templates are excluded. This is not a material takeoff, irrigation design, professional CAD or engineering analysis.
 
 ## AI layout proposals (optional)
 The planner has an opt-in AI layout card that uses your own OpenAI-compatible https endpoint, model and API key. Nothing is sent until you consent and request a proposal; only your description, property width/height and existing item types, positions and sizes are sent (no parcel outline, coordinates or saved projects). The key stays in memory and is never saved. Proposals are validated (types, bounds, parcel containment, overlaps), previewed, and applied only after you approve. Errors, timeouts and cancel leave the plan unchanged. The built-in rule-based planner is not AI.
@@ -194,6 +221,8 @@ The planner has an opt-in AI layout card that uses your own OpenAI-compatible ht
 Reports > Conceptual handoff (local) downloads a text file for discussion with a surveyor, engineer or contractor. The project JSON backup includes structured conceptual status and review metadata. It lists objects, zones, units, coordinate assumptions, exclusions and a review checklist. Reports provide one print-ready concept-planning report for the selected scenario, including saved property assumptions, a schematic site layout, building concepts, modeled land allocation, illustrative cost assumptions, open due-diligence questions, and source/accuracy caveats. Use Print / save report as PDF to open your browser or operating-system print flow; AcreForge does not upload the report. The Site Designer can also export the existing conceptual PDF or DXF with explicit notes. A matching Handoff CSV is also available. All exports are conceptual, not construction-ready or code-reviewed, and are never uploaded or sent by the app.
 
 ## Run locally
+
+The Site Designer's automatic 3D rotation pauses while its browser tab is hidden and resumes when visible. Home Builder's automatic rotation also pauses when hidden, and its timer does not run in 2D or on other pages. Home Builder also honors the system reduced-motion preference by disabling automatic rotation; manual preview interactions are unchanged.
 
 For the most reliable local run, extract the ZIP and serve the complete folder with any static file server. In PowerShell, from that folder:
 
@@ -217,9 +246,9 @@ GitHub Pages is static only, so there are no server functions.
 - `us-states.js` — bundled U.S. Census state-boundary paths required by the location map.
 - `CALCULATIONS.md` — formulas, model boundaries, and planning assumptions.
 - `CHANGELOG.md` — implementation notes.
-- `support.html` — prototype and payment status.
+- `support.html` — prototype and free-access status.
 - `data-notice.html` — factual prototype data-use and privacy notice.
-- `CAMPAIGN.md` — unpublished fundraising planning draft.
+- `CAMPAIGN.md` — historical unpublished planning draft, not an active offer.
 - `acreforge.zip` — deployable archive of the above files (excluding itself); regenerate it after changing the app or documentation.
 
 ## Data and privacy
@@ -238,7 +267,7 @@ Project data and recovery snapshots are local to the active browser profile; the
 
 ### Interest and feedback
 
-Open **Settings → Feedback** or the **Interest & feedback** status-bar control to answer a few basic questions about planned Pro features and product improvements. Only those selections and an optional short general note are placed in the draft; do not enter parcel addresses, coordinates, financial or contact details, or project files. AcreForge reads these answers only in the page to prepare the draft; it does not read project data, receive or save feedback, transmit it, or use analytics, and no feedback inbox is configured. **Open email draft** uses a blank-recipient `mailto:` link: your mail client may handle the draft, and you choose a recipient and press Send yourself. If no mail app opens, **Copy draft** provides a user-controlled alternative. If you send it, the content is handled by the recipient and your email provider under their policies; AcreForge does not receive it directly.
+Open **Settings → Feedback** or the **Interest & feedback** status-bar control to answer a few basic questions about possible product improvements. Only those selections and an optional short general note are placed in the draft; do not enter parcel addresses, coordinates, financial or contact details, or project files. AcreForge reads these answers only in the page to prepare the draft; it does not read project data, receive or save feedback, transmit it, or use analytics, and no feedback inbox is configured. **Open email draft** uses a blank-recipient `mailto:` link: your mail client may handle the draft, and you choose a recipient and press Send yourself. If no mail app opens, **Copy draft** provides a user-controlled alternative. If you send it, the content is handled by the recipient and your email provider under their policies; AcreForge does not receive it directly.
 
 ## Limits
 
@@ -263,4 +292,4 @@ Use **Terrain** in the Site Designer to import real elevation for a chosen locat
 
 ## Accounts and payments
 
-Paid plans, account sign-in, and payment processing are currently disabled. Do not add payment URLs, account credentials, customer email allowlists, or secret keys to `index.html`: browser code is public, and local license flags are not secure access control. Before accepting payments, implement and test server-side checkout/entitlements, cancellation and refund handling, customer support, and truthful pricing disclosures; have the resulting flow and legal terms reviewed for the jurisdictions where you sell.
+All available AcreForge features are free until further notice. The app has no paid plans, account sign-in, or payment options. Do not add payment URLs, account credentials, customer email allowlists, or secret keys to `index.html`. Optional third-party model providers set their own terms and may charge independently.

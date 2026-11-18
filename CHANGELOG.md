@@ -1,3 +1,48 @@
+## v103
+
+- CAD Studio error and recovery layer: plain-language health chip (Normal / Warning / Error / Recovery), your work is never discarded automatically.
+- Rejects walls of 6 in or less, rooms under 24 x 24 in, doors/windows off a wall, oversized or overlapping openings, with guidance; empty undo/redo says so.
+- Browser-storage-full detection pauses saving, keeps the drawing open and offers a JSON backup download (BACKUP command).
+- Rolling local backup; a corrupt saved drawing is restored from it (damaged copy kept). Crash detection offers Restore / Discard.
+- Autosave every 20 seconds plus on each change. PDF export skips a failed sheet and reports a partial set (e.g. 9 of 10).
+- Local-first only; cloud sync, offline merge and terrain-sculpt warnings are future. Inches only, conceptual output.
+
+## v102
+- CAD Studio: new cad-sheets.js. Elevations (front/rear/left/right) are derived from walls plus door/window openings; ROOF (gable/hip/shed/gambrel/barn, pitch/12, overhang) reports area, ridge length and ridge height (hip/gambrel/barn are simplified approximations); section profile; ELEV, ROOF and PDF commands; paper select and Download PDF button. The PDF is a real vector PDF (hand-written writer, no browser print dialog) with 10 sheets (cover, floor plan, 4 elevations, section/roof, foundation, electrical CONCEPT, plumbing CONCEPT), title block, sheet numbers, auto 1:N scale, north arrow, inch units. Papers: Letter, Legal, 11x17, ARCH D, ARCH E, A, B, A4, A3. Conceptual, not for construction; DXF/PDF only, no DWG. Still free.
+
+## v101
+- CAD Studio: HiDPI-crisp canvas (devicePixelRatio-aware, pixel-aligned lines, per-layer lineweights, major/minor grid, filled dimension arrows), grouped ribbon toolbar, and new commands ROTATE, MIRROR, SCALE, OFFSET, TRIM, EXTEND, FILLET, ARC, HATCH, ID, UNITS, PROFILE.
+- CAD Studio is inches-only by default: feet-and-inches notation is rejected; areas in sq in; UNITS switches display/input to mm, cm or m (geometry and DXF stay in inches).
+- Add a selectable AcreForge-own User keyboard profile (aliases C, R; Ctrl+Shift+C/T/M/F, Ctrl+R, Ctrl+Shift+P, Home); unmapped Inventor-only items are listed in help. No Autodesk files are bundled; DXF only, no DWG.
+- DXF export now writes ARC entities and hatch as lines.
+
+## v100
+- Add a dedicated CAD Studio workspace (nav + dashboard card): dark model-space canvas with grid, ortho/polar/snap/object snaps, live coordinates, pan/zoom, layers panel, properties and a command line (LINE, PLINE, RECT, CIRCLE, ERASE, MOVE, COPY, WALL, ROOM, DOOR, WINDOW, OUTLET, FIXTURE, STAIR, DIM, TEXT, DIST, AREA, LAYER, CEILING, WALLTH, GRID, ZOOM, UNDO/REDO, SELECTALL, HELP, DXF). Typed distances, angles and @relative coordinates in feet/inches. DXF (R12) export only; not DWG, not AutoCAD parity, conceptual only. Free until further notice.
+
+## v99
+- Add a Lot Builder command line and hotkeys (tools, ROOM/WALL/DIM by feet, LEVEL, UNDO/REDO, FIT, 2D/3D, DXF, HELP). Unknown or out-of-range input is rejected with a message; DXF remains the conceptual existing export, not DWG or full AutoCAD.
+
+## v98
+- Make all available AcreForge features free until further notice and remove the paid-pilot promotion; optional external model-provider charges remain separate.
+- Add a current-scenario landscape object schedule with approximate footprints and walking-path lengths, not a planting or materials takeoff.
+- Add browser-local, manually drawn four-sided elevation sketches in Lot Builder, independent of the existing floor plan and 3D model.
+- Add office outlet markers, room ceiling heights and editable door/window dimensions in inches; reflect opening widths in floor-plan exports and show dimensions in the conceptual 3D model.
+- Refine the 3D presentation and use room ceiling heights for matching walls, retaining the existing cutaway and interactive controls.
+- Add a Space & building builder heading and printable conceptual floor-plan and elevation sheets with room, opening and outlet details.
+- Clarify that elevation sketches are not included in project backups or floor-plan exports and are not construction drawings.
+
+## v97
+- Respect the system reduced-motion preference in Home Builder by disabling automatic 3D rotation; manual preview controls remain available.
+- Avoid creating the Home Builder animation timer when rotation is disabled.
+
+## v96
+- AF-026: Run the Home Builder 3D auto-rotation timer only while its 3D view is visible; stop the timer in 2D, on other pages, or in a hidden tab.
+- Preserve manual preview and editing actions; this does not change other animation timers.
+
+## v95
+- AF-026: Suspend the Site Designer's periodic 3D auto-rotation timer while the document is hidden, and resume it when the designer becomes visible again.
+- Keep manual redraws and project data unchanged; other preview timers are not covered by this optimization.
+
 ## v94
 - AF-014: Add a local seasonal sun-position preview using explicit WGS84 coordinates and a chosen browser-local date/time, with approximate sunrise/sunset and azimuth/elevation.
 - Show selected-day and nominal June/December solstice elevation paths; validate coordinate bounds and disclose timezone/accuracy assumptions.

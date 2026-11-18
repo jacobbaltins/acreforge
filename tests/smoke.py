@@ -303,8 +303,8 @@ try:
               and projection["legacy"]["terrain"] == [3, 4, 1, 2]
               and projection["legacy"]["markerRemoved"])
         labels = page.locator("#nav button span:not(.ico)").all_text_contents()
-        check("exactly five primary navigation labels",
-              labels == ["Projects", "Property", "Design", "Reports", "Settings"])
+        check("exactly six primary navigation labels including CAD Studio",
+              labels == ["Projects", "Property", "Design", "CAD Studio", "Reports", "Settings"])
         check("Projects dashboard opens by default",
               page.locator("#nav [data-page=dashboard]").get_attribute("aria-current") == "page")
         check("desktop dashboard leads with a non-editable concept map",
@@ -327,22 +327,16 @@ try:
                       page.locator("#content").inner_text().strip() != "")
         page.locator("#nav [data-page=dashboard]").click()
         page.locator("#content .tabbar [data-page=about]").click()
-        pro_hypothesis = page.locator("[data-pro-hypothesis]")
-        hypothesis_copy = pro_hypothesis.inner_text().lower()
-        check("About labels the paid-pilot idea as unvalidated and keeps every feature planned, with no price or active payment",
-              all(term in hypothesis_copy for term in ["future paid pilot", "hypothesis", "unvalidated",
-                  "multiple projects", "cloud backup and sync", "collaboration", "project history", "enhanced reports"])
-              and "not available as paid features" in hypothesis_copy
-              and "no price or pilot is offered" in hypothesis_copy
-              and "payment is not active" in hypothesis_copy
-              and "$" not in hypothesis_copy)
         about_copy = page.locator("#content").inner_text()
-        check("the existing free local workflow remains available and the interest link is not pilot enrollment",
-              "$0" in about_copy and "local saving and backup" in about_copy and "Available now" in about_copy
-              and "not enrollment in a waitlist or paid pilot" in about_copy
-              and pro_hypothesis.locator("[data-page=feedback]").count() == 1)
-        pro_hypothesis.locator("[data-page=feedback]").click()
-        check("the paid-pilot hypothesis links directly to the user-controlled feedback route",
+        check("About states all available features are free without promoting a paid tier",
+              "FREE UNTIL FURTHER NOTICE" in about_copy
+              and "AcreForge is free to use" in about_copy
+              and "external model providers may charge separately" in about_copy
+              and "AcreForge Pro" not in about_copy
+              and page.locator("[data-pro-hypothesis]").count() == 0
+              and "free until further notice" in page.locator(".pubbar").inner_text().lower())
+        page.locator("#content [data-page=feedback]").click()
+        check("About links directly to the user-controlled feedback route",
               page.locator("[data-feedback-form]").count() == 1
               and page.locator("[data-feedback-email]").get_attribute("href").startswith("mailto:?"))
         page.locator("#nav [data-page=dashboard]").click()
@@ -352,16 +346,18 @@ try:
               page.locator(".command-center-grid").evaluate("(el) => getComputedStyle(el).gridTemplateColumns.split(' ').length == 1")
               and page.locator(".command-map-preview #siteMap").is_visible()
               and page.locator("#nav button span:not(.ico)").all_text_contents()
-              == ["Projects", "Property", "Design", "Reports", "Settings"])
+              == ["Projects", "Property", "Design", "CAD Studio", "Reports", "Settings"])
         page.set_viewport_size({"width": 1280, "height": 800})
         feedback_requests = []
         page.on("request", lambda request: feedback_requests.append(request.url)
                 if not request.url.startswith(("http://localhost:8766", "http://127.0.0.1:8766")) else None)
         page.click("#nav [data-page=settings]")
         page.locator("#content .tabbar [data-page=feedback]").click()
-        check("feedback route is reachable from Settings and starts with a neutral interest choice",
+        check("feedback route is reachable from Settings and starts with a neutral improvement choice",
               page.locator("[data-feedback-form]").count() == 1
               and page.locator("#feedbackInterest").input_value() == ""
+              and "future improvements" in page.locator("label[for=feedbackInterest]").inner_text()
+              and "planned pro" not in page.locator("[data-feedback-route]").inner_text().lower()
               and page.locator("[data-feedback-preview]").inner_text().startswith("AcreForge product interest and feedback"))
         page.locator(".pubbar [data-action='page:feedback']").click()
         check("status-bar feedback control opens the user-controlled route and replaces public issue submission",
@@ -378,7 +374,7 @@ try:
         check("feedback email draft has a blank recipient and includes only selected basic answers",
               urlparse(mail_href).scheme == "mailto" and urlparse(mail_href).path == ""
               and mail_fields.get("subject") == ["AcreForge product interest and feedback"]
-              and "Interest in planned Pro: Maybe" in mail_body
+              and "Interest in future improvements: Maybe" in mail_body
               and "Enhanced reports" in mail_body and feedback_note in mail_body
               and "Project:" not in mail_body and "Coordinates:" not in mail_body)
         saved_user = page.evaluate("() => localStorage.getItem('oregon-estate-planner-v1') || ''")
@@ -4559,6 +4555,761 @@ try:
               and view_page.evaluate("JSON.stringify(window.__acreforgeUpgradeTest.items())") == before_objects)
         check("saved plan views cause no external requests or JavaScript errors", not view_requests and not view_errors)
         view_context.close()
+        sketch_context = b.new_context(service_workers="block")
+        sketch = sketch_context.new_page()
+        sketch_errors = []
+        sketch.on("pageerror", lambda e: sketch_errors.append(str(e)))
+        sketch.add_init_script("localStorage.setItem('acreforge-guide-seen','1')")
+        sketch.goto("http://127.0.0.1:8766/?spatial-test=1")
+        sketch.evaluate("""() => {
+          const api=window.__acreforgeUpgradeTest;
+          api.scenario().items=[
+            {id:'land1',type:'tree',name:'Tree',x:0,y:0,w:10,h:10,shape:'circle'},
+            {id:'land2',type:'tree',name:'Tree',x:20,y:0,w:10,h:10,shape:'circle'},
+            {id:'land3',type:'grove',name:'Grove',x:40,y:0,w:20,h:10,shape:'rect'},
+            {id:'land4',type:'path',name:'Path',x:0,y:40,w:50,h:4,shape:'rect'},
+            {id:'land5',type:'barn',name:'Barn',x:0,y:50,w:20,h:10,shape:'rect'}
+          ]; api.save();
+        }""")
+        sketch.locator("#nav [data-page=designer]").click()
+        schedule = sketch.locator("[data-landscape-schedule]")
+        schedule.locator("summary").click()
+        check("landscape schedule counts objects and reports footprint and path length",
+              "4 objects" in schedule.inner_text()
+              and "2" in schedule.locator("tr", has_text="Tree / Shade Tree").inner_text()
+              and "157 sq ft footprint" in schedule.inner_text()
+              and "200 sq ft footprint" in schedule.inner_text()
+              and "50 ft length" in schedule.inner_text()
+              and "Barn" not in schedule.inner_text()
+              and "not individual plants" in schedule.inner_text())
+        sketch.locator('[data-detail="objects"] summary').click()
+        sketch.locator('[data-select-object="land1"]').click()
+        sketch.locator('[data-object-field="shape"]').select_option("rect")
+        check("landscape schedule stays open and recalculates after a real object edit",
+              schedule.get_attribute("open") is not None
+              and "179 sq ft footprint" in schedule.inner_text())
+        sketch.locator('#content .tabbar [data-page="homes"]').click()
+        panel = sketch.locator("#homeElevation")
+        plan_before = sketch.evaluate("""() => JSON.stringify(
+          JSON.parse(localStorage['oep-home'] || '{"levels":[{"walls":[],"doors":[],"wins":[],"furn":[],"rooms":[]}]}').levels)""")
+        form = panel.locator("[data-elevation-form]")
+        for field, value in (("x1", "1"), ("y1", "0"), ("x2", "21"), ("y2", "10")):
+            form.locator(f'[name="{field}"]').fill(value)
+        form.locator('button[type="submit"]').click()
+        check("elevation coordinates add a saved line without changing the floor plan",
+              panel.locator("[data-elevation-lines] line").count() == 1
+              and sketch.evaluate("JSON.parse(localStorage['oep-home']).elevations.front[0]") == [1, 0, 21, 10]
+              and sketch.evaluate("JSON.stringify(JSON.parse(localStorage['oep-home']).levels)") == plan_before)
+        panel.locator("[data-elevation-view]").select_option("rear")
+        check("elevation sides are independent",
+              panel.locator("[data-elevation-lines] line").count() == 0)
+        canvas = panel.locator("[data-elevation-canvas]")
+        canvas.click(position={"x": 40, "y": 40})
+        canvas.click(position={"x": 160, "y": 80})
+        check("pointer drawing adds a line on the selected side",
+              panel.locator("[data-elevation-lines] line").count() == 1
+              and len(sketch.evaluate("JSON.parse(localStorage['oep-home']).elevations.rear")) == 1)
+        for field, value in (("x1", "5"), ("y1", "5"), ("x2", "5"), ("y2", "5")):
+            form.locator(f'[name="{field}"]').fill(value)
+        form.locator('button[type="submit"]').click()
+        check("elevation rejects zero-length lines",
+              "two different points" in panel.locator("[data-elevation-status]").inner_text()
+              and panel.locator("[data-elevation-lines] line").count() == 1)
+        sketch.reload()
+        sketch.locator("#nav [data-page=designer]").click()
+        sketch.locator('#content .tabbar [data-page="homes"]').click()
+        panel = sketch.locator("#homeElevation")
+        check("elevation sketches persist after reload",
+              panel.locator("[data-elevation-lines] line").count() == 1)
+        panel.locator("[data-elevation-view]").select_option("rear")
+        sketch.once("dialog", lambda d: d.dismiss())
+        panel.locator("[data-elevation-clear]").click()
+        check("cancelling elevation clear preserves the selected side",
+              panel.locator("[data-elevation-lines] line").count() == 1)
+        panel.locator("[data-elevation-undo]").click()
+        check("removing the last line preserves the other elevation",
+              panel.locator("[data-elevation-lines] line").count() == 0
+              and len(sketch.evaluate("JSON.parse(localStorage['oep-home']).elevations.front")) == 1)
+        panel.locator("[data-elevation-view]").select_option("front")
+        sketch.evaluate("""() => {
+          window.__elevationSetItem = Storage.prototype.setItem;
+          Storage.prototype.setItem = function(k,v) {
+            if (k === 'oep-home') throw new Error('test quota failure');
+            return window.__elevationSetItem.call(this,k,v);
+          };
+        }""")
+        panel.locator("[data-elevation-undo]").click()
+        check("elevation storage failure is reported without losing the line",
+              "Could not save" in panel.locator("[data-elevation-status]").inner_text()
+              and panel.locator("[data-elevation-lines] line").count() == 1
+              and len(sketch.evaluate("JSON.parse(localStorage['oep-home']).elevations.front")) == 1)
+        sketch.evaluate("() => { Storage.prototype.setItem = window.__elevationSetItem; }")
+        check("landscape and elevation additions produce no JavaScript errors", not sketch_errors)
+        sketch_context.close()
+        office_context = b.new_context(service_workers="block", reduced_motion="reduce")
+        office = office_context.new_page()
+        office_errors = []
+        office.on("pageerror", lambda e: office_errors.append(str(e)))
+        office.add_init_script("localStorage.setItem('acreforge-guide-seen','1')")
+        office.goto("http://127.0.0.1:8766/?spatial-test=1")
+        office.locator("#nav [data-page=designer]").click()
+        office.locator('#content .tabbar [data-page="homes"]').click()
+        def office_point(x, y):
+            return office.evaluate("""([x,y]) => {
+              const s=document.querySelector('#hbsvg'), p=s.createSVGPoint();
+              p.x=x; p.y=y; const q=p.matrixTransform(s.getScreenCTM());
+              return {x:q.x,y:q.y};
+            }""", [x, y])
+        office.locator("#hbrt").select_option(label="Office")
+        office.locator('#hb [data-tool="room"]').click()
+        start, end = office_point(5, 5), office_point(25, 20)
+        office.mouse.move(start["x"], start["y"])
+        office.mouse.down()
+        office.mouse.move(end["x"], end["y"], steps=4)
+        office.mouse.up()
+        check("office room can be drawn as an editable floor plan",
+              office.evaluate("JSON.parse(localStorage['oep-home']).levels[0].rooms[0].t") == "Office"
+              and office.locator('#hbsvg [data-k="room"]').count() == 1)
+        office.locator('#hb [data-tool="door"]').click()
+        p = office_point(10, 5)
+        office.mouse.click(p["x"], p["y"])
+        office.locator('#hb [data-tool="win"]').click()
+        p = office_point(18, 5)
+        office.mouse.click(p["x"], p["y"])
+        office.locator('#hb [data-tool="move"]').click()
+        office.locator('#hbsvg [data-k="door"] rect').click()
+        check("legacy door openings retain their original default width",
+              office.locator('[data-opening-in="widthIn"]').input_value() == "36"
+              and float(office.locator('#hbsvg [data-k="door"] rect').get_attribute("width")) == 3)
+        office.locator('[data-opening-in="widthIn"]').fill("42")
+        office.locator('[data-opening-in="widthIn"]').dispatch_event("change")
+        office.locator('[data-opening-in="heightIn"]').fill("84")
+        office.locator('[data-opening-in="heightIn"]').dispatch_event("change")
+        check("door width and height accept inch dimensions and update the plan",
+              office.evaluate("JSON.parse(localStorage['oep-home']).levels[0].doors[0].widthIn") == 42
+              and office.evaluate("JSON.parse(localStorage['oep-home']).levels[0].doors[0].heightIn") == 84
+              and float(office.locator('#hbsvg [data-k="door"] rect').get_attribute("width")) == 3.5)
+        office.locator("#hbsvg").scroll_into_view_if_needed()
+        p = office_point(18, 5)
+        office.mouse.click(p["x"], p["y"])
+        office.locator('[data-opening-in="widthIn"]').fill("60")
+        office.locator('[data-opening-in="widthIn"]').dispatch_event("change")
+        office.locator('[data-opening-in="heightIn"]').fill("48")
+        office.locator('[data-opening-in="heightIn"]').dispatch_event("change")
+        office.locator('[data-opening-in="widthIn"]').fill("241")
+        office.locator('[data-opening-in="widthIn"]').dispatch_event("change")
+        check("window dimensions render in feet and reject out-of-range inches",
+              office.evaluate("JSON.parse(localStorage['oep-home']).levels[0].wins[0].widthIn") == 60
+              and office.evaluate("JSON.parse(localStorage['oep-home']).levels[0].wins[0].heightIn") == 48
+              and float(office.locator('#hbsvg [data-k="win"] rect').get_attribute("width")) == 5
+              and "1 to 240" in office.locator("[data-building-error]").inner_text())
+        office.locator('[data-opening-in="widthIn"]').blur()
+        office.locator('#hb [data-tool="move"]').click()
+        office.locator('#hbsvg [data-k="room"] rect').click(position={"x": 20, "y": 20})
+        office.locator("[data-ceiling-in]").fill("120")
+        office.locator("[data-ceiling-in]").dispatch_event("change")
+        check("office ceiling is saved and labeled in the floor plan",
+              office.evaluate("JSON.parse(localStorage['oep-home']).levels[0].rooms[0].ceilingIn") == 120
+              and "ceiling 120 in" in office.locator('#hbsvg [data-k="room"]').text_content())
+        office.locator("[data-ceiling-in]").fill("361")
+        office.locator("[data-ceiling-in]").dispatch_event("change")
+        check("office ceiling rejects values outside the supported range",
+              "24 to 360" in office.locator("[data-building-error]").inner_text()
+              and office.evaluate("JSON.parse(localStorage['oep-home']).levels[0].rooms[0].ceilingIn") == 120)
+        office.locator("[data-ceiling-in]").blur()
+        office.locator("#hbq").fill("outlet")
+        office.locator('#hb [data-tool="f:outlet"]').click()
+        p = office_point(8, 8)
+        office.mouse.click(p["x"], p["y"])
+        check("office outlet can be placed as a visible editable symbol",
+              office.evaluate("JSON.parse(localStorage['oep-home']).levels[0].furn[0].t") == "outlet"
+              and office.locator('#hbsvg [data-k="furn"] title').first.text_content() == "Electrical outlet (concept)")
+        office.locator("#hbview").click()
+        model = office.locator("#hbsvg").inner_html()
+        walls_before = office.locator('#hbsvg polygon[fill="#f4efe6"]').evaluate_all(
+            "els => els.map(el => el.getAttribute('points'))")
+        check("building 3D view renders the office geometry with the new backdrop",
+              'hbBackdrop' in model and 'polygon' in model)
+        office.locator("#hbview").click()
+        office.locator('#hb [data-tool="move"]').click()
+        office.locator('#hbsvg [data-k="room"] rect').click(position={"x": 20, "y": 20})
+        office.locator("[data-ceiling-in]").fill("180")
+        office.locator("[data-ceiling-in]").dispatch_event("change")
+        office.locator("#hbview").click()
+        check("3D wall geometry changes when the office ceiling height changes",
+              office.locator('#hbsvg polygon[fill="#f4efe6"]').count() > 0
+              and office.locator('#hbsvg polygon[fill="#f4efe6"]').evaluate_all(
+                  "els => els.map(el => el.getAttribute('points'))") != walls_before)
+        office.locator("#hbview").click()
+        with office.expect_download() as downloaded:
+            office.locator("#hbdxf").click()
+        with open(downloaded.value.path(), encoding="utf-8") as exported:
+            dxf = exported.read()
+        check("floor-plan DXF uses edited door and window widths",
+              "DOOR-OPENINGS-L1\n10\n8.250\n20\n-5.000\n30\n0\n11\n11.750" in dxf
+              and "WINDOWS-L1\n10\n15.500\n20\n-5.000\n30\n0\n11\n20.500" in dxf)
+        elevation_form = office.locator("#homeElevation [data-elevation-form]")
+        for field, value in (("x1", "1"), ("y1", "0"), ("x2", "21"), ("y2", "10")):
+            elevation_form.locator(f'[name="{field}"]').fill(value)
+        elevation_form.locator('button[type="submit"]').click()
+        with office_context.expect_page() as printed:
+            office.locator("#hbprint").click()
+        sheets = printed.value
+        sheets.wait_for_load_state()
+        check("printable sheets include actual floor plan, opening dimensions and outlet",
+              sheets.locator("section.sheet").count() == 2
+              and "Office" in sheets.locator("section.sheet").first.inner_text()
+              and "180 in" in sheets.locator("section.sheet").first.inner_text()
+              and "42 × 84" in sheets.locator("section.sheet").first.inner_text()
+              and "60 × 48" in sheets.locator("section.sheet").first.inner_text()
+              and "8, 8" in sheets.locator("section.sheet").first.inner_text()
+              and "not for construction" in sheets.locator("section.sheet").first.inner_text())
+        check("printable elevation sheet includes drawn line and coordinates",
+              sheets.locator('svg[aria-label="front elevation sketch"] line').count() == 1
+              and "1, 0" in sheets.locator("section.sheet").last.inner_text()
+              and "21, 10" in sheets.locator("section.sheet").last.inner_text()
+              and "not projected" in sheets.locator("section.sheet").last.inner_text())
+        sheets.close()
+        office.reload()
+        office.locator("#nav [data-page=designer]").click()
+        office.locator('#content .tabbar [data-page="homes"]').click()
+        saved = office.evaluate("JSON.parse(localStorage['oep-home']).levels[0]")
+        check("office dimensions and outlet survive a reload",
+              saved["rooms"][0]["ceilingIn"] == 180
+              and saved["doors"][0]["widthIn"] == 42
+              and saved["wins"][0]["heightIn"] == 48
+              and saved["furn"][0]["t"] == "outlet"
+              and not office_errors)
+        office_context.close()
+        cad_context = b.new_context(service_workers="block", accept_downloads=True, reduced_motion="reduce")
+        cad = cad_context.new_page()
+        cad_errors = []
+        cad.on("pageerror", lambda e: cad_errors.append(str(e)))
+        cad.add_init_script("localStorage.setItem('acreforge-guide-seen','1')")
+        cad.goto("http://127.0.0.1:8766/?spatial-test=1")
+        cad.locator("#nav [data-page=designer]").click()
+        cad.locator('#content .tabbar [data-page="homes"]').click()
+        def cad_run(text):
+            cad.locator("#hbcmdin").fill(text)
+            cad.locator("#hbcmdin").press("Enter")
+        def cad_state():
+            return cad.evaluate("JSON.parse(localStorage['oep-home']||'{}')")
+        def cad_out():
+            return cad.locator("#hbcmdout").inner_text(), cad.locator("#hbcmdout").get_attribute("data-state")
+        cad_run("HELP")
+        check("CAD command help lists commands, hotkeys and honest DXF/DWG limits",
+              all(s in cad_out()[0] for s in ("ROOM x y w h", "DXF", "not DWG", "Ctrl/Cmd+Z")))
+        for text, tool in (("WALL", "wall"), ("DOOR", "door"), ("WINDOW", "win"), ("ERASE", "erase"), ("DIM", "dim"), ("ROOM", "room"), ("MOVE", "move")):
+            cad_run(text)
+            check(f"command {text} selects the {tool} tool",
+                  cad.locator(f'#hb [data-tool="{tool}"].on').count() == 1)
+        cad_run("ROOM 10 10 12 14 office")
+        cad_run("WALL 0 0 20 0")
+        cad_run("DIM 0 0 20 0")
+        lvl = cad_state()["levels"][0]
+        check("coordinate commands create a room, wall and dimension in feet",
+              lvl["rooms"][0] == {"x": 10, "y": 10, "w": 12, "h": 14, "t": "Office"}
+              and [0, 0, 20, 0] in lvl["walls"] and lvl["dims"] == [[0, 0, 20, 0]])
+        before = cad.evaluate("JSON.stringify(JSON.parse(localStorage['oep-home']).levels)")
+        for bad in ("BOGUS", "ROOM 1 2", "ROOM 1 1 0 5", "ROOM 1 1 5 5 spaceship", "WALL 0 0 5 5", "WALL 0 0 0 0", "WALL 0 0 99999 0", "LEVEL 9", "ROOM a b c d"):
+            cad_run(bad)
+            check(f"invalid command '{bad}' reports an error and changes nothing",
+                  cad_out()[1] == "error"
+                  and cad.evaluate("JSON.stringify(JSON.parse(localStorage['oep-home']).levels)") == before)
+        cad_run("UNDO")
+        check("UNDO command removes the last drawing", not cad_state()["levels"][0].get("dims"))
+        cad_run("REDO")
+        check("REDO command restores it", cad_state()["levels"][0]["dims"] == [[0, 0, 20, 0]])
+        cad.locator("#content").focus()
+        cad.keyboard.press("Control+z")
+        check("Ctrl+Z hotkey undoes once", not cad_state()["levels"][0].get("dims"))
+        cad.keyboard.press("Control+y")
+        check("Ctrl+Y hotkey redoes once", cad_state()["levels"][0]["dims"] == [[0, 0, 20, 0]])
+        cad.keyboard.press("3")
+        check("number hotkey selects tools", cad.locator('#hb [data-tool="wall"].on').count() == 1)
+        cad.keyboard.press("v")
+        check("V hotkey toggles to 3D and back", cad.locator("#hbview").inner_text() == "Back to 2D plan")
+        cad.keyboard.press("v")
+        check("V hotkey returns to 2D", cad.locator("#hbview").inner_text() == "3D view")
+        cad_run("3D")
+        cad_run("2D")
+        check("2D and 3D commands switch the view", cad.locator("#hbview").inner_text() == "3D view")
+        cad.locator("#content").focus()
+        cad.keyboard.press("f")
+        check("F hotkey fits the drawing area", cad_state()["W"] == 72)
+        cad.keyboard.press("/")
+        check("slash hotkey focuses the command line", cad.evaluate("document.activeElement.id") == "hbcmdin")
+        cad.keyboard.type("fvx2")
+        check("hotkeys do not fire while typing in the command line",
+              cad.locator("#hbcmdin").input_value() == "fvx2" and cad.locator("#hbview").inner_text() == "3D view"
+              and cad.locator('#hb [data-tool="wall"].on').count() == 1)
+        cad.locator("#hbcmdin").press("Escape")
+        cad.locator("#hbcmdin").fill("")
+        cad.locator("#hbname").focus()
+        cad.keyboard.type("x")
+        check("hotkeys do not fire in other text fields", "x" in cad.locator("#hbname").input_value())
+        cad.locator("#content").focus()
+        with cad.expect_download() as cad_dxf:
+            cad.keyboard.press("x")
+        cad_text = open(cad_dxf.value.path(), encoding="utf-8").read()
+        check("X hotkey exports conceptual ASCII DXF with the commanded geometry",
+              cad_dxf.value.suggested_filename.endswith(".dxf") and "NOT FOR CONSTRUCTION" in cad_text
+              and "WALLS-L1" in cad_text and "DIMS-L1" in cad_text and "EOF" in cad_text)
+        with cad.expect_download() as cad_dxf2:
+            cad_run("DXF")
+        check("DXF command exports a download", cad_dxf2.value.suggested_filename.endswith(".dxf"))
+        cad.keyboard.press("Control+Shift+x")
+        check("modified browser shortcuts are not intercepted", cad_state()["levels"][0]["dims"] == [[0, 0, 20, 0]])
+        check("CAD commands raised no page errors", not cad_errors)
+        check("Space & building builder states free scope and honest DXF/DWG limits and links to CAD Studio",
+              "space & building builder" in cad.locator("#hb h2").inner_text().lower()
+              and "not DWG" in cad.locator("#cadscope").inner_text()
+              and "Free to use" in cad.locator("#cadscope").inner_text()
+              and cad.locator("#cadscope [data-page=cad]").count() == 1)
+        check("main nav names the CAD Studio entry",
+              "CAD Studio" in cad.locator("#nav").inner_text())
+        cad.locator("#nav [data-page=dashboard]").click()
+        check("dashboard offers CAD Studio and it opens the builder",
+              "DXF only" in cad.locator("#cadstudiocard").inner_text())
+        cad.locator("#cadstudiocard button").click()
+        check("dashboard CAD Studio button opens the drafting workspace", cad.locator("#cadcv").is_visible())
+        cad_context.close()
+        cs_context = b.new_context(service_workers="block", accept_downloads=True, reduced_motion="reduce", viewport={"width": 1400, "height": 900})
+        cs = cs_context.new_page()
+        cs_errors = []
+        cs.on("pageerror", lambda e: cs_errors.append(str(e)))
+        cs.add_init_script("localStorage.setItem('acreforge-guide-seen','1')")
+        cs.goto("http://127.0.0.1:8766/?spatial-test=1")
+        cs.locator("#nav [data-page=cad]").click()
+        def cs_cmd(text):
+            cs.locator("#cadcmd").fill(text)
+            cs.locator("#cadcmd").press("Enter")
+        def cs_doc():
+            return cs.evaluate("JSON.parse(localStorage['acreforge-cad-v1'])")
+        def cs_log():
+            return cs.locator("#cadlog").inner_text()
+        check("CAD Studio opens as its own dark full drafting canvas with command line",
+              cs.locator("#cadcv").count() == 1 and cs.locator("#cadcmd").count() == 1
+              and cs.locator("#cadlayers .cadlay").count() >= 7 and cs.locator("#cadcv").evaluate("c=>c.width>500&&c.height>300"))
+        cs_cmd("LINE")
+        check("LINE prompts for the first point", "first point" in cs.locator("#cadprompt").inner_text())
+        cs_cmd("0,0")
+        cs_cmd("@120<0")
+        cs_cmd("")
+        d = cs_doc()
+        ln = [e for e in d["ents"] if e["t"] == "line"]
+        check("LINE accepts absolute, polar relative coordinates and Enter to finish",
+              len(ln) == 1 and ln[0]["a"] == [0, 0] and abs(ln[0]["b"][0] - 120) < 1e-6 and abs(ln[0]["b"][1]) < 1e-6)
+        cs_cmd("RECT"); cs_cmd("200,0"); cs_cmd("@42,60")
+        r = [e for e in cs_doc()["ents"] if e["t"] == "pline"][0]
+        check("RECT supports inch relative corners",
+              r["closed"] and r["pts"][2] == [242, 60])
+        cs_cmd("CIRCLE"); cs_cmd("50,50"); cs_cmd("12")
+        check("CIRCLE takes center and radius", any(e["t"] == "circle" and e["r"] == 12 for e in cs_doc()["ents"]))
+        cs_cmd("ROOM"); cs_cmd("0,200"); cs_cmd("3'6\"")
+        check("feet-and-inches notation is rejected", "not accepted" in cs_log().lower() or "feet" in cs_log().lower() or "invalid" in cs_log().lower())
+        cs_cmd("ESC") if False else None
+        cs.locator("#cadcmd").press("Escape")
+        cs_cmd("ROOM"); cs_cmd("0,200"); cs_cmd("@216,288"); cs_cmd("Living Room")
+        d = cs_doc()
+        rooms = [e for e in d["ents"] if e["t"] == "room"]
+        walls = [e for e in d["ents"] if e["t"] == "wall"]
+        check("ROOM creates four walls and a labeled room with exact size and area",
+              len(rooms) == 1 and len(walls) == 4 and rooms[0]["name"] == "Living Room"
+              and cs.evaluate("AcreCAD.cmd.roomSize(JSON.parse(localStorage['acreforge-cad-v1']).ents.find(e=>e.t==='room'))") == "216\" x 288\""
+              and cs.evaluate("Math.round(Math.abs(AcreCAD.core.area(JSON.parse(localStorage['acreforge-cad-v1']).ents.find(e=>e.t==='room').pts))/144)") == 432)
+        cs_cmd("DOOR")
+        cs.evaluate("AcreCAD.cmd.clickEnt(AcreCAD.core.doc.ents.find(e=>e.t==='wall'))")
+        cs_cmd("36"); cs_cmd("24")
+        cs_cmd("WINDOW")
+        cs.evaluate("AcreCAD.cmd.clickEnt(AcreCAD.core.doc.ents.filter(e=>e.t==='wall')[1])")
+        cs_cmd("48"); cs_cmd("")
+        d = cs_doc()
+        dr = [e for e in d["ents"] if e["t"] == "door"]; wn = [e for e in d["ents"] if e["t"] == "window"]
+        check("DOOR and WINDOW are placed on walls with inch width, offset, sill and head",
+              len(dr) == 1 and dr[0]["w"] == 36 and dr[0]["pos"] == 24 and dr[0]["head"] == 80
+              and len(wn) == 1 and wn[0]["w"] == 48 and wn[0]["sill"] == 36)
+        cs_cmd("DOOR")
+        cs.evaluate("AcreCAD.cmd.clickEnt(AcreCAD.core.doc.ents.find(e=>e.t==='wall'))")
+        cs_cmd("9999")
+        check("oversized opening is rejected", "wider than the wall" in cs_log() and len([e for e in cs_doc()["ents"] if e["t"] == "door"]) == 1)
+        cs_cmd("OUTLET"); cs_cmd("30,230"); cs_cmd("18")
+        check("OUTLET stores position and height", any(e["t"] == "outlet" and e["h"] == 18 for e in cs_doc()["ents"]))
+        cs_cmd("DIM"); cs_cmd("0,200"); cs_cmd("216,200"); cs_cmd("")
+        dm = [e for e in cs_doc()["ents"] if e["t"] == "dim"]
+        check("DIM creates a dimension with default offset", len(dm) == 1 and dm[0]["off"] == 12)
+        cs_cmd("TEXT"); cs_cmd("10,10"); cs_cmd("9"); cs_cmd("NOTE")
+        check("TEXT adds annotation", any(e["t"] == "text" and e["s"] == "NOTE" for e in cs_doc()["ents"]))
+        cs_cmd("DIST"); cs_cmd("0,0"); cs_cmd("30,40")
+        check("DIST reports distance and angle", "50\"" in cs_log() and "53.1" in cs_log())
+        cs_cmd("AREA"); cs_cmd("0,0"); cs_cmd("144,0"); cs_cmd("144,144"); cs_cmd("0,144"); cs_cmd("")
+        check("AREA reports area and perimeter", "20736" in cs_log() and "sq in" in cs_log())
+        n = len(cs_doc()["ents"])
+        cs_cmd("UNDO")
+        check("UNDO removes the last drawing", cs_doc()["ents"].__len__() == n - 1)
+        cs_cmd("REDO")
+        check("REDO restores it", len(cs_doc()["ents"]) == n)
+        cs_cmd("BOGUS")
+        check("unknown commands are reported, not silently accepted", "Unknown command" in cs_log())
+        cs_cmd("LINE"); cs_cmd("banana")
+        check("invalid point input is rejected and prompt stays", "Invalid input" in cs_log() and "first point" in cs.locator("#cadprompt").inner_text())
+        cs.locator("#cadcmd").press("Escape")
+        check("Esc cancels the active command", cs.locator("#cadprompt").inner_text() == "Command:")
+        # layers
+        cs_cmd("LAYER"); cs_cmd("NEW"); cs_cmd("A-TEST")
+        cs_cmd("LAYER"); cs_cmd("COLOR"); cs_cmd("A-TEST"); cs_cmd("red")
+        cs_cmd("LAYER"); cs_cmd("LTYPE"); cs_cmd("A-TEST"); cs_cmd("DASHED")
+        cs_cmd("LINE"); cs_cmd("0,-100"); cs_cmd("50,-100"); cs_cmd("")
+        d = cs_doc()
+        check("LAYER NEW/COLOR/LTYPE create a current layer and objects land on it",
+              d["layers"]["A-TEST"]["color"] == 1 and d["layers"]["A-TEST"]["ltype"] == "DASHED"
+              and d["cur"] == "A-TEST" and d["ents"][-1]["layer"] == "A-TEST")
+        cs_cmd("LAYER"); cs_cmd("LOCK"); cs_cmd("A-TEST")
+        cs_cmd("SELECTALL")
+        check("locked layers are excluded from selection", cs.evaluate("AcreCAD.cmd.R.sel.every(id=>AcreCAD.core.byId(id).layer!=='A-TEST')"))
+        cs.locator('.cadlay[data-lay="A-WALL"] [data-act="on"]').click()
+        check("layer visibility toggle hides objects and persists", cs_doc()["layers"]["A-WALL"]["on"] is False)
+        cs.locator('.cadlay[data-lay="A-WALL"] [data-act="on"]').click()
+        # snaps
+        cs.evaluate("AcreCAD.fit()")
+        snap = cs.evaluate("""()=>{const C=AcreCAD.core;
+          const a=C.osnap([121,1],5,{osnap:true});const m=C.osnap([60,2],5,{osnap:true});
+          const x=C.osnap([100,0],5,{osnap:true});return [a.k,a.p,m.k,m.p,x.k]}""")
+        check("object snaps find endpoints and midpoints", snap[0] in ("end", "int") and snap[2] == "mid" and snap[3] == [60, 0])
+        isect = cs.evaluate("""()=>{const C=AcreCAD.core;C.doc.ents.push({id:9001,t:'line',a:[60,-20],b:[60,20],layer:'0'});
+          const r=C.osnap([61,1],5,{osnap:true});C.doc.ents.pop();return [r.k,r.p]}""")
+        check("intersection snap finds line crossings", isect[0] == "int" and isect[1] == [60, 0])
+        per = cs.evaluate("AcreCAD.core.osnap([40,30],40,{osnap:false,perp:true,from:[40,30]})")
+        check("grid snap rounds to the grid", cs.evaluate("AcreCAD.core.osnap([7,10],0.1,{osnap:false,grid:true}).p")==[6,12])
+        check("ortho and polar constrain direction",
+              cs.evaluate("AcreCAD.core.constrain([0,0],[10,3],'ortho')") == [10, 0]
+              and abs(cs.evaluate("AcreCAD.core.constrain([0,0],[10,9],'polar')")[1] - cs.evaluate("AcreCAD.core.constrain([0,0],[10,9],'polar')")[0]) < 1e-6)
+        # mouse: crosshair coordinate readout + click-drawing
+        box = cs.locator("#cadcv").bounding_box()
+        cs.locator("#cadcmd").fill("")
+        cs.mouse.move(box["x"] + 300, box["y"] + 200)
+        check("live coordinate readout follows the cursor", "X " in cs.locator("#cadcoord").inner_text())
+        nl0 = len([e for e in cs_doc()["ents"] if e["t"] == "line"])
+        cs_cmd("LINE")
+        cs.mouse.click(box["x"] + 300, box["y"] + 200)
+        cs.mouse.click(box["x"] + 400, box["y"] + 200)
+        cs.locator("#cadcmd").press("Escape")
+        check("canvas clicks supply points to the active command", len([e for e in cs_doc()["ents"] if e["t"] == "line"]) == nl0 + 1)
+        # window / crossing selection
+        cs.evaluate("AcreCAD.cmd.R.sel=[];AcreCAD.fit()")
+        cs.mouse.move(box["x"] + 2, box["y"] + 2); cs.mouse.down(); cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2, steps=4); cs.mouse.up()
+        check("dragging right makes a window selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3)
+        cs.evaluate("AcreCAD.cmd.R.sel=[]")
+        cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2); cs.mouse.down(); cs.mouse.move(box["x"] + 2, box["y"] + 2, steps=4); cs.mouse.up()
+        check("dragging left makes a crossing selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3)
+        # MOVE / COPY / ERASE with implied selection
+        cs.evaluate("AcreCAD.cmd.R.sel=[AcreCAD.core.doc.ents.find(e=>e.t==='circle').id]")
+        cs_cmd("MOVE"); cs_cmd("0,0"); cs_cmd("10,0")
+        check("MOVE moves the selected object", cs.evaluate("AcreCAD.core.doc.ents.find(e=>e.t==='circle').c")==[60,50])
+        cs_cmd("COPY"); cs_cmd("0,0"); cs_cmd("0,100"); cs_cmd("")
+        check("COPY duplicates the object", len([e for e in cs_doc()["ents"] if e["t"] == "circle"]) == 2)
+        cs.evaluate("AcreCAD.cmd.R.sel=[AcreCAD.core.doc.ents.filter(e=>e.t==='circle')[1].id]")
+        cs_cmd("ERASE")
+        check("ERASE removes the selection", len([e for e in cs_doc()["ents"] if e["t"] == "circle"]) == 1)
+        # walls erase removes their openings
+        wid = cs.evaluate("AcreCAD.core.doc.ents.find(e=>e.t==='door').wall")
+        cs.evaluate("AcreCAD.cmd.R.sel=[%d]" % wid)
+        cs_cmd("ERASE")
+        check("erasing a wall also removes its door", not any(e["t"] == "door" for e in cs_doc()["ents"]))
+        # properties panel edit in inches
+        cs.evaluate("AcreCAD.cmd.R.sel=[AcreCAD.core.doc.ents.find(e=>e.t==='window').id];AcreCAD.refresh()")
+        cs.locator('[data-eprop="w"]').fill("60"); cs.locator('[data-eprop="w"]').press("Tab")
+        check("properties panel edits a window width in inches", cs.evaluate("AcreCAD.core.doc.ents.find(e=>e.t==='window').w") == 60)
+        cs.locator('[data-eprop="w"]').fill("9999"); cs.locator('[data-eprop="w"]').press("Tab")
+        check("properties panel rejects out-of-range values", cs.evaluate("AcreCAD.core.doc.ents.find(e=>e.t==='window').w") == 60)
+        cs.locator('[data-prop="ceil"]').fill("9'"); cs.locator('[data-prop="ceil"]').press("Tab")
+        check("ceiling height rejects feet notation", cs_doc()["ceil"] == 96)
+        cs.locator('[data-prop="ceil"]').fill("108"); cs.locator('[data-prop="ceil"]').press("Tab")
+        check("ceiling height accepts inches", cs_doc()["ceil"] == 108)
+        cs.evaluate("AcreCAD.core.doc.cur='0'"); cs_cmd("LINE"); cs_cmd("0,500"); cs_cmd("100,500"); cs_cmd("")
+        cs.evaluate("AcreCAD.cmd.R.sel=[AcreCAD.core.doc.ents.filter(e=>e.t==='line').pop().id]"); cs_cmd("ROTATE"); cs_cmd("0,500"); cs_cmd("90"); cs.evaluate("AcreCAD.cmd.R.sel=[]")
+        rl = [e for e in cs_doc()["ents"] if e["t"] == "line"][-1]
+        check("ROTATE turns a line 90 degrees about the base point", abs(rl["b"][0]) < 1e-6 and abs(rl["b"][1] - 600) < 1e-6)
+        cs_cmd("ARC"); cs_cmd("300,500"); cs_cmd("320,500"); cs_cmd("300,520")
+        check("ARC stores center, radius and angles", any(e["t"] == "arc" and e["r"] == 20 and e["a1"] == 90 and abs(e["r"] - 20) < 1e-6 for e in cs_doc()["ents"]))
+        cs_cmd("UNITS"); cs_cmd("mm")
+        cs_cmd("DIST"); cs_cmd("0,0"); cs_cmd("25.4,0")
+        check("UNITS mm displays millimetres", "mm" in cs_log())
+        cs_cmd("UNITS"); cs_cmd("in")
+        cs_cmd("LINE"); cs_cmd("0,0"); cs_cmd("300mm,0"); cs_cmd("")
+        check("length input accepts a mm suffix and stores inches", abs([e for e in cs_doc()["ents"] if e["t"] == "line"][-1]["b"][0] - 11.811) < 0.01)
+        cs_cmd("PROFILE"); cs_cmd("User"); cs_cmd("C")
+
+        check("User profile maps alias C to CIRCLE", "CIRCLE" in cs.locator("#cadprompt").inner_text().upper() or "center" in cs.locator("#cadprompt").inner_text().lower())
+        cs.locator("#cadcmd").press("Escape"); cs_cmd("PROFILE"); cs_cmd("Default")
+        check("canvas backing store follows devicePixelRatio", cs.evaluate("document.getElementById('cadcv').width") >= cs.evaluate("document.getElementById('cadcv').clientWidth"))
+        cs.evaluate("AcreCAD.core.doc.cur='0'"); cs_cmd("LINE"); cs_cmd("0,700"); cs_cmd("100,700"); cs_cmd("")
+        ln_id = cs.evaluate("AcreCAD.core.doc.ents.filter(e=>e.t==='line').pop().id")
+        cs_cmd("OFFSET"); cs_cmd("10"); cs.evaluate("AcreCAD.cmd.clickEnt(AcreCAD.core.byId(%d))" % ln_id); cs_cmd("50,800"); cs.locator("#cadcmd").press("Escape")
+        ol = [e for e in cs_doc()["ents"] if e["t"] == "line"][-1]
+        check("OFFSET makes a parallel line at the typed distance", abs(ol["a"][1] - 710) < 1e-6 and ol["id"] != ln_id)
+        cs.evaluate("AcreCAD.cmd.R.sel=[%d]" % ln_id); cs_cmd("MIRROR"); cs_cmd("0,0"); cs_cmd("1,0"); cs_cmd("No"); cs.evaluate("AcreCAD.cmd.R.sel=[]")
+        ml = [e for e in cs_doc()["ents"] if e["t"] == "line"][-1]
+        check("MIRROR about the X axis adds a reflected copy", abs(ml["a"][1] + 700) < 1e-6)
+        cs_cmd("RECT"); cs_cmd("1000,0"); cs_cmd("1100,100")
+        pid = cs.evaluate("AcreCAD.core.doc.ents.filter(e=>e.t==='pline').pop().id")
+        cs_cmd("HATCH"); cs.evaluate("AcreCAD.cmd.clickEnt(AcreCAD.core.byId(%d))" % pid); cs_cmd("ANSI31"); cs_cmd("10")
+        check("HATCH creates a hatch object that exports as DXF lines", any(e["t"] == "hatch" for e in cs_doc()["ents"]) and cs.evaluate("AcreCAD.cmd.exportDXF()").count("LINE") > 10)
+        cs_cmd("PROFILE"); cs_cmd("User")
+        cs.locator("body").click(position={"x": 5, "y": 5}) if False else None
+        cs.evaluate("document.activeElement.blur()")
+        cs.keyboard.press("Control+Shift+C")
+        check("User profile hotkey Ctrl+Shift+C starts CIRCLE", "center" in cs.locator("#cadprompt").inner_text().lower())
+        cs.keyboard.press("Escape"); cs_cmd("PROFILE"); cs_cmd("Default")
+        check("DXF has ARC entity", "ARC" in cs.evaluate("AcreCAD.cmd.exportDXF()"))
+        # persistence
+        cs.reload(); cs.locator("#nav [data-page=cad]").click()
+        check("drawing persists after reload", len(cs_doc()["ents"]) > 5 and cs.locator("#cadlayers .cadlay").count() >= 8)
+        # DXF
+        cs_cmd("DXF")
+        dxf = cs.evaluate("window.__cadLastDxf")
+        check("DXF export is R12 with layer table and LINE/POLYLINE/CIRCLE/TEXT entities and no DWG claim",
+              dxf.startswith("0\r\nSECTION") and "AC1009" in dxf and "A-WALL" in dxf and all(k in dxf for k in ("\r\nLINE\r\n", "\r\nPOLYLINE\r\n", "\r\nCIRCLE\r\n", "\r\nTEXT\r\n")) and dxf.rstrip().endswith("EOF"))
+        check("DXF contains the room label with size and area", "Living Room 216\" x 288\" 62208 sq in" in dxf)
+        cs_cmd("HELP")
+        check("CAD help states DXF-only and conceptual limits",
+              "DXF export only" in cs.locator("#cadhelptxt").text_content() and "DWG" in cs.locator("#cadhelptxt").text_content())
+        cs.locator("#cadfs").click()
+        check("full viewport toggle fills the screen", cs.locator("#cadwrap.cadfull").count() == 1)
+        # Chunk 3: elevations, roof, section, vector PDF
+        cs_cmd("ROOF"); cs_cmd("gable"); cs_cmd("6"); cs_cmd("12")
+        roof = cs.evaluate("AcreCADSheets.roof()")
+        check("ROOF gable 6/12 computes span, rise, ridge and area", roof["type"] == "gable" and roof["pitch"] == 6 and abs(roof["span"] - 240) < 2 and abs(roof["rise"] - 60) < 1 and abs(roof["ridgeLength"] - 312) < 2 and abs(roof["area"] - 2 * 312 * 120 * (1.25 ** 0.5)) < 5)
+        hip = cs.evaluate("AcreCADSheets.roof({type:'hip'})"); shed = cs.evaluate("AcreCADSheets.roof({type:'shed'})")
+        check("hip, shed, gambrel and barn roofs differ sensibly", hip["ridgeLength"] == 72 and shed["rise"] == 120 and all(cs.evaluate("AcreCADSheets.roof({type:'%s'}).area" % k) > 0 for k in ("gambrel", "barn")))
+        els = cs.evaluate("['front','rear','left','right'].map(s=>AcreCADSheets.elevation(s))")
+        check("four elevations derive from the plan (front/rear widths 192/264 swap with sides)", len(els) == 4 and abs(els[0]["width"] - els[2]["width"]) > 1 and els[0]["width"] == els[1]["width"] and els[2]["width"] == els[3]["width"])
+        check("elevations include door/window openings from the plan", sum(len(e["openings"]) for e in els) >= 1)
+        cs_cmd("ELEV")
+        check("ELEV reports each elevation", "front elevation" in cs_log() and "right elevation" in cs_log())
+        sec = cs.evaluate("AcreCADSheets.section()")
+        check("section has wall height and roof profile", sec["height"] > 0 and len(sec["roof"]) >= 3)
+        cs.select_option("#cadpaper", "ARCH D")
+        pdf_info = cs.evaluate("AcreCADSheets.build({paper:'ARCH D'})")
+        pdf = pdf_info["pdf"]
+        check("PDF is a real vector PDF with header, xref and EOF", pdf.startswith("%PDF-1.4") and "xref" in pdf and pdf.rstrip().endswith("%%EOF") and " re S" in pdf and " l S" in pdf)
+        check("PDF has 10 sheets with ARCH D 36x24 in MediaBox", pdf_info["pages"] == 10 and "/Count 10" in pdf and "[0 0 2592 1728]" in pdf)
+        check("PDF has title block, sheet numbers, north arrow, concept labels and inch units", all(k in pdf for k in ("Sheet 2 of 10", "Units: inches", "(N) Tj", "Electrical plan \\(CONCEPT\\)", "Plumbing plan \\(CONCEPT\\)", "NOT FOR CONSTRUCTION", "Front elevation", "Scale: 1:")))
+        check("PDF sheet sizes for Letter, ARCH E, B, A", all(cs.evaluate("AcreCADSheets.build({paper:'%s'}).size" % k) == v for k, v in (("Letter", [11, 8.5]), ("ARCH E", [48, 36]), ("B", [17, 11]), ("A", [11, 8.5]))))
+        with cs.expect_download() as dl:
+            cs.locator("#cadpdf").click()
+        dpath = dl.value.path(); data = open(dpath, "rb").read()
+        check("Download PDF button downloads a PDF file", dl.value.suggested_filename.endswith(".pdf") and data.startswith(b"%PDF-") and b"/Count 10" in data and b"[0 0 2592 1728]" in data)
+        cs_cmd("PDF"); cs_cmd("Letter")
+        check("PDF command honors paper choice", cs.evaluate("AcreCAD.core.doc.paper") == "Letter" and "PDF with 10 page" in cs_log())
+        cs.evaluate("AcreCAD.core.doc.cur='0'")
+        n0 = cs.evaluate("AcreCAD.core.doc.ents.length")
+        cs_cmd("WALL"); cs_cmd("900,900"); cs_cmd("903,900"); cs_cmd("")
+        check("Wall of 6 inches or less is rejected with a plain message", cs.evaluate("AcreCAD.core.doc.ents.length") == n0 and "Wall must be longer than 6 inches." in cs_log() and cs.evaluate("AcreCAD.core.health.state") == "WARNING")
+        cs_cmd("ROOM"); cs_cmd("900,900"); cs_cmd("910,920")
+        check("Room under 24 x 24 inches is rejected", cs.evaluate("AcreCAD.core.doc.ents.length") == n0 and "Room size below minimum dimensions" in cs_log())
+        cs_cmd("DOOR"); cs_cmd("")
+        check("Door not on a wall is refused with guidance", "Doors must be attached to a wall" in cs_log() and cs.evaluate("AcreCAD.core.doc.ents.length") == n0)
+        cs.evaluate("AcreCAD.core.doc.hist=[];AcreCAD.core.doc.redo=[]")
+        cs_cmd("UNDO")
+        check("Undo with nothing to undo says so and changes nothing", "No more actions to undo." in cs_log() and cs.evaluate("AcreCAD.core.doc.ents.length") == n0)
+        cs.evaluate("""(()=>{const C=AcreCAD.core;C.clearHealth();window.__origSet=Storage.prototype.setItem;
+          Storage.prototype.setItem=function(){const e=new Error('full');e.name='QuotaExceededError';throw e};
+          C.add({t:'line',a:[0,0],b:[50,0]});})()""")
+        qs = cs.evaluate("({f:AcreCAD.core.health.storageFull,s:AcreCAD.core.health.sev,m:AcreCAD.core.health.msg,own:AcreCAD.core.doc.ents.length})")
+        AcreHealthText = cs.evaluate("(AcreCAD.refresh(),document.querySelector('#cadhealth').innerText)")
+        check("Browser storage full pauses saving, keeps the drawing, and recommends a backup", qs["f"] and qs["s"] == "CRITICAL" and "Browser storage is full. Exporting backup recommended." in qs["m"] and qs["own"] == n0 + 1 and "Download backup" in AcreHealthText)
+        cs.evaluate("(()=>{Storage.prototype.setItem=window.__origSet})()")
+        with cs.expect_download() as bdl:
+            cs.locator("[data-hl=backup]").click()
+        bdata = open(bdl.value.path(), "rb").read()
+        check("Backup download is a JSON copy of the drawing", bdl.value.suggested_filename.endswith(".json") and b'"ents"' in bdata and cs.evaluate("AcreCAD.core.health.state") == "RECOVERY")
+        cs.evaluate("AcreCAD.core.save()")
+        check("Saving resumes when storage is available again", cs.evaluate("AcreCAD.core.health.storageFull") is False)
+        rec = cs.evaluate("""(()=>{const C=AcreCAD.core;C.backupNow();const good=JSON.stringify(C.doc.ents.length);
+          localStorage.setItem(C.KEY,'{not json');C.load();
+          return {n:C.doc.ents.length,good:+good,msg:C.health.msg,rec:C.health.recovered,kept:!!localStorage.getItem(C.KEY+'-corrupt'),st:C.health.state}})()""")
+        check("Corrupt saved drawing is restored from the backup and the damaged copy is kept", rec["n"] == rec["good"] and "Recovered from backup created" in rec["rec"] and rec["kept"] and rec["st"] == "RECOVERY")
+        cs.evaluate("AcreCAD.core.save()")
+        cr = cs.evaluate("""(()=>{const C=AcreCAD.core;C.clearHealth();localStorage.setItem(C.SKEY,JSON.stringify({open:true}));C.load();AcreCAD.refresh();
+          return {c:C.health.crashed,t:document.querySelector('#cadhealth').innerText}})()""")
+        check("Crash flag shows the Restore / Discard prompt", cr["c"] and "AcreForge closed unexpectedly." in cr["t"] and "Restore previous session?" in cr["t"])
+        before = cs.evaluate("AcreCAD.core.doc.ents.length")
+        cs.locator("[data-hl=restore]").click()
+        check("Restore keeps the drawing and dismisses the prompt", cs.evaluate("AcreCAD.core.health.crashed") is False and cs.evaluate("AcreCAD.core.doc.ents.length") == before)
+        cs.evaluate("(()=>{const C=AcreCAD.core;localStorage.setItem(C.SKEY,JSON.stringify({open:true}));C.load();AcreCAD.refresh()})()")
+        cs.locator("[data-hl=discard]").click()
+        bk = cs.evaluate("JSON.parse(localStorage.getItem(AcreCAD.core.BKEY)).doc.ents.length")
+        check("Discard starts fresh but keeps a backup of the prior drawing", cs.evaluate("AcreCAD.core.doc.ents.length") == 0 and bk == before)
+        cs_cmd("ROOM"); cs_cmd("0,0"); cs_cmd("216,288"); cs_cmd("Living Room")
+        pf = cs.evaluate("AcreCADSheets.build({paper:'Letter',failSheet:'Plumbing'})")
+        check("PDF export skips a failed sheet and reports a partial set", pf["pages"] == 9 and len(pf["failed"]) == 1 and "9 of 10 sheets generated" in pf["message"] and pf["pdf"].startswith("%PDF-"))
+        check("Autosave runs after drawing (saved copy matches the drawing)", len(cs_doc()["ents"]) == cs.evaluate("AcreCAD.core.doc.ents.length"))
+        check("CAD Studio produced no page errors", not cs_errors)
+        cs_context.close()
+        rotation_context = b.new_context(service_workers="block", reduced_motion="no-preference")
+        rotation = rotation_context.new_page()
+        rotation.add_init_script("""(() => {
+          localStorage.setItem('acreforge-guide-seen', '1');
+          window.__testHidden = false;
+          Object.defineProperty(document, 'hidden', {configurable: true, get: () => window.__testHidden});
+          window.__sceneDraws = 0;
+          const clear = CanvasRenderingContext2D.prototype.clearRect;
+          CanvasRenderingContext2D.prototype.clearRect = function(...args) {
+            if (this.canvas.id === 'scene3d') window.__sceneDraws++;
+            return clear.apply(this, args);
+          };
+        })();""")
+        rotation.goto("http://127.0.0.1:8766/?spatial-test=1")
+        rotation.locator('#nav [data-page="designer"]').click()
+        rotation.wait_for_timeout(350)
+        visible_draws = rotation.evaluate("""() => {
+          window.__testHidden = true;
+          document.dispatchEvent(new Event('visibilitychange'));
+          return window.__sceneDraws;
+        }""")
+        rotation.wait_for_timeout(350)
+        hidden_draws = rotation.evaluate("window.__sceneDraws")
+        check("site preview auto-rotation draws while visible and stops while hidden",
+              visible_draws >= 2 and hidden_draws == visible_draws)
+        rotation.evaluate("document.querySelector('[data-scene-reset]').click()")
+        manual_draws = rotation.evaluate("window.__sceneDraws")
+        check("hidden site preview still supports explicit redraws", manual_draws > hidden_draws)
+        rotation.evaluate("""() => {
+          window.__testHidden = false;
+          document.dispatchEvent(new Event('visibilitychange'));
+          document.dispatchEvent(new Event('visibilitychange'));
+        }""")
+        rotation.wait_for_timeout(350)
+        resumed_draws = rotation.evaluate("window.__sceneDraws")
+        check("site preview auto-rotation resumes without duplicate timers",
+              2 <= resumed_draws - manual_draws <= 4)
+        rotation.locator("#nav [data-page=dashboard]").click()
+        departed_draws = rotation.evaluate("window.__sceneDraws")
+        rotation.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
+        rotation.wait_for_timeout(250)
+        check("site preview does not restart after leaving the designer",
+              rotation.evaluate("window.__sceneDraws") == departed_draws)
+        rotation_context.close()
+
+        home_context = b.new_context(service_workers="block")
+        home = home_context.new_page()
+        home_errors = []
+        home.on("pageerror", lambda e: home_errors.append(str(e)))
+        home.add_init_script("""(() => {
+          localStorage.setItem('acreforge-guide-seen', '1');
+          window.__testHidden = false;
+          Object.defineProperty(document, 'hidden', {configurable: true, get: () => window.__testHidden});
+          window.__homeTimers = new Set();
+          window.__homeTicks = 0;
+          const start = window.setInterval, stop = window.clearInterval;
+          window.setInterval = (fn, delay, ...args) => {
+            if (delay !== 60) return start(fn, delay, ...args);
+            const id = start(() => { window.__homeTicks++; fn(...args); }, delay);
+            window.__homeTimers.add(id);
+            return id;
+          };
+          window.clearInterval = id => { window.__homeTimers.delete(id); stop(id); };
+        })();""")
+        home.goto("http://127.0.0.1:8766/?spatial-test=1")
+        home.locator('#nav [data-page="designer"]').click()
+        home.locator('#content .tabbar [data-page="homes"]').click()
+        home.wait_for_timeout(200)
+        check("Home Builder 2D runs no idle rotation timer",
+              home.evaluate("window.__homeTimers.size === 0 && window.__homeTicks === 0"))
+        home.locator("#hbview").click()
+        home.evaluate("""() => {
+          window.__homeDraws = 0;
+          new MutationObserver(() => window.__homeDraws++)
+            .observe(document.getElementById('hbsvg'), {childList: true});
+        }""")
+        home.wait_for_timeout(250)
+        check("Home Builder 3D starts one rotation timer",
+              home.evaluate("window.__homeTimers.size === 1 && window.__homeTicks >= 2 && window.__homeDraws >= 2"))
+        stopped = home.evaluate("""() => {
+          window.__testHidden = true;
+          document.dispatchEvent(new Event('visibilitychange'));
+          return [window.__homeTicks, window.__homeDraws];
+        }""")
+        home.wait_for_timeout(200)
+        check("hidden Home Builder stops its timer and periodic redraws",
+              home.evaluate("window.__homeTimers.size === 0 && [window.__homeTicks, window.__homeDraws]") == stopped)
+        home.evaluate("document.getElementById('hbroof').click()")
+        check("Home Builder manual preview controls still work while hidden",
+              "on" in home.locator("#hbroof").inner_text()
+              and home.evaluate("window.__homeTimers.size === 0 && window.__homeDraws") > stopped[1])
+        home.evaluate("""() => {
+          window.__testHidden = false;
+          document.dispatchEvent(new Event('visibilitychange'));
+          document.dispatchEvent(new Event('visibilitychange'));
+        }""")
+        home.wait_for_timeout(200)
+        check("visible Home Builder resumes once without duplicate timers",
+              home.evaluate("window.__homeTimers.size === 1 && window.__homeTicks") > stopped[0])
+        home.locator("#hbview").click()
+        check("returning to 2D stops the Home Builder timer",
+              home.evaluate("window.__homeTimers.size") == 0)
+        home.locator("#hbroof").click()
+        check("roof control starts rotation when it switches to 3D",
+              home.evaluate("window.__homeTimers.size") == 1)
+        home.locator("#nav [data-page=dashboard]").click()
+        home.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
+        check("leaving Home Builder stops its timer without JavaScript errors",
+              home.evaluate("window.__homeTimers.size") == 0 and not home_errors)
+        home.locator('#nav [data-page="designer"]').click()
+        home.locator('#content .tabbar [data-page="homes"]').click()
+        check("returning to Home Builder restores its visible 3D rotation",
+              home.evaluate("window.__homeTimers.size") == 1)
+        home_context.close()
+
+        reduced_context = b.new_context(service_workers="block", reduced_motion="reduce")
+        reduced = reduced_context.new_page()
+        reduced_errors = []
+        reduced.on("pageerror", lambda e: reduced_errors.append(str(e)))
+        reduced.add_init_script("""(() => {
+          localStorage.setItem('acreforge-guide-seen', '1');
+          window.__homeTimers = new Set();
+          const start = window.setInterval, stop = window.clearInterval;
+          window.setInterval = (fn, delay, ...args) => {
+            if (delay !== 60) return start(fn, delay, ...args);
+            const id = start(fn, delay, ...args);
+            window.__homeTimers.add(id);
+            return id;
+          };
+          window.clearInterval = id => { window.__homeTimers.delete(id); stop(id); };
+        })();""")
+        reduced.goto("http://127.0.0.1:8766/?spatial-test=1")
+        reduced.locator('#nav [data-page="designer"]').click()
+        reduced.locator('#content .tabbar [data-page="homes"]').click()
+        reduced.locator("#hbview").click()
+        reduced.evaluate("""() => {
+          window.__homeDraws = 0;
+          new MutationObserver(() => window.__homeDraws++)
+            .observe(document.getElementById('hbsvg'), {childList: true});
+        }""")
+        reduced.wait_for_timeout(250)
+        check("Home Builder reduced motion prevents automatic rotation and timer",
+              reduced.evaluate("window.__homeTimers.size === 0 && window.__homeDraws === 0"))
+        reduced.locator("#content").focus()
+        reduced.keyboard.press("e")
+        reduced.wait_for_function("() => window.__homeDraws > 0")
+        check("Home Builder reduced motion preserves manual 3D rotation",
+              reduced.evaluate("window.__homeTimers.size === 0 && window.__homeDraws > 0"))
+        reduced.emulate_media(reduced_motion="no-preference")
+        reduced.wait_for_function("() => window.__homeTimers.size === 1")
+        before_resume = reduced.evaluate("window.__homeDraws")
+        reduced.wait_for_timeout(200)
+        check("Home Builder responds when reduced motion is turned off",
+              reduced.evaluate("window.__homeTimers.size === 1 && window.__homeDraws") > before_resume)
+        reduced.emulate_media(reduced_motion="reduce")
+        reduced.wait_for_function("() => window.__homeTimers.size === 0")
+        after_stop = reduced.evaluate("window.__homeDraws")
+        reduced.wait_for_timeout(200)
+        check("Home Builder stops again when reduced motion is enabled",
+              reduced.evaluate("window.__homeTimers.size === 0 && window.__homeDraws") == after_stop
+              and not reduced_errors)
+        reduced_context.close()
+
         welcome_context = b.new_context(service_workers="block")
         welcome = welcome_context.new_page()
         welcome_errors, welcome_requests = [], []
