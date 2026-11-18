@@ -202,7 +202,9 @@ Pastures and crop fields are **land zones** (Land zones card), not placeable obj
 
 Finishing or cancelling returns to Ready, unless objects remain selected.
 
-**Elevations, roof and PDF sheets:** ELEV, ROOF and PDF commands (or the Paper select + Download PDF button) generate a real vector PDF: cover, floor plan, front/rear/left/right elevations derived from the plan, section/roof, foundation, electrical and plumbing CONCEPT sheets, with title block, scale, north arrow and page numbers. Papers: Letter, Legal, 11x17, ARCH D, ARCH E, A, B, A4, A3. Roofs are simplified; no site-plan sheet, takeoffs, or linked 3D yet; not construction-grade.
+**Export wizard (v106):** Choose **Export…** to download a conceptual vector PDF drawing set or an R12 DXF. PDF exports let you choose paper size and include the available cover, floor plan, elevations, section/roof, foundation, and electrical/plumbing CONCEPT sheets; DXF contains model-space geometry in inches. Canceling leaves the saved paper size unchanged. Downloads are local; DXF is not DWG, and neither format is construction-ready.
+
+**Elevations, roof and PDF sheets:** ELEV, ROOF and PDF commands remain available from the command line. The PDF has a title block, scale, north arrow and page numbers. Papers: Letter, Legal, 11x17, ARCH D, ARCH E, A, B, A4, A3. Roofs are simplified; there is no site-plan sheet or quantity takeoff.
 
 **Units and crisp lines:** inches by default; feet-and-inches (3'6") is rejected. UNITS mm|cm|m changes display/input only (geometry and DXF stay in inches; areas in sq in / sq mm / sq cm / sq m). The canvas is devicePixelRatio-aware with per-layer lineweights (screen only; DXF R12 has none).
 **Commands added:** ROTATE, MIRROR, SCALE, OFFSET (line/wall/circle/arc), TRIM/EXTEND/FILLET (lines only), ARC, HATCH (ANSI31/CROSS/SOLID line patterns, exported as lines), ID, UNITS, PROFILE.
@@ -210,11 +212,11 @@ Finishing or cancelling returns to Ready, unless objects remain selected.
 
 Open **CAD Studio** from the main nav or the dashboard card. It is a local drafting canvas (inches, saved in this browser) over a command line. Free until further notice.
 
-- **Commands:** LINE, PLINE, RECT, CIRCLE, ERASE, MOVE, COPY, WALL, ROOM, DOOR, WINDOW, OUTLET, FIXTURE, STAIR, DIM, TEXT, DIST, AREA, LAYER, SELECTALL, UNDO, REDO, CEILING, WALLTH, GRID, ZOOM (E/IN/OUT), HELP, DXF. Aliases include L, PL, REC, C, M, CO, E, U, Z, DI, T, LA, W, D, WIN, O.
+- **Commands:** LINE, PLINE, RECT, CIRCLE, ERASE, MOVE, COPY, WALL, ROOM, DOOR, WINDOW, OUTLET, FIXTURE, STAIR, DIM, TEXT, DIST, AREA, LAYER, SELECTALL, UNDO, REDO, CEILING, WALLTH, GRID, ZOOM (E/IN/OUT), ELEV, ROOF, PDF, VIEW3D, HELP, DXF. Aliases include L, PL, REC, C, M, CO, E, U, Z, DI, T, LA, W, D, WIN, O.
 - **Input:** type distances (`18'`, `6'3"`), angles (`<45`), absolute (`x,y`) or `@dx,dy` relative points; Enter/Space repeats, right-click = Enter.
 - **Hotkeys:** F3 object snap, F7 grid, F8 ortho, F9 snap, F10 polar, Esc cancel, Ctrl+Z/Y undo/redo, Ctrl+A select all, Del erase.
 - **Snaps:** grid, endpoint, midpoint, center, intersection (line-to-line), perpendicular.
-- **Not supported yet:** OFFSET, TRIM, EXTEND, ROTATE, MIRROR, FILLET, ARC, HATCH, DXF import, grips, in-workspace elevations/3D/layout, roofs, sections, PDF sets, DWG. MOVE/COPY skip doors/windows (they follow walls). Output is conceptual only, not construction drawings, and DXF is not AutoCAD-compatible editing. Verify everything with licensed professionals.
+- **Not supported yet:** DXF import, grips, ZOOM window, editable in-workspace elevation/section/layout views, DWG. The linked Split 3D view is a simplified visual model. MOVE/COPY skip doors/windows (they follow walls). Output is conceptual only, not construction drawings, and DXF is not AutoCAD-compatible editing. Verify everything with licensed professionals.
 ## Building & Lot Builder
 
 **Recovery:** a status chip shows Normal / Warning / Error / Recovery in plain words. Drawings autosave locally every 20 s with a rolling backup; if storage is full use Download backup (or the BACKUP command). A damaged file is restored from backup, and after a crash you can Restore or Discard. Cloud sync is a future feature.
