@@ -5181,7 +5181,9 @@ try:
         cs_cmd("LINE"); cs_cmd("banana")
         check("invalid point input is rejected and prompt stays", "Invalid input" in cs_log() and "first point" in cs.locator("#cadprompt").inner_text())
         cs.locator("#cadcmd").press("Escape")
-        check("Esc cancels the active command", cs.locator("#cadprompt").inner_text() == "Command:")
+        check("Esc cancels the active command and returns to Ready",
+              cs.locator("#cadprompt").inner_text() == "Command:"
+              and cs.locator("#cadmode").get_attribute("data-state") == "READY")
         # layers
         cs_cmd("LAYER"); cs_cmd("NEW"); cs_cmd("A-TEST")
         cs_cmd("LAYER"); cs_cmd("COLOR"); cs_cmd("A-TEST"); cs_cmd("red")
@@ -5232,13 +5234,25 @@ try:
         cs.locator("#cadcv").scroll_into_view_if_needed()
         box = cs.locator("#cadcv").bounding_box()
         cs.evaluate("AcreCAD.cmd.R.sel=[];AcreCAD.fit()")
-        cs.mouse.move(box["x"] + 2, box["y"] + 2); cs.mouse.down(); cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2, steps=4); cs.mouse.up()
+        cs.mouse.move(box["x"] + 2, box["y"] + 2); cs.mouse.down()
+        check("interaction transition table enters drag mode on pointer down",
+              cs.locator("#cadmode").get_attribute("data-state") == "DRAG")
+        cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2, steps=4)
+        check("interaction transition table classifies left-to-right window drags",
+              cs.locator("#cadmode").get_attribute("data-state") == "WINDOW")
+        cs.mouse.up()
         check("dragging right makes a window selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3 and cs.evaluate("AcreCAD.state.drag===null"))
         cs.locator("#cadcv").scroll_into_view_if_needed()
         box = cs.locator("#cadcv").bounding_box()
         cs.evaluate("AcreCAD.cmd.R.sel=[];AcreCAD.refresh();AcreCAD.fit()")
-        cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2); cs.mouse.down(); cs.mouse.move(box["x"] + 2, box["y"] + 2, steps=4); cs.mouse.up()
+        cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2); cs.mouse.down()
+        cs.mouse.move(box["x"] + 2, box["y"] + 2, steps=4)
+        check("interaction transition table classifies right-to-left crossing drags",
+              cs.locator("#cadmode").get_attribute("data-state") == "CROSSING")
+        cs.mouse.up()
         check("dragging left makes a crossing selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3 and cs.evaluate("AcreCAD.state.drag===null"))
+        check("finishing a crossing selection returns to selection-ready mode",
+              cs.locator("#cadmode").get_attribute("data-state") == "SELECTED")
         for toggle, was_on in selection_snap_states.items():
             if was_on:
                 cs.locator(f'[data-tg="{toggle}"]').click()

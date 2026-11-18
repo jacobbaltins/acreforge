@@ -199,7 +199,7 @@ The original Quick Build specification is only partially implemented. Terrain se
 
 **Split 3D (v104):** the Split 3D button shows a linked concept block model beside the plan with ViewCube view buttons, orbit and zoom. Roofs are simplified (gambrel/barn draw as gable). It is a visual aid, not an engineered model.
 
-**Interaction states (v105):** the status bar's **Mode** label follows the current step:
+**Interaction states (v105; transition table v117):** the status bar's **Mode** label follows the current step:
 
 | State | Shown as | When |
 |---|---|---|
@@ -213,7 +213,7 @@ The original Quick Build specification is only partially implemented. Terrain se
 
 Finishing or cancelling returns to Ready, unless objects remain selected.
 
-The Mode display is a derived, priority-ordered resolver, not the planned declarative interaction transition table; explicit transition rules remain queued. Window and crossing selection classify the drag from its release point as well as intermediate pointer motion, so a coalesced move event does not turn a drag into a click.
+The Mode display is driven by an explicit transition table: command prompts, selection readiness, cancellation, pointer-down, drag direction, pan start, and pointer-up each update the interaction state. Window and crossing selection still classify the drag from its release point as well as intermediate pointer motion, so a coalesced move event does not turn a drag into a click.
 
 **Export wizard (v116):** Choose **Export…** to preview or download a conceptual vector PDF drawing set, export one selected drawing sheet at a time as a local PNG, or download an R12 DXF. PDF exports let you choose paper size and select individual available sheets in canonical order; the embedded preview uses a temporary local object URL, which is revoked when closed. PNGs use the selected paper size, are capped at 4,096 pixels on either side, and save that paper setting only after PNG creation and download initiation succeed. PNG is single-sheet only; there is no batch or multi-page PNG bundle. DXF contains model-space geometry in inches. Canceling leaves the saved paper size unchanged. Downloads and previews are local; DXF is not DWG, and none of these formats is construction-ready.
 

@@ -1,3 +1,8 @@
+## v117
+
+- Replace CAD Studio's priority-ordered interaction-mode resolver with an explicit event transition table for command prompts, cancellation, drag/window/crossing selection, pan, and pointer release.
+- Add behavioral smoke coverage for drag-mode entry, drag direction, selection-ready completion, and Escape returning to Ready.
+
 ## v116
 
 - Add local PNG export for one selected available CAD sheet, rasterized from the same page primitives as the vector PDF.
