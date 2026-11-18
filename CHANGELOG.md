@@ -1,3 +1,9 @@
+## v110
+
+- Add a CAD Studio Quick Build wizard for appending editable one-, two-, or three-room rectangular concepts with user dimensions, room names, a door, and a window.
+- Validate dimensions and required layer availability before mutation; save the batch as one undoable action and disclose conceptual-only limits.
+- Add browser smoke coverage for cancellation, invalid dimensions, locked layers, all layouts, append behavior, and single-step undo.
+
 ## v109
 
 - Make CAD window/crossing selection classify from the final mouseup coordinates as well as intermediate movement, avoiding missed selections when browser move events are coalesced.

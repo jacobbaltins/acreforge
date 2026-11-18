@@ -186,6 +186,8 @@ Pastures and crop fields are **land zones** (Land zones card), not placeable obj
 
 ## CAD Studio (conceptual drafting)
 
+**Quick Build wizard (v110):** choose **Quick Build…** to append an editable rectangular concept with an open, two-room, or three-room layout. Enter a plan name and outside dimensions (18–200 ft); new geometry is placed beside the current drawing, uses the standard wall/room/door/window layers, and one Undo removes the batch. The wizard requires those layers to be visible and unlocked. It provides only basic 6 in walls, room labels, one 36 in door, and one 36 in window; it does not evaluate structure, code, egress, or construction details.
+
 **Split 3D (v104):** the Split 3D button shows a linked concept block model beside the plan with ViewCube view buttons, orbit and zoom. Roofs are simplified (gambrel/barn draw as gable). It is a visual aid, not an engineered model.
 
 **Interaction states (v105):** the status bar's **Mode** label follows the current step:

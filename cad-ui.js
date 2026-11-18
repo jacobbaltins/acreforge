@@ -27,6 +27,9 @@ function updateInteraction(){
   U.interaction=t.state;
   if(el){const label="Mode: "+t.label;if(el.textContent!==label){el.textContent=label;el.dataset.state=t.state}}
 }
+function quickBuildDialog(){
+  return '<dialog id="cadquickbuild" aria-labelledby="cadquickbuildtitle" aria-describedby="cadquickbuilddescription"><h3 id="cadquickbuildtitle">Quick Build Wizard</h3><p id="cadquickbuilddescription">Create an editable rectangular building concept without using command prompts. New geometry is appended beside the current drawing and can be removed with one Undo.</p><div class="quickbuildfields"><label>Plan name <input id="cadquickbuildname" maxlength="40" value="Quick Build"></label><label>Room layout <select id="cadquickbuildlayout"><option value="open">Open plan · 1 room</option><option value="two">Two rooms</option><option value="three">Three rooms</option></select></label><label>Outside width (ft) <input id="cadquickbuildwidth" type="number" min="18" max="200" step="1" value="40"></label><label>Outside depth (ft) <input id="cadquickbuilddepth" type="number" min="18" max="200" step="1" value="30"></label></div><p class="cadexportlimit">Adds 6 in conceptual walls, room labels, one 36 in door, and one 36 in window. Dimensions are converted to drawing inches. No building code, structure, egress, or construction details are evaluated.</p><p id="cadquickbuildstatus" role="status" aria-live="polite"></p><div class="cadexportactions"><button class="btn" id="cadquickbuildcancel" type="button">Cancel</button><button class="btn" id="cadquickbuildgo" type="button">Add plan</button></div></dialog>';
+}
 function mount(root){
   if(!root)return;U.root=root;
   root.innerHTML='<div id="cadwrap" class="cadwrap'+(U.full?" cadfull":"")+'">'+
@@ -40,6 +43,7 @@ function mount(root){
   '<div class="cadcmdrow"><label for="cadcmd" id="cadprompt">Command:</label><input id="cadcmd" autocomplete="off" spellcheck="false" aria-label="CAD command line" placeholder="Type LINE, WALL, ROOM, DOOR… or HELP"></div>'+
   '<div id="cadstatus" class="cadstatus"></div>'+
   '<details id="cadhelp"><summary>Commands, hotkeys &amp; limits</summary><div id="cadhelptxt"></div></details></div>';
+  root.insertAdjacentHTML("beforeend",quickBuildDialog());
   U.cv=root.querySelector("#cadcv");
   tools();bind();layout();refresh();
   const w=root.querySelector("#cadwrap");new ResizeObserver(()=>{layout();draw()}).observe(root.querySelector(".cadcvwrap"));
@@ -51,6 +55,7 @@ function tools(){
     ["Inquiry",[["DIST","Distance"],["AREA","Area"],["ID","Point ID"]]],
     ["History / View",[["UNDO","Undo"],["REDO","Redo"],["ZOOM E","Zoom ext"]]]];
   U.root.querySelector("#cadtools").innerHTML=G.map(g=>'<div class="cadgrp"><span class="cadgl">'+g[0]+'</span>'+g[1].map(t=>'<button type="button" class="btn" data-cmd="'+t[0]+'">'+t[1]+'</button>').join("")+'</div>').join("");
+  U.root.querySelector("#cadtools").insertAdjacentHTML("afterbegin",'<button type="button" class="btn" id="cadquickbuildopen">Quick Build…</button>');
   U.root.querySelector("#cadhelptxt").innerHTML='<p>'+esc(M.HELP)+'</p><p><b>Hotkeys:</b> F3 object snap · F7 grid · F8 ortho · F9 grid snap · F10 polar · Esc cancel · Enter/Space repeat last command · Del erase selection · Ctrl+Z / Ctrl+Y undo/redo · Ctrl+A select all · Home zoom extents (User profile) · right-click = Enter · wheel zoom · middle-drag pan. Drag right = window select, drag left = crossing select.</p><p><b>Limits:</b> Conceptual drafting only. DXF R12 export and limited ASCII R12 import; no DWG. No DWG/AutoCAD compatibility claim. Not construction-grade, no code compliance. Snaps: endpoint, midpoint, center, intersection (line-to-line), perpendicular, grid. TRIM, EXTEND and FILLET work on LINEs only; OFFSET works on lines, walls, circles and arcs; HATCH is a simple line pattern (ANSI31, CROSS, SOLID) in the DXF as exploded lines; lineweights show on screen only (DXF R12 has none); doors and windows follow their walls and are skipped by MOVE/COPY/ROTATE/MIRROR/SCALE. Units: inches by default; UNITS switches display/input to mm, cm or m (geometry and DXF stay in inches); feet-and-inches notation is not accepted. Not yet implemented: additional DXF entity types, grips, ZOOM window, editable in-workspace elevation/section/layout views, DWG. ELEV and ROOF reports feed the conceptual PDF sheets; linked Split 3D is a simplified visual model.</p><p><b>User profile</b> (PROFILE command or the selector): aliases C=CIRCLE, R=RECT; Ctrl+Shift+C circle, Ctrl+Shift+T text, Ctrl+Shift+M mirror, Ctrl+Shift+F fillet, Ctrl+R ortho, Ctrl+Shift+P grid snap, Home zoom extents. Some browsers reserve Ctrl+Shift shortcuts. "+esc(M.USER_UNMAPPED)+"</p>';
 }
 function layout(){const w=U.root.querySelector(".cadcvwrap");if(!w)return;U.w=Math.max(300,w.clientWidth);U.h=Math.max(280,w.clientHeight);U.dpr=Math.max(1,window.devicePixelRatio||1);U.cv.width=Math.round(U.w*U.dpr);U.cv.height=Math.round(U.h*U.dpr);U.cv.style.width=U.w+"px";U.cv.style.height=U.h+"px"}
@@ -107,6 +112,47 @@ function downloadTakeoffCSV(){
   rows.push(["Note","User-entered rates only; blank-rate categories are excluded from the subtotal.","","",""]);
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([rows.map(r=>r.map(cell).join(",")).join(String.fromCharCode(13,10))],{type:"text/csv;charset=utf-8"}));
   a.download="acreforge-cad-takeoff.csv";document.body.appendChild(a);a.click();a.remove();C.note("Concept takeoff CSV downloaded locally.");after();
+}
+function createQuickBuild(){
+  const d=U.root.querySelector("#cadquickbuild"),status=d.querySelector("#cadquickbuildstatus"),name=d.querySelector("#cadquickbuildname").value.trim();
+  const widthFt=Number(d.querySelector("#cadquickbuildwidth").value),depthFt=Number(d.querySelector("#cadquickbuilddepth").value),layout=d.querySelector("#cadquickbuildlayout").value;
+  if(!name||name.length>40){status.textContent="Enter a plan name from 1 to 40 characters.";return}
+  if(!Number.isFinite(widthFt)||widthFt<18||widthFt>200||!Number.isFinite(depthFt)||depthFt<18||depthFt>200){status.textContent="Width and depth must each be from 18 to 200 feet.";return}
+  if(!["open","two","three"].includes(layout)){status.textContent="Choose one of the available room layouts.";return}
+  const D=C.doc,layers=["A-WALL","A-ROOM","A-DOOR","A-GLAZ"];
+  const unavailable=layers.filter(n=>!D.layers[n]||D.layers[n].lock||!D.layers[n].on);
+  if(unavailable.length){status.textContent="Turn on and unlock these layers before building: "+unavailable.join(", ")+". The drawing was not changed.";return}
+  let maxX=-Infinity,minY=Infinity;
+  D.ents.forEach(e=>{const b=C.bbox(e);if(b){maxX=Math.max(maxX,b[2]);minY=Math.min(minY,b[1])}});
+  const x0=Number.isFinite(maxX)?maxX+120:0,y0=Number.isFinite(minY)?minY:0;
+  const w=widthFt*12,h=depthFt*12;
+  if(!Number.isFinite(x0+w)||!Number.isFinite(y0+h)||Math.max(Math.abs(x0),Math.abs(x0+w),Math.abs(y0),Math.abs(y0+h))>1e7){status.textContent="There is not enough coordinate range beside this drawing for the selected plan.";return}
+  const perimeter=[[x0,y0],[x0+w,y0],[x0+w,y0+h],[x0,y0+h]];
+  M.cancel();R.sel=[];
+  C.snapshot();
+  const add=entity=>{entity.id=D.nid++;D.ents.push(entity);return entity};
+  const outer=perimeter.map((a,i)=>add({t:"wall",a,b:perimeter[(i+1)%4],th:D.wallTh,layer:"A-WALL"}));
+  add({t:"door",wall:outer[0].id,pos:(w-36)/2,w:36,sill:0,head:80,layer:"A-DOOR"});
+  add({t:"window",wall:outer[2].id,pos:(w-36)/2,w:36,sill:36,head:80,layer:"A-GLAZ"});
+  const rooms=[];
+  if(layout==="open")rooms.push({name:name,pts:perimeter});
+  else if(layout==="two"){
+    const x=x0+w/2;add({t:"wall",a:[x,y0],b:[x,y0+h],th:D.wallTh,layer:"A-WALL"});
+    rooms.push({name:name+" · Room 1",pts:[[x0,y0],[x,y0],[x,y0+h],[x0,y0+h]]});
+    rooms.push({name:name+" · Room 2",pts:[[x,y0],[x0+w,y0],[x0+w,y0+h],[x,y0+h]]});
+  }else{
+    const x=x0+w*0.58,y=y0+h/2;add({t:"wall",a:[x,y0],b:[x,y0+h],th:D.wallTh,layer:"A-WALL"});
+    add({t:"wall",a:[x,y],b:[x0+w,y],th:D.wallTh,layer:"A-WALL"});
+    rooms.push({name:name+" · Room 1",pts:[[x0,y0],[x,y0],[x,y0+h],[x0,y0+h]]});
+    rooms.push({name:name+" · Room 2",pts:[[x,y0],[x0+w,y0],[x0+w,y],[x,y]]});
+    rooms.push({name:name+" · Room 3",pts:[[x,y],[x0+w,y],[x0+w,y0+h],[x,y0+h]]});
+  }
+  rooms.forEach(room=>add({t:"room",pts:room.pts,name:room.name,layer:"A-ROOM"}));
+  const saved=C.save();
+  U.cx=x0+w/2;U.cy=y0+h/2;U.s=Math.min(U.w/(w*1.25),U.h/(h*1.25));
+  d.close();
+  C.note((saved?"":"Quick Build is on screen but could not be saved. ")+name+" concept added; one Undo removes it. Conceptual only, not for construction.");
+  after();
 }
 function prompt(){const p=U.root.querySelector("#cadprompt"),l=U.root.querySelector("#cadlog");if(p)p.textContent=R.prompt;if(l){l.innerHTML=C.log.slice(-6).map(esc).join("<br>");l.scrollTop=l.scrollHeight}}
 function status(){
@@ -241,6 +287,9 @@ function bind(){
     const b=ev.target.closest("[data-cmd]");if(b){M.cancel();run(b.dataset.cmd);inp.focus();return}
     const t=ev.target.closest("[data-tg]");if(t){U[t.dataset.tg]=!U[t.dataset.tg];refresh();return}
     if(ev.target.id==="cadfs"){U.full=!U.full;mount(U.root);return}
+    if(ev.target.id==="cadquickbuildopen"){root.querySelector("#cadquickbuildstatus").textContent="";root.querySelector("#cadquickbuild").showModal();return}
+    if(ev.target.id==="cadquickbuildcancel"){root.querySelector("#cadquickbuild").close();return}
+    if(ev.target.id==="cadquickbuildgo"){createQuickBuild();return}
     if(ev.target.id==="cadtakeoffopen"){openTakeoffs();return}
     if(ev.target.id==="cadtakeoffclose"){root.querySelector("#cadtakeoff").close();return}
     if(ev.target.id==="cadtakeoffcsv"){downloadTakeoffCSV();return}
