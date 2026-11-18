@@ -7,25 +7,35 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const toS=p=>[(p[0]-U.cx)*U.s+U.w/2,U.h/2-(p[1]-U.cy)*U.s];
 const toW=(x,y)=>[(x-U.w/2)/U.s+U.cx,U.cy-(y-U.h/2)/U.s];
 const INTERACTION_TRANSITIONS=[
-  {state:"PAN",label:"Panning",match:()=>U.drag&&U.drag.pan},
-  {state:"WINDOW",label:"Window select",match:()=>U.drag&&U.drag.box&&U.drag.b[0]>=U.drag.a[0]},
-  {state:"CROSSING",label:"Crossing select",match:()=>U.drag&&U.drag.box&&U.drag.b[0]<U.drag.a[0]},
-  {state:"DRAG",label:"Selecting",match:()=>!!U.drag},
-  {state:"POINT",label:"Pick point",match:()=>R.req&&R.req.k==="pt"},
-  {state:"NUMBER",label:"Enter number",match:()=>R.req&&R.req.k==="num"},
-  {state:"OPTION",label:"Choose option",match:()=>R.req&&R.req.k==="kw"},
-  {state:"TEXT",label:"Enter text",match:()=>R.req&&R.req.k==="str"},
-  {state:"OBJECT",label:"Pick object",match:()=>R.req&&R.req.k==="ent"},
-  {state:"SELECTION",label:"Select objects",match:()=>R.req&&R.req.k==="sel"},
-  {state:"COMMAND",label:"Working",match:()=>!!R.gen},
-  {state:"SELECTED",label:"Selection ready",match:()=>R.sel.length>0},
-  {state:"READY",label:"Ready",match:()=>true}
+  {from:"*",event:"COMMAND_READY",to:"READY"},
+  {from:"*",event:"COMMAND_CANCELLED",to:"READY"},
+  {from:"*",event:"COMMAND_SELECTED",to:"SELECTED"},
+  {from:"*",event:"COMMAND_WORKING",to:"COMMAND"},
+  {from:"*",event:"REQUEST_POINT",to:"POINT"},
+  {from:"*",event:"REQUEST_NUMBER",to:"NUMBER"},
+  {from:"*",event:"REQUEST_OPTION",to:"OPTION"},
+  {from:"*",event:"REQUEST_TEXT",to:"TEXT"},
+  {from:"*",event:"REQUEST_OBJECT",to:"OBJECT"},
+  {from:"*",event:"REQUEST_SELECTION",to:"SELECTION"},
+  {from:["READY","SELECTED","COMMAND","POINT","NUMBER","OPTION","TEXT","OBJECT","SELECTION"],event:"DRAG_START",to:"DRAG"},
+  {from:"*",event:"PAN_START",to:"PAN"},
+  {from:["DRAG","WINDOW","CROSSING"],event:"WINDOW_MOVE",to:"WINDOW"},
+  {from:["DRAG","WINDOW","CROSSING"],event:"CROSSING_MOVE",to:"CROSSING"},
+  {from:["PAN","DRAG","WINDOW","CROSSING"],event:"POINTER_UP",to:"READY"}
 ];
-function interactionState(){return INTERACTION_TRANSITIONS.find(t=>t.match())||INTERACTION_TRANSITIONS[INTERACTION_TRANSITIONS.length-1]}
+const INTERACTION_LABELS={READY:"Ready",SELECTED:"Selection ready",COMMAND:"Working",POINT:"Pick point",NUMBER:"Enter number",OPTION:"Choose option",TEXT:"Enter text",OBJECT:"Pick object",SELECTION:"Select objects",PAN:"Panning",DRAG:"Selecting",WINDOW:"Window select",CROSSING:"Crossing select"};
+function applyInteractionTransition(event){
+  const rule=INTERACTION_TRANSITIONS.find(t=>(t.from==="*"||t.from.includes(U.interaction))&&t.event===event);
+  if(!rule)return false;
+  U.interaction=rule.to;updateInteraction();return true
+}
+function syncInteraction(){
+  const request=R.req&&({pt:"REQUEST_POINT",num:"REQUEST_NUMBER",kw:"REQUEST_OPTION",str:"REQUEST_TEXT",ent:"REQUEST_OBJECT",sel:"REQUEST_SELECTION"}[R.req.k]);
+  applyInteractionTransition(request|| (R.gen?"COMMAND_WORKING":R.sel.length?"COMMAND_SELECTED":"COMMAND_READY"))
+}
 function updateInteraction(){
-  const t=interactionState(),el=U.root&&U.root.querySelector("#cadmode");
-  U.interaction=t.state;
-  if(el){const label="Mode: "+t.label;if(el.textContent!==label){el.textContent=label;el.dataset.state=t.state}}
+  const el=U.root&&U.root.querySelector("#cadmode"),label="Mode: "+INTERACTION_LABELS[U.interaction];
+  if(el){if(el.textContent!==label){el.textContent=label;el.dataset.state=U.interaction}}
 }
 function filterTools(value){
   const term=String(value||"").trim().toLowerCase(),root=U.root;
@@ -81,7 +91,7 @@ function healthUI(){const el=U.root.querySelector("#cadhealth");if(!el)return;co
   const n=h.state;el.innerHTML='<span class="cadh cadh-'+n+'">'+n+'</span> '+esc(h.msg||"Valid. Saved in this browser (local-first; cloud sync is a future feature).")+(h.storageFull?' <button class="btn" type="button" data-hl="backup">Download backup</button>':"")}
 function draw3d(){const w=U.root&&U.root.querySelector("#cad3dwrap"),b=U.root&&U.root.querySelector("#cad3d");if(!w)return;w.hidden=!U.v3.on;if(b)b.setAttribute("aria-pressed",String(U.v3.on));if(!U.v3.on)return;
   const cv=w.querySelector("canvas");try{U.v3.last=window.AcreCAD3D.render(cv,U.v3,Math.max(1,window.devicePixelRatio||1));U.v3.err=false}catch(e){U.v3.err=true;C.devlog&&C.devlog("3d_failure "+e.message);C.setHealth("WARNING","Updating 3D model... Showing the plan only for now. Your drawing is unchanged.")}}
-function refresh(){panels();status();healthUI();prompt();draw();draw3d()}
+function refresh(){if(!U.drag)syncInteraction();panels();status();healthUI();prompt();draw();draw3d()}
 function releasePdfPreview(){
   const frame=U.root&&U.root.querySelector("#cadpdfpreviewframe");
   if(frame)frame.src="about:blank";
@@ -203,8 +213,8 @@ function prompt(){const p=U.root.querySelector("#cadprompt"),l=U.root.querySelec
 function status(){
   const t=(k,l,on)=>'<button type="button" class="btn'+(on?" on":"")+'" data-tg="'+k+'" aria-pressed="'+on+'">'+l+'</button>';
   const c=U.root.querySelector("#cadstatus");
-  const mode=interactionState();U.interaction=mode.state;
-  c.innerHTML='<span id="cadcoord">'+coordTxt()+'</span> <span id="cadmode" data-state="'+mode.state+'" aria-live="polite">Mode: '+mode.label+'</span> '+t("osnap","OSNAP F3",U.osnap)+t("grid","GRID F7",U.grid)+t("ortho","ORTHO F8",U.ortho)+t("snap","SNAP F9",U.snap)+t("polar","POLAR F10",U.polar)+' <span>Layer: <b>'+esc(C.doc.cur)+'</b> · Sel: '+R.sel.length+' · Ceiling '+C.fmtIn(C.doc.ceil)+' · Wall '+C.fmtIn(C.doc.wallTh)+'</span> <label>Units <select id="cadunits" aria-label="Display units">'+Object.keys(C.UNITS).map(k=>'<option value="'+k+'"'+(C.doc.units===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label> <label>Profile <select id="cadprofile" aria-label="Keyboard profile"><option value="DEFAULT"'+(R.profile==="DEFAULT"?' selected':'')+'>Default</option><option value="USER"'+(R.profile==="USER"?' selected':'')+'>User</option></select></label>';
+  const mode=U.interaction;
+  c.innerHTML='<span id="cadcoord">'+coordTxt()+'</span> <span id="cadmode" data-state="'+mode+'" aria-live="polite">Mode: '+INTERACTION_LABELS[mode]+'</span> '+t("osnap","OSNAP F3",U.osnap)+t("grid","GRID F7",U.grid)+t("ortho","ORTHO F8",U.ortho)+t("snap","SNAP F9",U.snap)+t("polar","POLAR F10",U.polar)+' <span>Layer: <b>'+esc(C.doc.cur)+'</b> · Sel: '+R.sel.length+' · Ceiling '+C.fmtIn(C.doc.ceil)+' · Wall '+C.fmtIn(C.doc.wallTh)+'</span> <label>Units <select id="cadunits" aria-label="Display units">'+Object.keys(C.UNITS).map(k=>'<option value="'+k+'"'+(C.doc.units===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label> <label>Profile <select id="cadprofile" aria-label="Keyboard profile"><option value="DEFAULT"'+(R.profile==="DEFAULT"?' selected':'')+'>Default</option><option value="USER"'+(R.profile==="USER"?' selected':'')+'>User</option></select></label>';
 }
 const coordTxt=()=>{const p=U.cursor||[0,0];return "X "+C.fmtIn(p[0])+"  Y "+C.fmtIn(p[1])+' '+(U.snapHit?" ["+({end:"ENDPOINT",mid:"MIDPOINT",cen:"CENTER",int:"INTERSECTION",per:"PERPENDICULAR",grid:"GRID"}[U.snapHit]||U.snapHit)+"]":"")};
 function panels(){
@@ -309,10 +319,10 @@ function bind(){
   U.rootListenerController=new AbortController();
   const rootListenerOptions={signal:U.rootListenerController.signal};
   cv.addEventListener("mousemove",ev=>{if(U.drag&&U.drag.pan){U.cx-=(ev.clientX-U.drag.x)/U.s;U.cy+=(ev.clientY-U.drag.y)/U.s;U.drag.x=ev.clientX;U.drag.y=ev.clientY}
-    const c=cursorFrom(ev);if(U.drag&&!U.drag.pan){U.drag.b=c.raw;if(Math.hypot(c.x-U.drag.sx,c.y-U.drag.sy)>4)U.drag.box=true}draw()});
-  cv.addEventListener("mousedown",ev=>{cv.focus();if(ev.button===1){U.drag={pan:true,x:ev.clientX,y:ev.clientY};ev.preventDefault();return}
-    if(ev.button===0){const c=cursorFrom(ev);U.drag={a:c.raw,b:c.raw,sx:c.x,sy:c.y,box:false,snapP:c.p}}});
-  window.addEventListener("mouseup",ev=>{const d=U.drag;U.drag=null;if(!d)return;if(d.pan){after();return}if(ev.button!==0){after();return}
+    const c=cursorFrom(ev);if(U.drag&&!U.drag.pan){U.drag.b=c.raw;if(Math.hypot(c.x-U.drag.sx,c.y-U.drag.sy)>4){U.drag.box=true;applyInteractionTransition(U.drag.b[0]<U.drag.a[0]?"CROSSING_MOVE":"WINDOW_MOVE")}}draw()});
+  cv.addEventListener("mousedown",ev=>{cv.focus();if(ev.button===1){U.drag={pan:true,x:ev.clientX,y:ev.clientY};applyInteractionTransition("PAN_START");ev.preventDefault();return}
+    if(ev.button===0){const c=cursorFrom(ev);U.drag={a:c.raw,b:c.raw,sx:c.x,sy:c.y,box:false,snapP:c.p};applyInteractionTransition("DRAG_START")}});
+  window.addEventListener("mouseup",ev=>{const d=U.drag;U.drag=null;if(!d)return;applyInteractionTransition("POINTER_UP");if(d.pan){after();return}if(ev.button!==0){after();return}
     const c=cursorFrom(ev);
     if(d.box||Math.hypot(c.x-d.sx,c.y-d.sy)>4){const ids=C.selectBox(d.a,c.raw,c.raw[0]<d.a[0]);M.windowSelect(ids);after();return}
     if(R.req&&R.req.k==="pt"){M.clickPoint(c.p);if(R.viewReq)viewOp();after();return}
@@ -327,7 +337,7 @@ function bind(){
   cv.addEventListener("mouseleave",()=>{U.cursor=null;U.snapHit=null;draw()});
   inp.addEventListener("keydown",ev=>{
     if(ev.key==="Enter"){const v=inp.value;inp.value="";if(v.trim()===""&&R.sel.length&&R.sel.length&&!R.gen&&!R.last){}run(v);ev.preventDefault()}
-    else if(ev.key==="Escape"){M.cancel();R.sel=[];R._pending=null;inp.value="";C.note("*Cancel*");after()}
+    else if(ev.key==="Escape"){M.cancel();R.sel=[];R._pending=null;inp.value="";applyInteractionTransition("COMMAND_CANCELLED");C.note("*Cancel*");after()}
     else if(ev.key===" "&&inp.value.trim()===""&&R.gen==null){run("");ev.preventDefault()}
     else if(ev.key===" "&&R.req&&R.req.k==="sel"){run("");ev.preventDefault()}
   });
@@ -430,7 +440,7 @@ function gkey(ev){
   if(ev.ctrlKey&&!ev.shiftKey&&!ev.altKey&&k.toLowerCase()==="y"){ev.preventDefault();run("REDO");return}
   if(ev.ctrlKey&&k.toLowerCase()==="a"&&t.id!=="cadcmd"){ev.preventDefault();run("SELECTALL");return}
   if(t.id==="cadcmd")return;
-  if(k==="Escape"){M.cancel();R.sel=[];R._pending=null;C.note("*Cancel*");refresh();return}
+  if(k==="Escape"){M.cancel();R.sel=[];R._pending=null;applyInteractionTransition("COMMAND_CANCELLED");C.note("*Cancel*");refresh();return}
   if(k==="Delete"&&R.sel.length&&!R.gen){run("ERASE");return}
   if(!ev.ctrlKey&&!ev.metaKey&&!ev.altKey&&k.length===1){const i=document.getElementById("cadcmd");if(i){i.focus()}}
 }
