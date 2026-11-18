@@ -79,15 +79,15 @@ function section(){
 /* ---------- minimal vector PDF writer ---------- */
 function esc(s){return String(s).replace(/[^\x20-\x7e]/g,"?").replace(/([\\()])/g,"\\$1")}
 function f(n){return (Math.round(n*100)/100).toString()}
-function Page(w,h,title){this.w=w;this.h=h;this.title=title;this.o=[]}
+function Page(w,h,title,recordCommands){this.w=w;this.h=h;this.title=title;this.o=[];this.commands=recordCommands?[]:null}
 Page.prototype={
   S(x){this.o.push(x)},
-  lw(v){this.S(f(v*72)+" w")},
-  dash(a){this.S(a?"["+a.map(v=>f(v*72)).join(" ")+"] 0 d":"[] 0 d")},
-  line(x1,y1,x2,y2){this.S(f(x1*72)+" "+f(y1*72)+" m "+f(x2*72)+" "+f(y2*72)+" l S")},
-  poly(pts,closed){if(pts.length<2)return;this.S(pts.map((q,i)=>f(q[0]*72)+" "+f(q[1]*72)+(i?" l":" m")).join(" ")+(closed?" h S":" S"))},
-  rect(x,y,w,h){this.S(f(x*72)+" "+f(y*72)+" "+f(w*72)+" "+f(h*72)+" re S")},
-  text(x,y,s,size,bold,align){size=size||0.12;const wd=String(s).length*size*0.5;if(align==="c")x-=wd/2;else if(align==="r")x-=wd;this.S("BT /"+(bold?"F2":"F1")+" "+f(size*72)+" Tf "+f(x*72)+" "+f(y*72)+" Td ("+esc(s)+") Tj ET")},
+  lw(v){if(this.commands)this.commands.push({op:"width",value:v});this.S(f(v*72)+" w")},
+  dash(a){if(this.commands)this.commands.push({op:"dash",values:a?a.slice():[]});this.S(a?"["+a.map(v=>f(v*72)).join(" ")+"] 0 d":"[] 0 d")},
+  line(x1,y1,x2,y2){if(this.commands)this.commands.push({op:"path",points:[[x1,y1],[x2,y2]],closed:false});this.S(f(x1*72)+" "+f(y1*72)+" m "+f(x2*72)+" "+f(y2*72)+" l S")},
+  poly(pts,closed){if(pts.length<2)return;if(this.commands)this.commands.push({op:"path",points:pts.map(q=>[q[0],q[1]]),closed:!!closed});this.S(pts.map((q,i)=>f(q[0]*72)+" "+f(q[1]*72)+(i?" l":" m")).join(" ")+(closed?" h S":" S"))},
+  rect(x,y,w,h){if(this.commands)this.commands.push({op:"rect",x,y,w,h});this.S(f(x*72)+" "+f(y*72)+" "+f(w*72)+" "+f(h*72)+" re S")},
+  text(x,y,s,size,bold,align){size=size||0.12;const value=String(s).replace(/[^\x20-\x7e]/g,"?"),wd=value.length*size*0.5;if(align==="c")x-=wd/2;else if(align==="r")x-=wd;if(this.commands)this.commands.push({op:"text",x,y,text:value,size,bold:!!bold});this.S("BT /"+(bold?"F2":"F1")+" "+f(size*72)+" Tf "+f(x*72)+" "+f(y*72)+" Td ("+esc(value)+") Tj ET")},
   circle(cx,cy,r){const pts=[];for(let i=0;i<36;i++){const a=i/36*Math.PI*2;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)])}this.poly(pts,true)},
   arc(cx,cy,r,a0,a1){let e=a1;while(e<a0)e+=Math.PI*2;const n=Math.max(4,Math.ceil((e-a0)/(Math.PI/18))),pts=[];for(let i=0;i<=n;i++){const a=a0+(e-a0)*i/n;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)])}this.poly(pts,false)}
 };
@@ -190,7 +190,8 @@ function drawSection(pg,box,s){
   return n;
 }
 /* Pages: cover, floor plan, 4 elevations, section+roof, foundation, electrical concept, plumbing concept */
-function build(opts){
+function build(opts,capture){
+  if(capture)capture.drawings=[];
   opts=opts||{};const size=PAPER[opts.paper]?opts.paper:"Letter";const [w,h]=PAPER[size];
   const available=new Set(availableSheets().map(sheet=>sheet.id));
   let selected=null;
@@ -202,7 +203,7 @@ function build(opts){
     if(!selected.size)return {pdf:"",pages:0,paper:size,size:[w,h],failed:[],message:"Select at least one PDF sheet.",sheets:[]};
   }
   const b=bbox();const pages=[];const r=roof(),own=[];
-  const mk=(id,title,fn,north)=>{if(selected&&!selected.has(id))return;const pg=new Page(w,h,title);pg.sheetId=id;own.push([pg,title,fn,north]);pages.push(pg)};
+  const mk=(id,title,fn,north)=>{if(selected&&!selected.has(id))return;const pg=new Page(w,h,title,!!capture);pg.sheetId=id;own.push([pg,title,fn,north]);pages.push(pg)};
   mk("cover","Cover",(pg,box)=>{
     pg.text(box.x+0.2,box.y+box.h-0.5,C.doc.title||"AcreForge CAD Studio project",0.35,true);
     pg.text(box.x+0.2,box.y+box.h-0.95,"Conceptual drawing set (inches) - not construction documents",0.16);
@@ -232,7 +233,8 @@ function build(opts){
   });
   let message="";
   if(failed.length){message=pages.length+" of "+own.length+" sheets generated. "+failed.join(", ")+" could not be created. The rest of your set is complete and your drawing is unchanged.";if(C.setHealth)C.setHealth("WARNING",message)}
-  const txt=buildPDF(pages);
+  if(capture)capture.drawings=pages;
+  const txt=capture?"":buildPDF(pages);
   return {pdf:txt,pages:pages.length,paper:size,size:[w,h],failed,message,sheets:pages.map(pg=>pg.sheetId)};
 }
 function pdfBlob(pdf){
@@ -249,5 +251,46 @@ function download(opts){
   const a=document.createElement("a");a.href=URL.createObjectURL(pdfBlob(r.pdf));a.download="acreforge-cad-sheets.pdf";document.body.appendChild(a);a.click();a.remove();
   return r;
 }
-window.AcreCADSheets={PAPER,ROOFS,availableSheets,bbox,takeoff,roof,roofCfg,elevation,section,build,preview,download,buildPDF,Page};
+function drawPNGPage(ctx,page,dpi){
+  const xy=(x,y)=>[x*dpi,(page.h-y)*dpi];
+  ctx.save();ctx.strokeStyle="#000";ctx.fillStyle="#000";ctx.lineCap="round";ctx.lineJoin="round";
+  page.commands.forEach(command=>{
+    if(command.op==="width"){ctx.lineWidth=command.value*dpi;return}
+    if(command.op==="dash"){ctx.setLineDash(command.values.map(value=>value*dpi));return}
+    if(command.op==="path"){
+      ctx.beginPath();command.points.forEach((point,index)=>{const p=xy(point[0],point[1]);if(index)ctx.lineTo(p[0],p[1]);else ctx.moveTo(p[0],p[1])});
+      if(command.closed)ctx.closePath();ctx.stroke();return
+    }
+    if(command.op==="rect"){ctx.strokeRect(command.x*dpi,(page.h-command.y-command.h)*dpi,command.w*dpi,command.h*dpi);return}
+    if(command.op==="text"){
+      ctx.font=(command.bold?"bold ":"")+command.size*dpi+"px Helvetica, Arial, sans-serif";
+      ctx.textBaseline="alphabetic";const p=xy(command.x,command.y);ctx.fillText(command.text,p[0],p[1])
+    }
+  });
+  ctx.restore()
+}
+async function renderPNG(opts){
+  if(!opts||!Array.isArray(opts.sheets)||opts.sheets.length!==1){
+    const paper=opts&&PAPER[opts.paper]?opts.paper:"Letter";
+    return {blob:null,pages:0,paper,size:PAPER[paper],failed:[],message:"PNG export requires exactly one selected sheet.",sheets:[]}
+  }
+  const capture={},r=build(opts,capture),page=capture.drawings[0];
+  if(!page)return {blob:null,pages:0,paper:r.paper,size:r.size,failed:r.failed,message:r.message||"The selected sheet could not be created.",sheets:[]};
+  const dpi=Math.min(96,4096/page.w,4096/page.h),width=Math.max(1,Math.round(page.w*dpi)),height=Math.max(1,Math.round(page.h*dpi)),
+    canvas=document.createElement("canvas");
+  canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext("2d");
+  if(!ctx)return {blob:null,pages:0,paper:r.paper,size:r.size,failed:r.failed,message:"PNG rendering is unavailable in this browser.",sheets:[]};
+  ctx.fillStyle="#fff";ctx.fillRect(0,0,width,height);drawPNGPage(ctx,page,dpi);
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
+  if(!blob)return {blob:null,pages:0,paper:r.paper,size:r.size,failed:r.failed,message:"The browser could not encode this PNG.",sheets:[]};
+  return {blob,pages:1,paper:r.paper,size:r.size,failed:r.failed,message:r.message,sheets:r.sheets,width,height,dpi};
+}
+async function downloadPNG(opts){
+  const r=await renderPNG(opts);if(!r.blob)return r;
+  const url=URL.createObjectURL(r.blob),a=document.createElement("a");a.href=url;a.download="acreforge-cad-"+r.sheets[0]+".png";document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  return r;
+}
+window.AcreCADSheets={PAPER,ROOFS,availableSheets,bbox,takeoff,roof,roofCfg,elevation,section,build,preview,download,renderPNG,downloadPNG,buildPDF,Page};
 })();
