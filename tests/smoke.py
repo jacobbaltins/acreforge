@@ -392,6 +392,8 @@ try:
         check("feedback form and copy action issue no network requests",
               feedback_requests == [])
         page.click("#nav [data-page=planner]")
+        check("planner renders property search after switching from feedback",
+              page.locator("#propertySearchQuery").count() == 1)
         search_started = time.perf_counter()
         page.fill("#propertySearchQuery", "44, -123")
         page.locator("[data-property-search-form]").press("Enter")
@@ -3206,6 +3208,63 @@ try:
         check("local save reports approximate project JSON size",
               "Saved locally" in upgrade_page.locator("#saveState").inner_text()
               and "KiB" in upgrade_page.locator("#saveState").inner_text())
+        normalized_acquisition = upgrade_page.evaluate("""() => {
+          const normalize=window.__acreforgeUpgradeTest.normalizeAcquisitionInputs;
+          return {empty:normalize(),mixed:normalize({purchasePrice:'125000',transactionCosts:2500,
+            dueDiligenceCosts:'',initialReserve:-1,planningBudget:1000000001,ignored:9})};
+        }""")
+        check("acquisition amounts normalize missing, invalid, and legacy project values safely",
+              all(normalized_acquisition["empty"][key] is None for key in
+                  ("purchasePrice","transactionCosts","dueDiligenceCosts","initialReserve","planningBudget"))
+              and normalized_acquisition["mixed"] == {
+                  "purchasePrice":125000,"transactionCosts":2500,"dueDiligenceCosts":None,
+                  "initialReserve":None,"planningBudget":None})
+        upgrade_page.locator("#nav [data-page=reports]").click()
+        upgrade_page.locator("#content .tabbar [data-page=financials]").click()
+        acquisition_summary = upgrade_page.locator("[data-acquisition-summary]").inner_text()
+        check("acquisition worksheet distinguishes unknown inputs from zero",
+              "Enter all four acquisition amounts" in acquisition_summary
+              and "No market data or external services" in
+                  upgrade_page.locator("[data-acquisition-worksheet]").inner_text()
+              and upgrade_page.locator("#acquisition-purchasePrice").input_value() == "")
+        upgrade_page.locator("#acquisition-planningBudget").fill("1000000001")
+        upgrade_page.locator("#acquisition-planningBudget").blur()
+        check("acquisition worksheet rejects out-of-range amounts without saving them",
+              "Enter an amount from $0 to $1,000,000,000" in
+                  upgrade_page.locator("[data-acquisition-message]").inner_text()
+              and upgrade_page.evaluate("""() =>
+                window.__acreforgeUpgradeTest.state().project.acquisitionInputs.planningBudget === null"""))
+        acquisition_capex = upgrade_page.evaluate(
+            "window.__acreforgeUpgradeTest.compute().capex")
+        acquisition_budget = math.ceil((acquisition_capex + 400000) / 1000) * 1000
+        acquisition_values = {"purchasePrice":250000,"transactionCosts":10000,
+                              "dueDiligenceCosts":15000,"initialReserve":25000,
+                              "planningBudget":acquisition_budget}
+        for key, value in acquisition_values.items():
+            upgrade_page.locator(f"#acquisition-{key}").fill(str(value))
+            upgrade_page.locator(f"#acquisition-{key}").blur()
+        acquisition_total = acquisition_capex + 300000
+        acquisition_expected_total = "$" + format(round(acquisition_total), ",")
+        acquisition_expected_subtotal = "$300,000"
+        acquisition_budget_diff = "$" + format(round(acquisition_budget-acquisition_total), ",")
+        acquisition_result = upgrade_page.locator("[data-acquisition-summary]").inner_text()
+        upgrade_page.wait_for_timeout(500)
+        check("acquisition worksheet totals supplied amounts and compares only with the user's budget",
+              acquisition_expected_subtotal in acquisition_result
+              and acquisition_expected_total in acquisition_result
+              and acquisition_budget_diff + " below your entered planning budget" in acquisition_result
+              and upgrade_page.evaluate("""expected => {
+                const values=JSON.parse(localStorage.getItem('oregon-estate-planner-v1'))
+                  .project.acquisitionInputs;
+                return Object.entries(expected).every(([key,value])=>values[key]===value);
+              }""", acquisition_values))
+        upgrade_page.reload()
+        upgrade_page.locator("#nav [data-page=reports]").click()
+        upgrade_page.locator("#content .tabbar [data-page=financials]").click()
+        check("acquisition worksheet inputs and totals persist after reload",
+              upgrade_page.locator("#acquisition-purchasePrice").input_value() == "250000"
+              and acquisition_expected_total in
+                  upgrade_page.locator("[data-acquisition-summary]").inner_text())
         upgrade_page.locator("#nav [data-page=reports]").click()
         phase = upgrade_page.evaluate("""() => {
           const {reportPhases,compute,items,reportSensitivity,scenario}=window.__acreforgeUpgradeTest;
@@ -3282,6 +3341,7 @@ try:
               and "not for construction" in summary["disclosures"][0]
               and "PRIVATE-NOT-EXPORTED" not in json.dumps(summary)
               and "Unrelated scenario" not in json.dumps(summary)
+              and "purchasePrice" not in json.dumps(summary)
               and len(upgrade_requests) == before_upgrade_requests)
         upgrade_page.evaluate("""() => {
           window.persistedBeforeFailure = localStorage.getItem('oregon-estate-planner-v1');
@@ -3781,6 +3841,7 @@ try:
         upgrade_page.get_by_role("button", name="Public export").click()
         check("public export preflight explains retained data and cancellation leaves the project intact",
               public_dialogs and "site-object labels" in public_dialogs[0]
+              and "acquisition worksheet inputs" in public_dialogs[0]
               and "not automatically reviewed" in public_dialogs[0]
               and upgrade_page.evaluate("window.__acreforgeUpgradeTest.state().project.milestones.length") == 1)
         def accept_public_dialog(dialog):
@@ -3789,8 +3850,9 @@ try:
         with upgrade_page.expect_download() as public_info:
             upgrade_page.get_by_role("button", name="Public export").click()
         public_data = json.load(open(public_info.value.path(), encoding="utf-8"))
-        check("public export explicitly removes milestones without modifying the saved project",
+        check("public export removes milestones and acquisition inputs without modifying the saved project",
               "milestones" not in public_data["project"]
+              and "acquisitionInputs" not in public_data["project"]
               and upgrade_page.evaluate("window.__acreforgeUpgradeTest.state().project.milestones.length") == 1)
         upgrade_page.remove_listener("dialog", accept_public_dialog)
         upgrade_page.locator('[data-milestone-action="edit"]').click()
@@ -6154,6 +6216,101 @@ try:
                   "JSON.parse(localStorage['oregon-estate-planner-v1']).project.locationCoordinates") is None
               and not solar_errors)
         solar_context.close()
+        pqb_context = b.new_context(service_workers="block")
+        pqb_page = pqb_context.new_page()
+        pqb_errors = []
+        pqb_page.on("pageerror", lambda e: pqb_errors.append(str(e)))
+        pqb_page.add_init_script("localStorage.setItem('acreforge-guide-seen','1')")
+        pqb_page.goto("http://127.0.0.1:8766/?spatial-test=1")
+        pqb_page.locator("#nav [data-page=planner]").click()
+        pqb_page.locator("[data-pqb=open]").click()
+        check("property Quick Build starts with an explicit purpose and five-step progress",
+              pqb_page.locator("#propertyquickbuild").is_visible()
+              and pqb_page.locator("#pqbtitle").inner_text().strip().lower() == "step 1 of 5"
+              and pqb_page.locator('[data-pqb-field="purpose"]').is_visible())
+        pqb_page.locator('[data-pqb-field="purpose"]').select_option("homestead")
+        pqb_page.locator('[data-pqb="next"]').click()
+        pqb_page.locator('[data-pqb-field="acres"]').fill("20")
+        pqb_page.locator('[data-pqb-field="aspect"]').fill("1.5")
+        pqb_page.locator('[data-pqb="next"]').click()
+        pqb_page.locator('[data-pqb-field="homeSqft"]').fill("2500")
+        pqb_page.locator('[data-pqb-field="bedrooms"]').fill("3")
+        pqb_page.locator('[data-pqb-goal="workshop"]').check()
+        pqb_page.locator('[data-pqb="next"]').click()
+        pqb_page.locator('[data-pqb-field="spacing"][value="spread"]').check()
+        pqb_page.locator('[data-pqb="preview"]').click()
+        check("property Quick Build previews cost ranges, site program, and the requested floor plan",
+              pqb_page.locator("[data-pqb-results]").is_visible()
+              and pqb_page.locator("[data-pqb-cost] article").count() == 3
+              and "2,500 sqft house with 3 bedrooms" in pqb_page.locator("[data-pqb-prompt]").inner_text()
+              and pqb_page.locator("[data-pqb-floor-plan] svg").get_attribute("aria-label")
+              == "Conceptual floor plan for a 2,500 square foot house with 3 bedrooms")
+        pqb_page.locator('[data-pqb="apply"]').click()
+        pqb_page.locator("[data-pqb-applied]").wait_for()
+        pqb_page.wait_for_function("""() => {
+          const raw=localStorage.getItem('oregon-estate-planner-v1');
+          if(!raw)return false;
+          const s=JSON.parse(raw);
+          return s.plan?.quickBuild?.purpose === 'homestead'
+            && s.plan.layoutSummary?.spacing === 'spread';
+        }""", timeout=10000)
+        pqb_saved = pqb_page.evaluate("""() => {
+          const s=JSON.parse(localStorage['oregon-estate-planner-v1']);
+          const items=s.scenarios.find(c=>c.id===s.activeScenario).items.filter(item=>item.fromPlan);
+          return {project:s.project,plan:s.plan,types:items.map(item=>item.type),
+            count:items.length,bedrooms:document.querySelectorAll('[data-pqb-floor-plan] text').length};
+        }""")
+        check("applying property Quick Build saves parcel assumptions, spacing, program, and editable layout",
+              pqb_saved["project"]["acres"] == 20
+              and pqb_saved["plan"]["quickBuild"]["homeSqft"] == 2500
+              and pqb_saved["plan"]["quickBuild"]["bedrooms"] == 3
+              and pqb_saved["plan"]["quickBuild"]["spacing"] == "spread"
+              and pqb_saved["plan"]["layoutSummary"]["home"]["area"] == 2500
+              and all(any(re.search(pattern, item_type, re.I) for item_type in pqb_saved["types"])
+                      for pattern in ("home", "garden", "shop"))
+              and pqb_saved["bedrooms"] >= 3)
+        pqb_page.reload()
+        pqb_page.locator("#nav [data-page=planner]").click()
+        pqb_page.locator("[data-pqb-applied]").wait_for()
+        check("property Quick Build floor plan and settings survive reload",
+              pqb_page.locator("[data-pqb-applied] [data-pqb-floor-plan] svg").is_visible()
+              and pqb_page.evaluate(
+                  "JSON.parse(localStorage['oregon-estate-planner-v1']).plan.quickBuild.spacing") == "spread")
+        saved_before_cancel = pqb_page.evaluate("localStorage.getItem('oregon-estate-planner-v1')")
+        pqb_page.locator("[data-pqb=open]").click()
+        pqb_page.locator('[data-pqb="cancel"]').click()
+        check("canceling property Quick Build does not change the saved project",
+              not pqb_page.locator("#propertyquickbuild").is_visible()
+              and pqb_page.evaluate("localStorage.getItem('oregon-estate-planner-v1')") == saved_before_cancel)
+        pqb_page.locator("[data-pqb=open]").click()
+        pqb_page.locator('[data-pqb="next"]').click()
+        pqb_page.locator('[data-pqb-field="acres"]').fill("0")
+        pqb_page.locator('[data-pqb="next"]').click()
+        check("invalid acreage is rejected without changing project state",
+              "Enter planning acreage from 1 to 1,000" in pqb_page.locator("[data-pqb-error]").inner_text()
+              and pqb_page.evaluate("localStorage.getItem('oregon-estate-planner-v1')") == saved_before_cancel)
+        pqb_page.locator('[data-pqb="cancel"]').click()
+        pqb_page.locator("[data-pqb=open]").click()
+        pqb_page.locator('[data-pqb="next"]').click()
+        pqb_page.locator('[data-pqb-field="acres"]').fill("1")
+        pqb_page.locator('[data-pqb-field="aspect"]').fill("0.25")
+        pqb_page.locator('[data-pqb="next"]').click()
+        pqb_page.locator('[data-pqb-field="homeSqft"]').fill("10000")
+        pqb_page.locator('[data-pqb-field="bedrooms"]').fill("3")
+        pqb_page.locator('[data-pqb="next"]').click()
+        pqb_page.locator('[data-pqb-field="spacing"][value="balanced"]').check()
+        pqb_page.locator('[data-pqb="preview"]').click()
+        pqb_page.locator('[data-pqb="apply"]').click()
+        check("a layout that cannot fit is rejected and leaves the saved project unchanged",
+              "does not fit" in pqb_page.locator("[data-pqb-error]").inner_text()
+              and pqb_page.evaluate("""() => {
+                const s=JSON.parse(localStorage['oregon-estate-planner-v1']);
+                return s.project.acres === 20 && s.plan.quickBuild.spacing === 'spread'
+                  && s.plan.prompt === %s
+                  && s.scenarios.find(c=>c.id===s.activeScenario).items.filter(item=>item.fromPlan).length === %d;
+              }""" % (json.dumps(pqb_saved["plan"]["prompt"]), pqb_saved["count"]))
+              and not pqb_errors)
+        pqb_context.close()
         check("no JS errors after terrain overlays", not errors)
         b.close()
 finally:

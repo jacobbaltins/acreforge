@@ -1,3 +1,16 @@
+## v113
+
+- Begin AF-022 with a bounded local acquisition worksheet: user-supplied purchase, transaction, due-diligence, and reserve amounts plus an optional user-entered planning budget.
+- Show combined acquisition-plus-site-plan arithmetic only when all four cost inputs are supplied; unknown fields remain blank and no market, legal, tax, affordability, or suitability conclusions are made.
+- Keep acquisition inputs local and remove them from public project exports; add migration, arithmetic, validation, persistence, and privacy smoke coverage.
+
+## v112
+
+- Add a separate property Quick Build wizard for home, homestead, family compound, and ranch concepts.
+- Collect parcel or planning-area assumptions, house goals, and site-spacing preference; preview planning ranges and a schematic floor plan before applying.
+- Save the applied configuration locally and generate editable Site Designer objects; clarify that this is distinct from the CAD room wizard and is not AI or professional design.
+- Keep the PDF sheet-selection, in-app preview, PNG export, and declarative CAD interaction-transition-table gaps queued.
+
 ## v111
 
 - Add an accessible CAD command filter that searches toolbar labels and command keywords while preserving category grouping.
