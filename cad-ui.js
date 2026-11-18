@@ -30,7 +30,8 @@ function updateInteraction(){
 function mount(root){
   if(!root)return;U.root=root;
   root.innerHTML='<div id="cadwrap" class="cadwrap'+(U.full?" cadfull":"")+'">'+
-  '<div class="cadtop"><b>📐 CAD Studio</b> <span id="cadmodes"></span> <span class="cadspc"></span><button class="btn" id="cad3d" type="button" aria-pressed="false" title="Show a linked 3D model beside the plan">Split 3D</button><button class="btn" id="cadfs" type="button">'+(U.full?"Exit full view":"Full viewport")+'</button><button class="btn" id="caddxf" type="button">Export DXF</button><label>Paper <select id="cadpaper" aria-label="PDF paper size">'+Object.keys(window.AcreCADSheets.PAPER).map(k=>'<option'+(C.doc.paper===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label><button class="btn" id="cadpdf" type="button">Download PDF</button></div>'+
+  '<div class="cadtop"><b>📐 CAD Studio</b> <span id="cadmodes"></span> <span class="cadspc"></span><button class="btn" id="cad3d" type="button" aria-pressed="false" title="Show a linked 3D model beside the plan">Split 3D</button><button class="btn" id="cadfs" type="button">'+(U.full?"Exit full view":"Full viewport")+'</button><button class="btn" id="cadexportopen" type="button">Export…</button></div>'+
+  '<dialog id="cadexport" aria-labelledby="cadexporttitle" aria-describedby="cadexportdescription"><h3 id="cadexporttitle">Export drawing</h3><p>Choose a file format for this CAD Studio drawing.</p><label>File format <select id="cadexportformat"><option value="pdf">PDF drawing set</option><option value="dxf">R12 DXF</option></select></label><label id="cadexportpaperwrap">Paper size <select id="cadexportpaper" aria-label="PDF paper size">'+Object.keys(window.AcreCADSheets.PAPER).map(k=>'<option'+(C.doc.paper===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label><p id="cadexportdescription" role="status" aria-live="polite"></p><p class="cadexportlimit">Downloads are created locally. Files are conceptual, not construction documents; DXF is not DWG.</p><div class="cadexportactions"><button class="btn" id="cadexportcancel" type="button">Cancel</button><button class="btn" id="cadexportgo" type="button">Download PDF</button></div></dialog>'+
   '<div class="cadmain"><div id="cadtools" class="cadtools"></div><div class="cadcvwrap"><canvas id="cadcv" tabindex="0"></canvas></div><div id="cad3dwrap" class="cad3dwrap" hidden><canvas id="cad3dcv" tabindex="0" aria-label="3D model of your plan. Drag to orbit, wheel to zoom."></canvas><div class="viewcube" role="group" aria-label="3D view buttons">'+Object.keys(window.AcreCAD3D.VIEWS).map(k=>'<button type="button" class="btn" data-v3="'+k+'">'+window.AcreCAD3D.VIEWS[k].label+'</button>').join("")+'</div><div class="cad3dnote">Concept block model from your plan. Not an engineered model.</div></div><div id="cadside" class="cadside"></div></div>'+
   '<div id="cadhealth" class="cadhealth" role="status" aria-live="polite"></div>'+
   '<div id="cadlog" class="cadlog" aria-live="polite"></div>'+
@@ -48,7 +49,7 @@ function tools(){
     ["Inquiry",[["DIST","Distance"],["AREA","Area"],["ID","Point ID"]]],
     ["History / View",[["UNDO","Undo"],["REDO","Redo"],["ZOOM E","Zoom ext"]]]];
   U.root.querySelector("#cadtools").innerHTML=G.map(g=>'<div class="cadgrp"><span class="cadgl">'+g[0]+'</span>'+g[1].map(t=>'<button type="button" class="btn" data-cmd="'+t[0]+'">'+t[1]+'</button>').join("")+'</div>').join("");
-  U.root.querySelector("#cadhelptxt").innerHTML='<p>'+esc(M.HELP)+'</p><p><b>Hotkeys:</b> F3 object snap · F7 grid · F8 ortho · F9 grid snap · F10 polar · Esc cancel · Enter/Space repeat last command · Del erase selection · Ctrl+Z / Ctrl+Y undo/redo · Ctrl+A select all · Home zoom extents (User profile) · right-click = Enter · wheel zoom · middle-drag pan. Drag right = window select, drag left = crossing select.</p><p><b>Limits:</b> Conceptual drafting only. DXF export only (no DWG). No DWG/AutoCAD compatibility claim. Not construction-grade, no code compliance. Snaps: endpoint, midpoint, center, intersection (line-to-line), perpendicular, grid. TRIM, EXTEND and FILLET work on LINEs only; OFFSET works on lines, walls, circles and arcs; HATCH is a simple line pattern (ANSI31, CROSS, SOLID) in the DXF as exploded lines; lineweights show on screen only (DXF R12 has none); doors and windows follow their walls and are skipped by MOVE/COPY/ROTATE/MIRROR/SCALE. Units: inches by default; UNITS switches display/input to mm, cm or m (geometry and DXF stay in inches); feet-and-inches notation is not accepted. Not yet implemented: grips, ZOOM window, DXF import, elevation/3D/layout views inside this workspace (see Lot Builder for linked elevations, 3D and printable sheets).</p><p><b>User profile</b> (PROFILE command or the selector): aliases C=CIRCLE, R=RECT; Ctrl+Shift+C circle, Ctrl+Shift+T text, Ctrl+Shift+M mirror, Ctrl+Shift+F fillet, Ctrl+R ortho, Ctrl+Shift+P grid snap, Home zoom extents. Some browsers reserve Ctrl+Shift shortcuts. "+esc(M.USER_UNMAPPED)+"</p>';
+  U.root.querySelector("#cadhelptxt").innerHTML='<p>'+esc(M.HELP)+'</p><p><b>Hotkeys:</b> F3 object snap · F7 grid · F8 ortho · F9 grid snap · F10 polar · Esc cancel · Enter/Space repeat last command · Del erase selection · Ctrl+Z / Ctrl+Y undo/redo · Ctrl+A select all · Home zoom extents (User profile) · right-click = Enter · wheel zoom · middle-drag pan. Drag right = window select, drag left = crossing select.</p><p><b>Limits:</b> Conceptual drafting only. DXF export only (no DWG). No DWG/AutoCAD compatibility claim. Not construction-grade, no code compliance. Snaps: endpoint, midpoint, center, intersection (line-to-line), perpendicular, grid. TRIM, EXTEND and FILLET work on LINEs only; OFFSET works on lines, walls, circles and arcs; HATCH is a simple line pattern (ANSI31, CROSS, SOLID) in the DXF as exploded lines; lineweights show on screen only (DXF R12 has none); doors and windows follow their walls and are skipped by MOVE/COPY/ROTATE/MIRROR/SCALE. Units: inches by default; UNITS switches display/input to mm, cm or m (geometry and DXF stay in inches); feet-and-inches notation is not accepted. Not yet implemented: grips, ZOOM window, DXF import, editable in-workspace elevation/section/layout views, DWG. ELEV and ROOF reports feed the conceptual PDF sheets; linked Split 3D is a simplified visual model.</p><p><b>User profile</b> (PROFILE command or the selector): aliases C=CIRCLE, R=RECT; Ctrl+Shift+C circle, Ctrl+Shift+T text, Ctrl+Shift+M mirror, Ctrl+Shift+F fillet, Ctrl+R ortho, Ctrl+Shift+P grid snap, Home zoom extents. Some browsers reserve Ctrl+Shift shortcuts. "+esc(M.USER_UNMAPPED)+"</p>';
 }
 function layout(){const w=U.root.querySelector(".cadcvwrap");if(!w)return;U.w=Math.max(300,w.clientWidth);U.h=Math.max(280,w.clientHeight);U.dpr=Math.max(1,window.devicePixelRatio||1);U.cv.width=Math.round(U.w*U.dpr);U.cv.height=Math.round(U.h*U.dpr);U.cv.style.width=U.w+"px";U.cv.style.height=U.h+"px"}
 function healthUI(){const el=U.root.querySelector("#cadhealth");if(!el)return;const h=C.health;
@@ -57,6 +58,15 @@ function healthUI(){const el=U.root.querySelector("#cadhealth");if(!el)return;co
 function draw3d(){const w=U.root&&U.root.querySelector("#cad3dwrap"),b=U.root&&U.root.querySelector("#cad3d");if(!w)return;w.hidden=!U.v3.on;if(b)b.setAttribute("aria-pressed",String(U.v3.on));if(!U.v3.on)return;
   const cv=w.querySelector("canvas");try{U.v3.last=window.AcreCAD3D.render(cv,U.v3,Math.max(1,window.devicePixelRatio||1));U.v3.err=false}catch(e){U.v3.err=true;C.devlog&&C.devlog("3d_failure "+e.message);C.setHealth("WARNING","Updating 3D model... Showing the plan only for now. Your drawing is unchanged.")}}
 function refresh(){panels();status();healthUI();prompt();draw();draw3d()}
+function updateExportDetails(){
+  const d=U.root&&U.root.querySelector("#cadexport");if(!d)return;
+  const pdf=d.querySelector("#cadexportformat").value==="pdf";
+  d.querySelector("#cadexportpaperwrap").hidden=!pdf;
+  d.querySelector("#cadexportdescription").textContent=pdf
+    ?"Creates the available conceptual vector-PDF sheets using "+d.querySelector("#cadexportpaper").value+" paper."
+    :"Creates an R12 DXF of model-space entities. Geometry remains in inches; this is not a DWG file.";
+  d.querySelector("#cadexportgo").textContent=pdf?"Download PDF":"Download DXF";
+}
 function prompt(){const p=U.root.querySelector("#cadprompt"),l=U.root.querySelector("#cadlog");if(p)p.textContent=R.prompt;if(l){l.innerHTML=C.log.slice(-6).map(esc).join("<br>");l.scrollTop=l.scrollHeight}}
 function status(){
   const t=(k,l,on)=>'<button type="button" class="btn'+(on?" on":"")+'" data-tg="'+k+'" aria-pressed="'+on+'">'+l+'</button>';
@@ -154,7 +164,7 @@ function viewOp(){
   if(v.op==="E")fit();else if(v.op==="IN")U.s*=1.5;else if(v.op==="OUT")U.s/=1.5;
   else if(v.op==="W")C.note("Window zoom: use the mouse wheel or ZOOM IN/OUT/E");
   else if(v.op==="3D"){if(v.k==="off")U.v3.on=false;else{const V=window.AcreCAD3D.VIEWS[v.k]||window.AcreCAD3D.VIEWS.iso;U.v3.on=true;U.v3.yaw=V.yaw;U.v3.pitch=V.pitch;U.v3.zoom=1}}
-  else if(v.op==="PDF"){const r=window.AcreCADSheets.download({paper:C.doc.paper});C.note("PDF with "+r.pages+" page(s), "+r.paper+" ("+r.size[0]+" x "+r.size[1]+" in). Vector PDF; conceptual, not for construction.")}
+  else if(v.op==="PDF"){const r=window.AcreCADSheets.download({paper:C.doc.paper});C.note(r.message||("PDF with "+r.pages+" page(s), "+r.paper+" ("+r.size[0]+" x "+r.size[1]+" in). Vector PDF; conceptual, not for construction."))}
   else if(v.op==="DXF"){const t=M.exportDXF();window.__cadLastDxf=t;const b=new Blob([t],{type:"application/dxf"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="acreforge-cad-studio.dxf";document.body.appendChild(a);a.click();a.remove();C.note("DXF R12 exported ("+t.split("\r\n").length+" lines). DXF only; not DWG.")}
 }
 function fit(){
@@ -190,16 +200,21 @@ function bind(){
     const b=ev.target.closest("[data-cmd]");if(b){M.cancel();run(b.dataset.cmd);inp.focus();return}
     const t=ev.target.closest("[data-tg]");if(t){U[t.dataset.tg]=!U[t.dataset.tg];refresh();return}
     if(ev.target.id==="cadfs"){U.full=!U.full;mount(U.root);return}
-    if(ev.target.id==="caddxf"){run("DXF");return}
+    if(ev.target.id==="cadexportopen"){const d=root.querySelector("#cadexport");root.querySelector("#cadexportpaper").value=window.AcreCADSheets.PAPER[C.doc.paper]?C.doc.paper:"Letter";root.querySelector("#cadexportformat").value="pdf";updateExportDetails();if(!d.open)d.showModal();return}
+    if(ev.target.id==="cadexportcancel"){root.querySelector("#cadexport").close();return}
+    if(ev.target.id==="cadexportgo"){
+      const d=root.querySelector("#cadexport"),format=root.querySelector("#cadexportformat").value;
+      if(format==="pdf"){C.doc.paper=root.querySelector("#cadexportpaper").value;C.save()}
+      d.close();R.viewReq={op:format==="dxf"?"DXF":"PDF"};viewOp();after();return
+    }
     const hl=ev.target.getAttribute&&ev.target.getAttribute("data-hl");if(hl){if(hl==="restore")C.restoreSession();else if(hl==="discard")C.discardSession();else if(hl==="backup")C.exportBackup();refresh();return}
     if(ev.target.id==="cad3d"){if(ev.__c3)return;ev.__c3=1;U.v3.on=!U.v3.on;refresh();return}
     const vv=ev.target.getAttribute&&ev.target.getAttribute("data-v3");if(vv){const V=window.AcreCAD3D.VIEWS[vv];U.v3.yaw=V.yaw;U.v3.pitch=V.pitch;U.v3.zoom=1;draw3d();return}
-    if(ev.target.id==="cadpdf"){R.viewReq={op:"PDF"};viewOp();refresh();return}
     const l=ev.target.closest(".cadlay");if(l&&ev.target.closest("button")){const n=l.dataset.lay,L=C.doc.layers[n],a=ev.target.closest("button").dataset.act;C.snapshot();
       if(a==="set")C.doc.cur=n;if(a==="on")L.on=!L.on;if(a==="lock")L.lock=!L.lock;C.save();refresh()}
   });
   root.addEventListener("change",ev=>{
-    if(ev.target.id==="cadpaper"){C.doc.paper=ev.target.value;C.save();return}
+    if(ev.target.id==="cadexportformat"){updateExportDetails();return}
     if(ev.target.id==="cadunits"){C.setUnits(ev.target.value);C.note("Units: "+C.unit().n);refresh();return}
     if(ev.target.id==="cadprofile"){R.profile=ev.target.value;try{localStorage.setItem("acreforge-cad-profile",R.profile)}catch(e){}C.note("Profile: "+R.profile);refresh();return}
     if(ev.target.dataset.act==="lw"){const l=ev.target.closest(".cadlay");C.snapshot();C.doc.layers[l.dataset.lay].lw=+ev.target.value;C.save();refresh();return}

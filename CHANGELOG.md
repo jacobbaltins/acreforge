@@ -1,3 +1,9 @@
+## v106
+
+- Add a CAD Studio export wizard for conceptual vector PDF sets and R12 DXF files, with a PDF paper choice and a clear local-download/format disclosure.
+- Preserve command-line PDF and DXF exports, keep canceled paper choices from changing the saved drawing, and report partial PDF sheet generation.
+- Clarify CAD Studio's implemented linked 3D and export features and document its remaining import/layout limitations.
+
 ## v105
 
 - Add a live CAD Studio Mode status: ready, point, number, option, text, object, selection, window/crossing selection, pan and drag states.

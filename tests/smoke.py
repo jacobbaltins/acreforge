@@ -5254,17 +5254,50 @@ try:
         check("ELEV reports each elevation", "front elevation" in cs_log() and "right elevation" in cs_log())
         sec = cs.evaluate("AcreCADSheets.section()")
         check("section has wall height and roof profile", sec["height"] > 0 and len(sec["roof"]) >= 3)
-        cs.select_option("#cadpaper", "ARCH D")
         pdf_info = cs.evaluate("AcreCADSheets.build({paper:'ARCH D'})")
         pdf = pdf_info["pdf"]
         check("PDF is a real vector PDF with header, xref and EOF", pdf.startswith("%PDF-1.4") and "xref" in pdf and pdf.rstrip().endswith("%%EOF") and " re S" in pdf and " l S" in pdf)
         check("PDF has 10 sheets with ARCH D 36x24 in MediaBox", pdf_info["pages"] == 10 and "/Count 10" in pdf and "[0 0 2592 1728]" in pdf)
         check("PDF has title block, sheet numbers, north arrow, concept labels and inch units", all(k in pdf for k in ("Sheet 2 of 10", "Units: inches", "(N) Tj", "Electrical plan \\(CONCEPT\\)", "Plumbing plan \\(CONCEPT\\)", "NOT FOR CONSTRUCTION", "Front elevation", "Scale: 1:")))
         check("PDF sheet sizes for Letter, ARCH E, B, A", all(cs.evaluate("AcreCADSheets.build({paper:'%s'}).size" % k) == v for k, v in (("Letter", [11, 8.5]), ("ARCH E", [48, 36]), ("B", [17, 11]), ("A", [11, 8.5]))))
+        paper_before_export = cs.evaluate("AcreCAD.core.doc.paper")
+        cs.locator("#cadexportopen").click()
+        check("export wizard opens with a PDF format, paper choice, and concept disclosure",
+              cs.locator("#cadexport").is_visible()
+              and cs.locator("#cadexportformat").input_value() == "pdf"
+              and cs.locator("#cadexportpaper").is_visible()
+              and cs.locator("#cadexportpaper").input_value() == (paper_before_export or "Letter")
+              and "conceptual vector-PDF" in cs.locator("#cadexportdescription").inner_text()
+              and "not construction documents" in cs.locator(".cadexportlimit").inner_text())
+        cs.select_option("#cadexportpaper", "Legal")
+        cs.locator("#cadexportcancel").click()
+        check("canceling the export wizard leaves the saved paper size unchanged",
+              not cs.locator("#cadexport").is_visible()
+              and cs.evaluate("AcreCAD.core.doc.paper") == paper_before_export)
+        cs.locator("#cadexportopen").click()
+        cs.select_option("#cadexportformat", "dxf")
+        check("DXF wizard option hides paper and explains inch-based R12 output",
+              not cs.locator("#cadexportpaper").is_visible()
+              and "R12 DXF" in cs.locator("#cadexportdescription").inner_text()
+              and "inches" in cs.locator("#cadexportdescription").inner_text())
+        cs.select_option("#cadexportformat", "pdf")
+        cs.select_option("#cadexportpaper", "ARCH D")
         with cs.expect_download() as dl:
-            cs.locator("#cadpdf").click()
+            cs.locator("#cadexportgo").click()
         dpath = dl.value.path(); data = open(dpath, "rb").read()
-        check("Download PDF button downloads a PDF file", dl.value.suggested_filename.endswith(".pdf") and data.startswith(b"%PDF-") and b"/Count 10" in data and b"[0 0 2592 1728]" in data)
+        check("export wizard downloads the selected vector PDF and saves its paper size",
+              dl.value.suggested_filename.endswith(".pdf") and data.startswith(b"%PDF-")
+              and b"/Count 10" in data and b"[0 0 2592 1728]" in data
+              and cs.evaluate("AcreCAD.core.doc.paper") == "ARCH D"
+              and not cs.locator("#cadexport").is_visible())
+        cs.locator("#cadexportopen").click()
+        cs.select_option("#cadexportformat", "dxf")
+        with cs.expect_download() as dxf_dl:
+            cs.locator("#cadexportgo").click()
+        dxf_data = open(dxf_dl.value.path(), encoding="utf-8").read()
+        check("export wizard downloads R12 DXF without changing the saved paper size",
+              dxf_dl.value.suggested_filename.endswith(".dxf") and "AC1009" in dxf_data
+              and dxf_data.rstrip().endswith("EOF") and cs.evaluate("AcreCAD.core.doc.paper") == "ARCH D")
         cs_cmd("PDF"); cs_cmd("Letter")
         check("PDF command honors paper choice", cs.evaluate("AcreCAD.core.doc.paper") == "Letter" and "PDF with 10 page" in cs_log())
         cs.evaluate("AcreCAD.core.doc.cur='0'")
