@@ -5477,6 +5477,49 @@ try:
         quickbuild_page.add_init_script("localStorage.setItem('acreforge-guide-seen','1')")
         quickbuild_page.goto("http://127.0.0.1:8766/?spatial-test=1")
         quickbuild_page.locator("#nav [data-page=cad]").click()
+        command_filter = quickbuild_page.locator("#cadtoolfilter")
+        initial_commands = quickbuild_page.evaluate("""() => ({
+          count:[...document.querySelectorAll('#cadtools [data-cmd]')].filter(b=>!b.hidden).length,
+          groups:[...document.querySelectorAll('#cadtools .cadgrp')].filter(g=>!g.hidden).length
+        })""")
+        check("CAD command filter starts with all commands and groups visible",
+              command_filter.is_visible() and initial_commands == {"count":31,"groups":5})
+        command_filter.fill("mirror")
+        visible_commands = quickbuild_page.evaluate("""() => ({
+          commands:[...document.querySelectorAll('#cadtools [data-cmd]')].filter(b=>!b.hidden).map(b=>b.dataset.cmd),
+          groups:[...document.querySelectorAll('#cadtools .cadgrp')].filter(g=>!g.hidden).map(g=>g.querySelector('.cadgl').textContent)
+        })""")
+        check("CAD command filter matches case-insensitive command keywords within their group",
+              visible_commands == {"commands":["MIRROR"],"groups":["Modify"]})
+        command_filter.fill("room")
+        check("CAD command filter also matches visible tool names",
+              quickbuild_page.evaluate("[...document.querySelectorAll('#cadtools [data-cmd]')].filter(b=>!b.hidden).map(b=>b.dataset.cmd)") == ["ROOM"])
+        command_filter.fill("no-such-command")
+        check("CAD command filter exposes an accessible no-match status and hides all groups",
+              quickbuild_page.locator("#cadtoolfilterstatus").is_visible()
+              and "No CAD commands match" in quickbuild_page.locator("#cadtoolfilterstatus").inner_text()
+              and quickbuild_page.evaluate("[...document.querySelectorAll('#cadtools .cadgrp')].every(g=>g.hidden)"))
+        command_filter.fill("circle")
+        quickbuild_page.locator("#cadfs").click()
+        check("CAD command filter is preserved when remounting full viewport",
+              quickbuild_page.locator("#cadtoolfilter").input_value() == "circle"
+              and quickbuild_page.evaluate("[...document.querySelectorAll('#cadtools [data-cmd]')].filter(b=>!b.hidden).map(b=>b.dataset.cmd)") == ["CIRCLE"])
+        quickbuild_page.locator("#cadfs").click()
+        command_filter = quickbuild_page.locator("#cadtoolfilter")
+        check("CAD command filter survives returning from full viewport",
+              not quickbuild_page.evaluate("AcreCAD.state.full")
+              and command_filter.input_value() == "circle"
+              and quickbuild_page.evaluate("[...document.querySelectorAll('#cadtools [data-cmd]')].filter(b=>!b.hidden).map(b=>b.dataset.cmd)") == ["CIRCLE"])
+        quickbuild_page.locator("#cadquickbuildopen").click()
+        quickbuild_page.locator("#cadquickbuildcancel").click()
+        check("CAD controls remain single-bound after repeated viewport remounts",
+              not quickbuild_errors and not quickbuild_page.locator("#cadquickbuild").is_visible())
+        command_filter.fill("")
+        check("clearing CAD command filter restores all commands and groups",
+              quickbuild_page.evaluate("""() => ({
+                count:[...document.querySelectorAll('#cadtools [data-cmd]')].filter(b=>!b.hidden).length,
+                groups:[...document.querySelectorAll('#cadtools .cadgrp')].filter(g=>!g.hidden).length
+              })""") == {"count":31,"groups":5})
         quickbuild_page.evaluate("""() => {
           const C = AcreCAD.core;
           C.doc.ents = [{id:1,t:"line",a:[10,20],b:[70,20],layer:"0"}];
