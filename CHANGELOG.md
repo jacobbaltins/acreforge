@@ -1,3 +1,9 @@
+## v105
+
+- Add a live CAD Studio Mode status: ready, point, number, option, text, object, selection, window/crossing selection, pan and drag states.
+- Keep interaction state visible and plain-language while drawing, selecting, or using the command line.
+- Reinstall terrain map layers after both default MapLibre style diffs and full style reloads, without waiting for external tiles or duplicating controls.
+
 ## v104
 
 - Linked 3D view: **Split 3D** button shows a concept block model (walls, door/window openings, simplified roof) beside the plan, with ViewCube buttons (Top/Front/Right/Back/Left/Home), drag to orbit, wheel to zoom. It updates as you draw. Gambrel and barn roofs show as gable. Not an engineered model; not saved in the drawing. Command: VIEW3D (Top/Front/Right/Back/Left/Home/Off). ZIP is now built from LF-normalized text so it matches the committed files.

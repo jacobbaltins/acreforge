@@ -2,10 +2,31 @@
 (function(){
 "use strict";
 const C=window.AcreCADCore,M=window.AcreCADCmd,R=M.R;
-const U={v3:{on:false,yaw:35,pitch:28,zoom:1},osnap:true,grid:true,snap:false,ortho:false,polar:false,cx:120,cy:90,s:2,w:800,h:500,dpr:1,mx:0,my:0,snapHit:null,drag:null,root:null,cv:null,fresh:true,listeners:false,full:false};
+const U={v3:{on:false,yaw:35,pitch:28,zoom:1},osnap:true,grid:true,snap:false,ortho:false,polar:false,cx:120,cy:90,s:2,w:800,h:500,dpr:1,mx:0,my:0,snapHit:null,drag:null,interaction:"READY",root:null,cv:null,fresh:true,listeners:false,full:false};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const toS=p=>[(p[0]-U.cx)*U.s+U.w/2,U.h/2-(p[1]-U.cy)*U.s];
 const toW=(x,y)=>[(x-U.w/2)/U.s+U.cx,U.cy-(y-U.h/2)/U.s];
+const INTERACTION_TRANSITIONS=[
+  {state:"PAN",label:"Panning",match:()=>U.drag&&U.drag.pan},
+  {state:"WINDOW",label:"Window select",match:()=>U.drag&&U.drag.box&&U.drag.b[0]>=U.drag.a[0]},
+  {state:"CROSSING",label:"Crossing select",match:()=>U.drag&&U.drag.box&&U.drag.b[0]<U.drag.a[0]},
+  {state:"DRAG",label:"Selecting",match:()=>!!U.drag},
+  {state:"POINT",label:"Pick point",match:()=>R.req&&R.req.k==="pt"},
+  {state:"NUMBER",label:"Enter number",match:()=>R.req&&R.req.k==="num"},
+  {state:"OPTION",label:"Choose option",match:()=>R.req&&R.req.k==="kw"},
+  {state:"TEXT",label:"Enter text",match:()=>R.req&&R.req.k==="str"},
+  {state:"OBJECT",label:"Pick object",match:()=>R.req&&R.req.k==="ent"},
+  {state:"SELECTION",label:"Select objects",match:()=>R.req&&R.req.k==="sel"},
+  {state:"COMMAND",label:"Working",match:()=>!!R.gen},
+  {state:"SELECTED",label:"Selection ready",match:()=>R.sel.length>0},
+  {state:"READY",label:"Ready",match:()=>true}
+];
+function interactionState(){return INTERACTION_TRANSITIONS.find(t=>t.match())||INTERACTION_TRANSITIONS[INTERACTION_TRANSITIONS.length-1]}
+function updateInteraction(){
+  const t=interactionState(),el=U.root&&U.root.querySelector("#cadmode");
+  U.interaction=t.state;
+  if(el){const label="Mode: "+t.label;if(el.textContent!==label){el.textContent=label;el.dataset.state=t.state}}
+}
 function mount(root){
   if(!root)return;U.root=root;
   root.innerHTML='<div id="cadwrap" class="cadwrap'+(U.full?" cadfull":"")+'">'+
@@ -40,7 +61,8 @@ function prompt(){const p=U.root.querySelector("#cadprompt"),l=U.root.querySelec
 function status(){
   const t=(k,l,on)=>'<button type="button" class="btn'+(on?" on":"")+'" data-tg="'+k+'" aria-pressed="'+on+'">'+l+'</button>';
   const c=U.root.querySelector("#cadstatus");
-  c.innerHTML='<span id="cadcoord">'+coordTxt()+'</span> '+t("osnap","OSNAP F3",U.osnap)+t("grid","GRID F7",U.grid)+t("ortho","ORTHO F8",U.ortho)+t("snap","SNAP F9",U.snap)+t("polar","POLAR F10",U.polar)+' <span>Layer: <b>'+esc(C.doc.cur)+'</b> · Sel: '+R.sel.length+' · Ceiling '+C.fmtIn(C.doc.ceil)+' · Wall '+C.fmtIn(C.doc.wallTh)+'</span> <label>Units <select id="cadunits" aria-label="Display units">'+Object.keys(C.UNITS).map(k=>'<option value="'+k+'"'+(C.doc.units===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label> <label>Profile <select id="cadprofile" aria-label="Keyboard profile"><option value="DEFAULT"'+(R.profile==="DEFAULT"?' selected':'')+'>Default</option><option value="USER"'+(R.profile==="USER"?' selected':'')+'>User</option></select></label>';
+  const mode=interactionState();U.interaction=mode.state;
+  c.innerHTML='<span id="cadcoord">'+coordTxt()+'</span> <span id="cadmode" data-state="'+mode.state+'" aria-live="polite">Mode: '+mode.label+'</span> '+t("osnap","OSNAP F3",U.osnap)+t("grid","GRID F7",U.grid)+t("ortho","ORTHO F8",U.ortho)+t("snap","SNAP F9",U.snap)+t("polar","POLAR F10",U.polar)+' <span>Layer: <b>'+esc(C.doc.cur)+'</b> · Sel: '+R.sel.length+' · Ceiling '+C.fmtIn(C.doc.ceil)+' · Wall '+C.fmtIn(C.doc.wallTh)+'</span> <label>Units <select id="cadunits" aria-label="Display units">'+Object.keys(C.UNITS).map(k=>'<option value="'+k+'"'+(C.doc.units===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label> <label>Profile <select id="cadprofile" aria-label="Keyboard profile"><option value="DEFAULT"'+(R.profile==="DEFAULT"?' selected':'')+'>Default</option><option value="USER"'+(R.profile==="USER"?' selected':'')+'>User</option></select></label>';
 }
 const coordTxt=()=>{const p=U.cursor||[0,0];return "X "+C.fmtIn(p[0])+"  Y "+C.fmtIn(p[1])+' '+(U.snapHit?" ["+({end:"ENDPOINT",mid:"MIDPOINT",cen:"CENTER",int:"INTERSECTION",per:"PERPENDICULAR",grid:"GRID"}[U.snapHit]||U.snapHit)+"]":"")};
 function panels(){
@@ -85,7 +107,7 @@ function draw(){
   if(U.cursor){const p=toS(U.cursor);g.strokeStyle="#9aa";g.lineWidth=1;g.beginPath();g.moveTo(0,p[1]);g.lineTo(U.w,p[1]);g.moveTo(p[0],0);g.lineTo(p[0],U.h);g.stroke();g.strokeRect(p[0]-4,p[1]-4,8,8);
     if(U.snapHit){g.strokeStyle="#ffe040";g.lineWidth=2;const k=U.snapHit;g.beginPath();
       if(k==="end")g.rect(p[0]-7,p[1]-7,14,14);else if(k==="mid"){g.moveTo(p[0],p[1]-8);g.lineTo(p[0]+8,p[1]+6);g.lineTo(p[0]-8,p[1]+6);g.closePath()}else if(k==="cen")g.arc(p[0],p[1],7,0,7);else if(k==="int"){g.moveTo(p[0]-7,p[1]-7);g.lineTo(p[0]+7,p[1]+7);g.moveTo(p[0]+7,p[1]-7);g.lineTo(p[0]-7,p[1]+7)}else if(k==="per"){g.moveTo(p[0]-7,p[1]+7);g.lineTo(p[0]-7,p[1]-7);g.moveTo(p[0]-7,p[1]+7);g.lineTo(p[0]+7,p[1]+7)}else g.rect(p[0]-3,p[1]-3,6,6);g.stroke()}}
-  const cc=U.root.querySelector("#cadcoord");if(cc)cc.textContent=coordTxt();
+  const cc=U.root.querySelector("#cadcoord");if(cc)cc.textContent=coordTxt();updateInteraction();
 }
 function drawEnt(g,e,hot){
   const L=C.doc.layers[e.layer]||{color:7,ltype:"CONTINUOUS"};const col=hot?"#ffffff":C.HEX[L.color];
@@ -145,13 +167,13 @@ function bind(){
     const c=cursorFrom(ev);if(U.drag&&!U.drag.pan){U.drag.b=c.raw;if(Math.hypot(c.x-U.drag.sx,c.y-U.drag.sy)>4)U.drag.box=true}draw()});
   cv.addEventListener("mousedown",ev=>{cv.focus();if(ev.button===1){U.drag={pan:true,x:ev.clientX,y:ev.clientY};ev.preventDefault();return}
     if(ev.button===0){const c=cursorFrom(ev);U.drag={a:c.raw,b:c.raw,sx:c.x,sy:c.y,box:false,snapP:c.p}}});
-  cv.addEventListener("mouseup",ev=>{const d=U.drag;U.drag=null;if(!d||d.pan||ev.button!==0)return;
+  window.addEventListener("mouseup",ev=>{const d=U.drag;U.drag=null;if(!d)return;if(d.pan){after();return}if(ev.button!==0){after();return}
     const c=cursorFrom(ev);
     if(d.box){const ids=C.selectBox(d.a,c.raw,c.raw[0]<d.a[0]);M.windowSelect(ids);after();return}
     if(R.req&&R.req.k==="pt"){M.clickPoint(c.p);if(R.viewReq)viewOp();after();return}
     const e=C.pick(c.raw,8/U.s);
     if(R.req&&(R.req.k==="ent"||R.req.k==="sel")){if(e)M.clickEnt(e);after();return}
-    if(!R.req){R.sel=e&&!C.locked(e)?(ev.shiftKey&&R.sel.length?Array.from(new Set(R.sel.concat(e.id))):[e.id]):[];after()}});
+    if(!R.req){R.sel=e&&!C.locked(e)?(ev.shiftKey&&R.sel.length?Array.from(new Set(R.sel.concat(e.id))):[e.id]):[];after()}else after()});
   cv.addEventListener("contextmenu",ev=>{ev.preventDefault();run("")});
   const c3=U.root.querySelector("#cad3dcv");if(c3){let d3=null;c3.addEventListener("mousedown",ev=>{d3={x:ev.clientX,y:ev.clientY}});window.addEventListener("mouseup",()=>{d3=null});
     c3.addEventListener("mousemove",ev=>{if(!d3)return;U.v3.yaw+=(ev.clientX-d3.x)*0.5;U.v3.pitch=Math.max(0,Math.min(90,U.v3.pitch+(ev.clientY-d3.y)*0.5));d3={x:ev.clientX,y:ev.clientY};draw3d()});

@@ -1931,31 +1931,70 @@ try:
               and "Location 44.00000°, -123.00000°" in terrain_status
               and terrain_zoom >= 13.5
               and "Map context: 1,000-acre initial square" in terrain_status)
+        relief_button = page.locator('[data-action="terrain-3d"]')
+        page.wait_for_function("""() => document.querySelector('.ovbar')
+          && document.querySelector('[data-action="terrain-3d"]')?.textContent === '3D relief on'
+          && document.querySelector('#terrainMapStatus')?.textContent.includes('3D terrain on')""")
+        relief_button.click()
+        page.wait_for_function("""() => document.querySelector('[data-action="terrain-3d"]')?.textContent === '3D relief off'
+          && document.querySelector('#terrainMapStatus')?.textContent.includes('3D terrain off')""")
+        check("3D terrain can be toggled off after map initialization",
+              relief_button.inner_text() == "3D relief off")
+        relief_button.click()
+        page.wait_for_function("""() => document.querySelector('[data-action="terrain-3d"]')?.textContent === '3D relief on'
+          && document.querySelector('#terrainMapStatus')?.textContent.includes('3D terrain on')""")
+        check("3D terrain can be toggled on after map initialization",
+              relief_button.inner_text() == "3D relief on")
+        page.wait_for_function(
+            "() => document.querySelector('#terrainWorldStatus')?.dataset.cameraPitch === '55'")
         camera = page.locator("#terrainCameraMode")
         world_status = page.locator("#terrainWorldStatus")
+        page.wait_for_function(
+            "() => document.querySelector('#terrainCanvas canvas')?.dataset.cameraReady === 'true'")
         check("orbit, walkthrough, and fly camera modes are available by name",
               [camera.locator("option").nth(i).get_attribute("value") for i in range(3)]
               == ["orbit", "walkthrough", "fly"])
         camera.select_option("walkthrough")
+        page.wait_for_function("""() => {
+          const status = document.querySelector('#terrainWorldStatus');
+          return status?.dataset.cameraMode === 'walkthrough'
+            && Number(status.dataset.cameraPitch) >= 65
+            && Number(status.dataset.cameraPitch) <= 70;
+        }""")
         page.wait_for_function(
-            "() => document.querySelector('#terrainWorldStatus')?.dataset.cameraMode === 'walkthrough'")
-        center_before_walk = page.locator("#terrainMapStatus").inner_text()
+            "() => !window.__acreforgeSpatialTest.terrainMap().isMoving()")
+        center_before_walk = page.evaluate("""() => {
+          const center = window.__acreforgeSpatialTest.terrainMap().getCenter();
+          return [center.lng, center.lat];
+        }""")
         terrain_canvas = page.locator("#terrainCanvas canvas")
         terrain_canvas.focus()
         page.keyboard.press("w")
         page.wait_for_function(
-            "(before) => document.querySelector('#terrainMapStatus')?.textContent !== before",
+            """before => {
+              const center = window.__acreforgeSpatialTest.terrainMap().getCenter();
+              return Math.hypot(center.lng - before[0], center.lat - before[1]) > 1e-6;
+            }""",
             arg=center_before_walk, timeout=5000)
         check("walkthrough keyboard movement navigates the terrain map",
               page.locator("#terrainWorldStatus").get_attribute("data-camera-mode") == "walkthrough")
         camera.select_option("fly")
+        page.wait_for_function("""() => {
+          const status = document.querySelector('#terrainWorldStatus');
+          return status?.dataset.cameraMode === 'fly'
+            && Number(status.dataset.cameraPitch) >= 74;
+        }""")
         page.wait_for_function(
-            "() => document.querySelector('#terrainWorldStatus')?.dataset.cameraMode === 'fly'")
-        bearing_before_fly = int(world_status.get_attribute("data-camera-bearing") or "0")
+            "() => !window.__acreforgeSpatialTest.terrainMap().isMoving()")
+        bearing_before_fly = page.evaluate(
+            "() => window.__acreforgeSpatialTest.terrainMap().getBearing()")
         terrain_canvas.focus()
         page.keyboard.press("d")
         page.wait_for_function(
-            "(before) => document.querySelector('#terrainWorldStatus')?.dataset.cameraBearing !== String(before)",
+            """before => {
+              const bearing = window.__acreforgeSpatialTest.terrainMap().getBearing();
+              return Math.abs(((bearing - before + 540) % 360) - 180) > 1;
+            }""",
             arg=bearing_before_fly, timeout=5000)
         camera.select_option("orbit")
         check("fly keyboard turning works and orbit remains selectable",
@@ -2002,12 +2041,6 @@ try:
               and prefs["op"]["hillshade"] == 0.4
               and prefs["op"]["flood"] == 0.45
               and prefs["op"]["wet"] == 0.55)
-        page.locator('[data-action="terrain-3d"]').click()
-        check("3D terrain can be toggled off",
-              page.locator('[data-action="terrain-3d"]').inner_text() == "3D relief off")
-        page.locator('[data-action="terrain-3d"]').click()
-        check("3D terrain can be toggled on",
-              page.locator('[data-action="terrain-3d"]').inner_text() == "3D relief on")
         terrain_mode["case"] = "no-data"
         for _ in range(8):
             page.locator(".maplibregl-ctrl-zoom-out").evaluate("el => el.click()")
@@ -2148,6 +2181,125 @@ try:
               and page.locator('[data-ov-op="hillshade"]').input_value() == "40"
               and page.locator('[data-ov-op="flood"]').input_value() == "45"
               and page.locator('[data-ov-op="wet"]').input_value() == "55")
+        style_reload_layers = [
+            "estate-feature-fill", "estate-feature-line", "estate-landmark-dot",
+            "estate-draft-fill", "estate-draft-line", "estate-location-dot",
+            "osm-context-fill", "osm-context-extrusion", "osm-context-line",
+            "osm-context-tree", "proposed-site-fill", "proposed-site-line",
+            "proposed-site-road-line", "proposed-site-extrusion",
+            "proposed-site-trees", "supplied-reference-fill",
+            "supplied-reference-line", "supplied-reference-point",
+            "ov-flood", "ov-wet", "terrain-analysis-slope",
+            "terrain-analysis-contours", "terrain-analysis-hillshade",
+        ]
+        page.evaluate("""() => {
+          const map = window.__acreforgeSpatialTest.terrainMap();
+          const style = JSON.parse(JSON.stringify(map.getStyle()));
+          const baseSources = new Set(['usgs-topo', 'usgs-imagery', 'elevation-dem']);
+          const baseLayers = new Set(['usgs-topo', 'usgs-imagery']);
+          style.sources = Object.fromEntries(
+            Object.entries(style.sources).filter(([id]) => baseSources.has(id)));
+          style.layers = style.layers.filter(layer => baseLayers.has(layer.id));
+          window.__terrainStyleReloads = 0;
+          window.__terrainStyleData = 0;
+          map.on('style.load', () => window.__terrainStyleReloads++);
+          map.on('styledata', () => window.__terrainStyleData++);
+          window.__terrainBaseStyle = style;
+          map.setStyle(style);
+        }""")
+        page.wait_for_function(
+            """() => window.__terrainStyleData > 0
+              && window.__acreforgeSpatialTest.terrainMap().getLayer('proposed-site-fill')""",
+            timeout=15000)
+        page.wait_for_function(
+            """layers => {
+              const map = window.__acreforgeSpatialTest.terrainMap();
+              const style = map.getStyle();
+              return layers.every(id => map.getLayer(id))
+                && layers.every(id => style.layers.filter(layer => layer.id === id).length === 1)
+                && document.querySelectorAll('.ovbar').length === 1
+                && document.querySelectorAll('.ovbar [data-ov]').length === 5;
+            }""",
+            arg=style_reload_layers, timeout=10000)
+        check("default style diff restores map layers and controls without style.load",
+              page.evaluate("""layers => {
+                const map = window.__acreforgeSpatialTest.terrainMap();
+                const style = map.getStyle();
+                return window.__terrainStyleData > 0
+                  && window.__terrainStyleReloads === 0
+                  && layers.every(id => map.getLayer(id))
+                  && layers.every(id => style.layers.filter(layer => layer.id === id).length === 1)
+                  && document.querySelectorAll('.ovbar').length === 1
+                  && document.querySelectorAll('.ovbar [data-ov]').length === 5;
+              }""", style_reload_layers))
+        page.evaluate("""() => {
+          const map = window.__acreforgeSpatialTest.terrainMap();
+          map.setStyle(window.__terrainBaseStyle, {diff: false});
+        }""")
+        page.wait_for_function(
+            "window.__terrainStyleReloads === 1", timeout=15000)
+        page.wait_for_function(
+            """layers => {
+              const map = window.__acreforgeSpatialTest.terrainMap();
+              const style = map.getStyle();
+              return layers.every(id => map.getLayer(id))
+                && layers.every(id => style.layers.filter(layer => layer.id === id).length === 1)
+                && document.querySelectorAll('.ovbar').length === 1
+                && document.querySelectorAll('.ovbar [data-ov]').length === 5;
+            }""",
+            arg=style_reload_layers, timeout=10000)
+        page.evaluate("""() => {
+          const map = window.__acreforgeSpatialTest.terrainMap();
+          map.setStyle(window.__terrainBaseStyle, {diff: false});
+        }""")
+        page.wait_for_function(
+            "window.__terrainStyleReloads === 2", timeout=15000)
+        page.wait_for_function(
+            """layers => {
+              const map = window.__acreforgeSpatialTest.terrainMap();
+              const style = map.getStyle();
+              return layers.every(id => map.getLayer(id))
+                && layers.every(id => style.layers.filter(layer => layer.id === id).length === 1)
+                && document.querySelectorAll('.ovbar').length === 1
+                && document.querySelectorAll('.ovbar [data-ov]').length === 5;
+            }""",
+            arg=style_reload_layers, timeout=10000)
+        flood_overlay = page.locator('[data-ov="flood"]')
+        flood_overlay.uncheck()
+        page.wait_for_function(
+            """() => window.__acreforgeSpatialTest.terrainMap()
+              .getLayoutProperty('ov-flood', 'visibility') === 'none'""")
+        flood_overlay.check()
+        page.wait_for_function(
+            """() => window.__acreforgeSpatialTest.terrainMap()
+              .getLayoutProperty('ov-flood', 'visibility') === 'visible'""")
+        page.locator("#terrainCameraMode").select_option("walkthrough")
+        page.wait_for_function(
+            "() => document.querySelector('#terrainWorldStatus')?.dataset.cameraMode === 'walkthrough'",
+            timeout=5000)
+        center_before_reload_key = page.evaluate("""() => {
+          const center = window.__acreforgeSpatialTest.terrainMap().getCenter();
+          return [center.lng, center.lat];
+        }""")
+        page.locator("#terrainCanvas canvas").focus()
+        page.keyboard.press("w")
+        page.wait_for_function(
+            """before => {
+              const center = window.__acreforgeSpatialTest.terrainMap().getCenter();
+              return Math.hypot(center.lng - before[0], center.lat - before[1]) > 1e-6;
+            }""",
+            arg=center_before_reload_key, timeout=5000)
+        check("repeated style loads restore map layers and keep controls responsive without duplicates",
+              page.evaluate("""layers => {
+                const map = window.__acreforgeSpatialTest.terrainMap();
+                const style = map.getStyle();
+                return window.__terrainStyleReloads === 2
+                  && layers.every(id => map.getLayer(id))
+                  && layers.every(id => style.layers.filter(layer => layer.id === id).length === 1)
+                  && document.querySelectorAll('.ovbar').length === 1
+                  && document.querySelectorAll('.ovbar [data-ov]').length === 5
+                  && document.querySelector('#terrainWorldStatus')?.dataset.cameraMode === 'walkthrough';
+              }""", style_reload_layers))
         world_context = b.new_context(service_workers="block")
         world_page = world_context.new_page()
         world_page.add_init_script("""localStorage.setItem('acreforge-guide-seen','1');
@@ -3868,7 +4020,7 @@ try:
         layer_data = upgrade_page.evaluate("""() => {
           const sources={}, layers=[], t=window.__acreforgeUpgradeTest;
           t.addTerrainLayers({addSource:(id,source)=>sources[id]=source,
-            addLayer:layer=>layers.push(layer)});
+            getSource:id=>sources[id], addLayer:layer=>layers.push(layer)});
           return {references:sources['supplied-references'].data,
                   existing:sources['estate-features'].data,
                   layerIds:layers.map(l=>l.id)};
@@ -4891,8 +5043,12 @@ try:
         check("CAD Studio opens as its own dark full drafting canvas with command line",
               cs.locator("#cadcv").count() == 1 and cs.locator("#cadcmd").count() == 1
               and cs.locator("#cadlayers .cadlay").count() >= 7 and cs.locator("#cadcv").evaluate("c=>c.width>500&&c.height>300"))
+        check("interaction status starts in Ready", cs.locator("#cadmode").get_attribute("data-state") == "READY"
+              and cs.locator("#cadmode").inner_text() == "Mode: Ready")
         cs_cmd("LINE")
-        check("LINE prompts for the first point", "first point" in cs.locator("#cadprompt").inner_text())
+        check("LINE prompts for the first point", "first point" in cs.locator("#cadprompt").inner_text()
+              and cs.locator("#cadmode").get_attribute("data-state") == "POINT"
+              and cs.locator("#cadmode").inner_text() == "Mode: Pick point")
         cs_cmd("0,0")
         cs_cmd("@120<0")
         cs_cmd("")
@@ -4904,13 +5060,19 @@ try:
         r = [e for e in cs_doc()["ents"] if e["t"] == "pline"][0]
         check("RECT supports inch relative corners",
               r["closed"] and r["pts"][2] == [242, 60])
-        cs_cmd("CIRCLE"); cs_cmd("50,50"); cs_cmd("12")
+        cs_cmd("CIRCLE"); cs_cmd("50,50")
+        check("interaction status changes from point to number input", cs.locator("#cadmode").get_attribute("data-state") == "NUMBER"
+              and cs.locator("#cadmode").inner_text() == "Mode: Enter number")
+        cs_cmd("12")
         check("CIRCLE takes center and radius", any(e["t"] == "circle" and e["r"] == 12 for e in cs_doc()["ents"]))
         cs_cmd("ROOM"); cs_cmd("0,200"); cs_cmd("3'6\"")
         check("feet-and-inches notation is rejected", "not accepted" in cs_log().lower() or "feet" in cs_log().lower() or "invalid" in cs_log().lower())
         cs_cmd("ESC") if False else None
         cs.locator("#cadcmd").press("Escape")
-        cs_cmd("ROOM"); cs_cmd("0,200"); cs_cmd("@216,288"); cs_cmd("Living Room")
+        cs_cmd("ROOM"); cs_cmd("0,200"); cs_cmd("@216,288")
+        check("interaction status identifies text entry", cs.locator("#cadmode").get_attribute("data-state") == "TEXT"
+              and cs.locator("#cadmode").inner_text() == "Mode: Enter text")
+        cs_cmd("Living Room")
         d = cs_doc()
         rooms = [e for e in d["ents"] if e["t"] == "room"]
         walls = [e for e in d["ents"] if e["t"] == "wall"]
@@ -4919,6 +5081,8 @@ try:
               and cs.evaluate("AcreCAD.cmd.roomSize(JSON.parse(localStorage['acreforge-cad-v1']).ents.find(e=>e.t==='room'))") == "216\" x 288\""
               and cs.evaluate("Math.round(Math.abs(AcreCAD.core.area(JSON.parse(localStorage['acreforge-cad-v1']).ents.find(e=>e.t==='room').pts))/144)") == 432)
         cs_cmd("DOOR")
+        check("interaction status identifies object picking", cs.locator("#cadmode").get_attribute("data-state") == "OBJECT"
+              and cs.locator("#cadmode").inner_text() == "Mode: Pick object")
         cs.evaluate("AcreCAD.cmd.clickEnt(AcreCAD.core.doc.ents.find(e=>e.t==='wall'))")
         cs_cmd("36"); cs_cmd("24")
         cs_cmd("WINDOW")
@@ -4998,10 +5162,11 @@ try:
         # window / crossing selection
         cs.evaluate("AcreCAD.cmd.R.sel=[];AcreCAD.fit()")
         cs.mouse.move(box["x"] + 2, box["y"] + 2); cs.mouse.down(); cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2, steps=4); cs.mouse.up()
-        check("dragging right makes a window selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3)
-        cs.evaluate("AcreCAD.cmd.R.sel=[]")
+        check("dragging right makes a window selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3 and cs.evaluate("AcreCAD.state.drag===null"))
+        cs.evaluate("AcreCAD.cmd.R.sel=[];AcreCAD.refresh();AcreCAD.fit()")
+        box = cs.locator("#cadcv").bounding_box()
         cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2); cs.mouse.down(); cs.mouse.move(box["x"] + 2, box["y"] + 2, steps=4); cs.mouse.up()
-        check("dragging left makes a crossing selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3)
+        check("dragging left makes a crossing selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3 and cs.evaluate("AcreCAD.state.drag===null"))
         # MOVE / COPY / ERASE with implied selection
         cs.evaluate("AcreCAD.cmd.R.sel=[AcreCAD.core.doc.ents.find(e=>e.t==='circle').id]")
         cs_cmd("MOVE"); cs_cmd("0,0"); cs_cmd("10,0")
@@ -5110,7 +5275,11 @@ try:
         check("Room under 24 x 24 inches is rejected", cs.evaluate("AcreCAD.core.doc.ents.length") == n0 and "Room size below minimum dimensions" in cs_log())
         cs_cmd("DOOR"); cs_cmd("")
         check("Door not on a wall is refused with guidance", "Doors must be attached to a wall" in cs_log() and cs.evaluate("AcreCAD.core.doc.ents.length") == n0)
-        cs.evaluate("AcreCAD.core.doc.hist=[];AcreCAD.core.doc.redo=[]")
+        cs.evaluate("AcreCAD.core.doc.hist=[];AcreCAD.core.doc.redo=[];AcreCAD.cmd.R.sel=[];AcreCAD.refresh()")
+        cs_cmd("ERASE")
+        check("interaction status identifies multi-object selection", cs.locator("#cadmode").get_attribute("data-state") == "SELECTION"
+              and cs.locator("#cadmode").inner_text() == "Mode: Select objects")
+        cs.locator("#cadcmd").press("Escape")
         cs_cmd("UNDO")
         check("Undo with nothing to undo says so and changes nothing", "No more actions to undo." in cs_log() and cs.evaluate("AcreCAD.core.doc.ents.length") == n0)
         cs.evaluate("""(()=>{const C=AcreCAD.core;C.clearHealth();window.__origSet=Storage.prototype.setItem;
@@ -5159,8 +5328,19 @@ try:
         check("3D stays linked after plan edit", cs.evaluate("()=>AcreCAD.state.v3.last!==undefined&&!AcreCAD.state.v3.err"))
         cs.click("#cad3d")
         check("Split 3D toggles off", cs.evaluate("()=>document.querySelector('#cad3dwrap').hidden"))
-        cs_cmd("VIEW3D"); cs_cmd("top")
+        cs_cmd("VIEW3D")
+        check("interaction status identifies option selection", cs.locator("#cadmode").get_attribute("data-state") == "OPTION"
+              and cs.locator("#cadmode").inner_text() == "Mode: Choose option")
+        cs_cmd("top")
         check("VIEW3D command sets top view and opens split", cs.evaluate("()=>AcreCAD.state.v3.on&&AcreCAD.state.v3.pitch===90"))
+        canvas_box = cs.locator("#cadcv").bounding_box()
+        cs.mouse.move(canvas_box["x"] + 100, canvas_box["y"] + 100)
+        cs.mouse.down(button="middle")
+        cs.mouse.move(canvas_box["x"] + 120, canvas_box["y"] + 110)
+        check("interaction status reports middle-button panning", cs.locator("#cadmode").get_attribute("data-state") == "PAN"
+              and cs.locator("#cadmode").inner_text() == "Mode: Panning")
+        cs.mouse.up(button="middle")
+        check("finishing a pan returns the mode to Ready", cs.locator("#cadmode").get_attribute("data-state") == "READY")
         check("CAD Studio produced no page errors", not cs_errors)
         cs_context.close()
         rotation_context = b.new_context(service_workers="block", reduced_motion="no-preference")
