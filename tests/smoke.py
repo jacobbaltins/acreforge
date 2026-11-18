@@ -5167,6 +5167,14 @@ try:
         box = cs.locator("#cadcv").bounding_box()
         cs.mouse.move(box["x"] + box["width"] - 2, box["y"] + box["height"] - 2); cs.mouse.down(); cs.mouse.move(box["x"] + 2, box["y"] + 2, steps=4); cs.mouse.up()
         check("dragging left makes a crossing selection", cs.evaluate("AcreCAD.cmd.R.sel.length")> 3 and cs.evaluate("AcreCAD.state.drag===null"))
+        cs.evaluate("""() => {
+          AcreCAD.cmd.R.sel=[];
+          const cv=document.querySelector("#cadcv"),r=cv.getBoundingClientRect();
+          cv.dispatchEvent(new MouseEvent("mousedown",{bubbles:true,button:0,clientX:r.right-2,clientY:r.bottom-2}));
+          window.dispatchEvent(new MouseEvent("mouseup",{bubbles:true,button:0,clientX:r.left+2,clientY:r.top+2}));
+        }""")
+        check("selection uses release coordinates if intermediate drag events are coalesced",
+              cs.evaluate("AcreCAD.cmd.R.sel.length>3 && AcreCAD.state.drag===null"))
         # MOVE / COPY / ERASE with implied selection
         cs.evaluate("AcreCAD.cmd.R.sel=[AcreCAD.core.doc.ents.find(e=>e.t==='circle').id]")
         cs_cmd("MOVE"); cs_cmd("0,0"); cs_cmd("10,0")
