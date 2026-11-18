@@ -2,15 +2,15 @@
 (function(){
 "use strict";
 const C=window.AcreCADCore,M=window.AcreCADCmd,R=M.R;
-const U={osnap:true,grid:true,snap:false,ortho:false,polar:false,cx:120,cy:90,s:2,w:800,h:500,dpr:1,mx:0,my:0,snapHit:null,drag:null,root:null,cv:null,fresh:true,listeners:false,full:false};
+const U={v3:{on:false,yaw:35,pitch:28,zoom:1},osnap:true,grid:true,snap:false,ortho:false,polar:false,cx:120,cy:90,s:2,w:800,h:500,dpr:1,mx:0,my:0,snapHit:null,drag:null,root:null,cv:null,fresh:true,listeners:false,full:false};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const toS=p=>[(p[0]-U.cx)*U.s+U.w/2,U.h/2-(p[1]-U.cy)*U.s];
 const toW=(x,y)=>[(x-U.w/2)/U.s+U.cx,U.cy-(y-U.h/2)/U.s];
 function mount(root){
   if(!root)return;U.root=root;
   root.innerHTML='<div id="cadwrap" class="cadwrap'+(U.full?" cadfull":"")+'">'+
-  '<div class="cadtop"><b>📐 CAD Studio</b> <span id="cadmodes"></span> <span class="cadspc"></span><button class="btn" id="cadfs" type="button">'+(U.full?"Exit full view":"Full viewport")+'</button><button class="btn" id="caddxf" type="button">Export DXF</button><label>Paper <select id="cadpaper" aria-label="PDF paper size">'+Object.keys(window.AcreCADSheets.PAPER).map(k=>'<option'+(C.doc.paper===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label><button class="btn" id="cadpdf" type="button">Download PDF</button></div>'+
-  '<div class="cadmain"><div id="cadtools" class="cadtools"></div><div class="cadcvwrap"><canvas id="cadcv" tabindex="0"></canvas></div><div id="cadside" class="cadside"></div></div>'+
+  '<div class="cadtop"><b>📐 CAD Studio</b> <span id="cadmodes"></span> <span class="cadspc"></span><button class="btn" id="cad3d" type="button" aria-pressed="false" title="Show a linked 3D model beside the plan">Split 3D</button><button class="btn" id="cadfs" type="button">'+(U.full?"Exit full view":"Full viewport")+'</button><button class="btn" id="caddxf" type="button">Export DXF</button><label>Paper <select id="cadpaper" aria-label="PDF paper size">'+Object.keys(window.AcreCADSheets.PAPER).map(k=>'<option'+(C.doc.paper===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label><button class="btn" id="cadpdf" type="button">Download PDF</button></div>'+
+  '<div class="cadmain"><div id="cadtools" class="cadtools"></div><div class="cadcvwrap"><canvas id="cadcv" tabindex="0"></canvas></div><div id="cad3dwrap" class="cad3dwrap" hidden><canvas id="cad3dcv" tabindex="0" aria-label="3D model of your plan. Drag to orbit, wheel to zoom."></canvas><div class="viewcube" role="group" aria-label="3D view buttons">'+Object.keys(window.AcreCAD3D.VIEWS).map(k=>'<button type="button" class="btn" data-v3="'+k+'">'+window.AcreCAD3D.VIEWS[k].label+'</button>').join("")+'</div><div class="cad3dnote">Concept block model from your plan. Not an engineered model.</div></div><div id="cadside" class="cadside"></div></div>'+
   '<div id="cadhealth" class="cadhealth" role="status" aria-live="polite"></div>'+
   '<div id="cadlog" class="cadlog" aria-live="polite"></div>'+
   '<div class="cadcmdrow"><label for="cadcmd" id="cadprompt">Command:</label><input id="cadcmd" autocomplete="off" spellcheck="false" aria-label="CAD command line" placeholder="Type LINE, WALL, ROOM, DOOR… or HELP"></div>'+
@@ -33,7 +33,9 @@ function layout(){const w=U.root.querySelector(".cadcvwrap");if(!w)return;U.w=Ma
 function healthUI(){const el=U.root.querySelector("#cadhealth");if(!el)return;const h=C.health;
   if(h.crashed){el.innerHTML='<div class="cadmodal cadh-RECOVERY" role="alertdialog" aria-label="Restore previous session"><b>AcreForge closed unexpectedly.</b> Restore previous session? Your last saved drawing is kept either way. <button class="btn" type="button" data-hl="restore">Restore</button> <button class="btn" type="button" data-hl="discard">Discard</button></div>';return}
   const n=h.state;el.innerHTML='<span class="cadh cadh-'+n+'">'+n+'</span> '+esc(h.msg||"Valid. Saved in this browser (local-first; cloud sync is a future feature).")+(h.storageFull?' <button class="btn" type="button" data-hl="backup">Download backup</button>':"")}
-function refresh(){panels();status();healthUI();prompt();draw()}
+function draw3d(){const w=U.root&&U.root.querySelector("#cad3dwrap"),b=U.root&&U.root.querySelector("#cad3d");if(!w)return;w.hidden=!U.v3.on;if(b)b.setAttribute("aria-pressed",String(U.v3.on));if(!U.v3.on)return;
+  const cv=w.querySelector("canvas");try{U.v3.last=window.AcreCAD3D.render(cv,U.v3,Math.max(1,window.devicePixelRatio||1));U.v3.err=false}catch(e){U.v3.err=true;C.devlog&&C.devlog("3d_failure "+e.message);C.setHealth("WARNING","Updating 3D model... Showing the plan only for now. Your drawing is unchanged.")}}
+function refresh(){panels();status();healthUI();prompt();draw();draw3d()}
 function prompt(){const p=U.root.querySelector("#cadprompt"),l=U.root.querySelector("#cadlog");if(p)p.textContent=R.prompt;if(l){l.innerHTML=C.log.slice(-6).map(esc).join("<br>");l.scrollTop=l.scrollHeight}}
 function status(){
   const t=(k,l,on)=>'<button type="button" class="btn'+(on?" on":"")+'" data-tg="'+k+'" aria-pressed="'+on+'">'+l+'</button>';
@@ -150,6 +152,9 @@ function bind(){
     if(R.req&&(R.req.k==="ent"||R.req.k==="sel")){if(e)M.clickEnt(e);after();return}
     if(!R.req){R.sel=e&&!C.locked(e)?(ev.shiftKey&&R.sel.length?Array.from(new Set(R.sel.concat(e.id))):[e.id]):[];after()}});
   cv.addEventListener("contextmenu",ev=>{ev.preventDefault();run("")});
+  const c3=U.root.querySelector("#cad3dcv");if(c3){let d3=null;c3.addEventListener("mousedown",ev=>{d3={x:ev.clientX,y:ev.clientY}});window.addEventListener("mouseup",()=>{d3=null});
+    c3.addEventListener("mousemove",ev=>{if(!d3)return;U.v3.yaw+=(ev.clientX-d3.x)*0.5;U.v3.pitch=Math.max(0,Math.min(90,U.v3.pitch+(ev.clientY-d3.y)*0.5));d3={x:ev.clientX,y:ev.clientY};draw3d()});
+    c3.addEventListener("wheel",ev=>{ev.preventDefault();U.v3.zoom=Math.max(0.3,Math.min(5,U.v3.zoom*(ev.deltaY<0?1.15:1/1.15)));draw3d()},{passive:false})}
   cv.addEventListener("wheel",ev=>{ev.preventDefault();const c=cursorFrom(ev);const f=ev.deltaY<0?1.2:1/1.2;U.s*=f;const w=toW(c.x,c.y);U.cx+=c.raw[0]-w[0];U.cy+=c.raw[1]-w[1];draw()},{passive:false});
   cv.addEventListener("mouseleave",()=>{U.cursor=null;U.snapHit=null;draw()});
   inp.addEventListener("keydown",ev=>{
@@ -164,6 +169,8 @@ function bind(){
     if(ev.target.id==="cadfs"){U.full=!U.full;mount(U.root);return}
     if(ev.target.id==="caddxf"){run("DXF");return}
     const hl=ev.target.getAttribute&&ev.target.getAttribute("data-hl");if(hl){if(hl==="restore")C.restoreSession();else if(hl==="discard")C.discardSession();else if(hl==="backup")C.exportBackup();refresh();return}
+    if(ev.target.id==="cad3d"){if(ev.__c3)return;ev.__c3=1;U.v3.on=!U.v3.on;refresh();return}
+    const vv=ev.target.getAttribute&&ev.target.getAttribute("data-v3");if(vv){const V=window.AcreCAD3D.VIEWS[vv];U.v3.yaw=V.yaw;U.v3.pitch=V.pitch;U.v3.zoom=1;draw3d();return}
     if(ev.target.id==="cadpdf"){R.viewReq={op:"PDF"};viewOp();refresh();return}
     const l=ev.target.closest(".cadlay");if(l&&ev.target.closest("button")){const n=l.dataset.lay,L=C.doc.layers[n],a=ev.target.closest("button").dataset.act;C.snapshot();
       if(a==="set")C.doc.cur=n;if(a==="on")L.on=!L.on;if(a==="lock")L.lock=!L.lock;C.save();refresh()}

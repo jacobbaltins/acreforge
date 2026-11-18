@@ -186,6 +186,8 @@ Pastures and crop fields are **land zones** (Land zones card), not placeable obj
 
 ## CAD Studio (conceptual drafting)
 
+**Split 3D (v104):** the Split 3D button shows a linked concept block model beside the plan with ViewCube view buttons, orbit and zoom. Roofs are simplified (gambrel/barn draw as gable). It is a visual aid, not an engineered model.
+
 **Elevations, roof and PDF sheets:** ELEV, ROOF and PDF commands (or the Paper select + Download PDF button) generate a real vector PDF: cover, floor plan, front/rear/left/right elevations derived from the plan, section/roof, foundation, electrical and plumbing CONCEPT sheets, with title block, scale, north arrow and page numbers. Papers: Letter, Legal, 11x17, ARCH D, ARCH E, A, B, A4, A3. Roofs are simplified; no site-plan sheet, takeoffs, or linked 3D yet; not construction-grade.
 
 **Units and crisp lines:** inches by default; feet-and-inches (3'6") is rejected. UNITS mm|cm|m changes display/input only (geometry and DXF stay in inches; areas in sq in / sq mm / sq cm / sq m). The canvas is devicePixelRatio-aware with per-layer lineweights (screen only; DXF R12 has none).

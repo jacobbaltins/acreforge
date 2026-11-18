@@ -1,3 +1,7 @@
+## v104
+
+- Linked 3D view: **Split 3D** button shows a concept block model (walls, door/window openings, simplified roof) beside the plan, with ViewCube buttons (Top/Front/Right/Back/Left/Home), drag to orbit, wheel to zoom. It updates as you draw. Gambrel and barn roofs show as gable. Not an engineered model; not saved in the drawing.
+
 ## v103
 
 - CAD Studio error and recovery layer: plain-language health chip (Normal / Warning / Error / Recovery), your work is never discarded automatically.
