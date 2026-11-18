@@ -6379,14 +6379,55 @@ try:
         pqb_page.locator('[data-pqb="next"]').click()
         pqb_page.locator('[data-pqb-field="homeSqft"]').fill("2500")
         pqb_page.locator('[data-pqb-field="bedrooms"]').fill("3")
+        pqb_page.locator('[data-pqb-field="bathrooms"]').fill("3")
+        pqb_page.locator('[data-pqb-field="garageSpaces"]').fill("2")
+        pqb_page.locator('[data-pqb-field="stories"]').select_option("2")
+        pqb_page.locator('[data-pqb-field="style"]').select_option("modern")
+        pqb_page.locator('[data-pqb-field="budget"]').fill("500000")
         pqb_page.locator('[data-pqb-goal="workshop"]').check()
+        pqb_page.locator('[data-pqb-goal="barn"]').check()
+        pqb_page.locator('[data-pqb-goal="solar"]').check()
+        check("property Quick Build offers expanded site goals and house requirements",
+              pqb_page.locator('[data-pqb-goal="coop"]').count() == 1
+              and pqb_page.locator('[data-pqb-goal="guest"]').count() == 1
+              and pqb_page.locator('[data-pqb-field="bathrooms"]').is_visible()
+              and pqb_page.locator('[data-pqb-field="garageSpaces"]').is_visible()
+              and pqb_page.locator('[data-pqb-field="stories"]').is_visible()
+              and pqb_page.locator('[data-pqb-field="style"]').is_visible()
+              and pqb_page.locator('[data-pqb-field="budget"]').is_visible())
+        pqb_page.locator('[data-pqb-field="customGoal"]').fill("extra goal")
+        pqb_page.locator('[data-pqb="next"]').click()
+        check("property Quick Build enforces three goals including the custom goal",
+              "no more than 3 additional goals" in pqb_page.locator("[data-pqb-error]").inner_text()
+              and pqb_page.locator("#pqbtitle").inner_text().strip().lower() == "step 3 of 5")
+        pqb_page.locator('[data-pqb-goal="solar"]').uncheck()
+        pqb_page.locator('[data-pqb-field="customGoal"]').fill("")
+        pqb_page.locator('[data-pqb-field="bathrooms"]').fill("0")
+        pqb_page.locator('[data-pqb="next"]').click()
+        check("property Quick Build rejects invalid house requirements",
+              "Enter valid house requirements" in pqb_page.locator("[data-pqb-error]").inner_text())
+        pqb_page.locator('[data-pqb-field="bathrooms"]').fill("3")
+        pqb_page.locator('[data-pqb-field="budget"]').fill("9000")
+        pqb_page.locator('[data-pqb="next"]').click()
+        check("property Quick Build rejects a target budget below its allowed minimum",
+              "optional budget from $10,000 to $100,000,000" in pqb_page.locator("[data-pqb-error]").inner_text())
+        pqb_page.locator('[data-pqb-field="budget"]').fill("500000")
         pqb_page.locator('[data-pqb="next"]').click()
         pqb_page.locator('[data-pqb-field="spacing"][value="spread"]').check()
+        check("property Quick Build offers an explicit terrain placement choice",
+              pqb_page.locator('[data-pqb-field="useTerrain"][value="true"]').is_checked()
+              and pqb_page.locator('[data-pqb-field="useTerrain"][value="false"]').is_visible())
+        pqb_page.locator('[data-pqb-field="useTerrain"][value="false"]').check()
         pqb_page.locator('[data-pqb="preview"]').click()
         check("property Quick Build previews cost ranges, site program, and the requested floor plan",
               pqb_page.locator("[data-pqb-results]").is_visible()
               and pqb_page.locator("[data-pqb-cost] article").count() == 3
               and "2,500 sqft house with 3 bedrooms" in pqb_page.locator("[data-pqb-prompt]").inner_text()
+              and "3 bathrooms" in pqb_page.locator("[data-pqb-house-brief]").inner_text()
+              and "2 stories" in pqb_page.locator("[data-pqb-house-brief]").inner_text()
+              and "Modern style" in pqb_page.locator("[data-pqb-house-brief]").inner_text()
+              and "$500,000" in pqb_page.locator("[data-pqb-house-brief]").inner_text()
+              and "do not change generated footprints" in pqb_page.locator("[data-pqb-results]").inner_text()
               and pqb_page.locator("[data-pqb-floor-plan] svg").get_attribute("aria-label")
               == "Conceptual floor plan for a 2,500 square foot house with 3 bedrooms")
         pqb_page.locator('[data-pqb="apply"]').click()
@@ -6396,7 +6437,9 @@ try:
           if(!raw)return false;
           const s=JSON.parse(raw);
           return s.plan?.quickBuild?.purpose === 'homestead'
-            && s.plan.layoutSummary?.spacing === 'spread';
+            && s.plan.layoutSummary?.spacing === 'spread'
+            && s.plan.quickBuild.useTerrain === false
+            && s.plan.layoutSummary.terrainPlacements === false;
         }""", timeout=10000)
         pqb_saved = pqb_page.evaluate("""() => {
           const s=JSON.parse(localStorage['oregon-estate-planner-v1']);
@@ -6408,16 +6451,28 @@ try:
               pqb_saved["project"]["acres"] == 20
               and pqb_saved["plan"]["quickBuild"]["homeSqft"] == 2500
               and pqb_saved["plan"]["quickBuild"]["bedrooms"] == 3
+              and pqb_saved["plan"]["quickBuild"]["bathrooms"] == 3
+              and pqb_saved["plan"]["quickBuild"]["garageSpaces"] == 2
+              and pqb_saved["plan"]["quickBuild"]["stories"] == 2
+              and pqb_saved["plan"]["quickBuild"]["style"] == "modern"
+              and pqb_saved["plan"]["quickBuild"]["budget"] == 500000
+              and pqb_saved["plan"]["quickBuild"]["useTerrain"] is False
+              and pqb_saved["plan"]["layoutSummary"]["terrainPlacements"] is False
               and pqb_saved["plan"]["quickBuild"]["spacing"] == "spread"
               and pqb_saved["plan"]["layoutSummary"]["home"]["area"] == 2500
               and all(any(re.search(pattern, item_type, re.I) for item_type in pqb_saved["types"])
-                      for pattern in ("home", "garden", "shop"))
+                      for pattern in ("home", "barn", "shop"))
+              and not any(re.search(pattern, item_type, re.I) for item_type in pqb_saved["types"]
+                          for pattern in ("garden", "orchard", "coop", "greenhouse", "pond", "solar"))
               and pqb_saved["bedrooms"] >= 3)
         pqb_page.reload()
         pqb_page.locator("#nav [data-page=planner]").click()
         pqb_page.locator("[data-pqb-applied]").wait_for()
         check("property Quick Build floor plan and settings survive reload",
               pqb_page.locator("[data-pqb-applied] [data-pqb-floor-plan] svg").is_visible()
+              and "3 bathrooms" in pqb_page.locator("[data-pqb-applied] [data-pqb-house-brief]").inner_text()
+              and "$500,000" in pqb_page.locator("[data-pqb-applied] [data-pqb-house-brief]").inner_text()
+              and "Terrain-ranked placement skipped by choice" in pqb_page.locator("[data-pqb-applied]").inner_text()
               and pqb_page.evaluate(
                   "JSON.parse(localStorage['oregon-estate-planner-v1']).plan.quickBuild.spacing") == "spread")
         saved_before_cancel = pqb_page.evaluate("localStorage.getItem('oregon-estate-planner-v1')")
