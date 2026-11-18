@@ -9,7 +9,7 @@ const LIB={sofa:[84,36],bed:[60,80],desk:[60,30],table:[48,30],cabinet:[36,24],c
 function defaults(){
   const L={};
   [["0",7],["A-WALL",7],["A-DOOR",3],["A-GLAZ",4],["A-ANNO",2],["A-DIMS",1],["A-ROOM",6],["A-FURN",5],["E-POWR",1],["P-PLMB",5],["M-HVAC",3]].forEach(([n,c])=>L[n]={color:c,ltype:"CONTINUOUS",on:true,lock:false});
-  return {layers:L,ents:[],cur:"0",nid:1,ceil:96,wallTh:6,grid:6,hist:[],redo:[],units:"in",title:"Untitled",sheet:"A",scale:"1/4"};
+  return {layers:L,ents:[],cur:"0",nid:1,ceil:96,wallTh:6,grid:6,hist:[],redo:[],units:"in",title:"Untitled",sheet:"A",scale:"1/4",takeoffRates:{floor:null,wall:null,door:null,window:null}};
 }
 let doc=defaults();
 let log=[];
@@ -47,7 +47,7 @@ function load(){
 }
 function closeSession(){try{localStorage.setItem(SKEY,JSON.stringify({open:false,ts:Date.now()}))}catch(e){}}
 function restoreSession(){health.crashed=false;clearHealth();return true}
-function discardSession(){if(doc.ents.length)backupNow();lastBackup=Date.now();health.crashed=false;const d=defaults();doc.layers=d.layers;doc.ents=[];doc.cur="0";doc.nid=1;doc.hist=[];doc.redo=[];save();return true}
+function discardSession(){if(doc.ents.length)backupNow();lastBackup=Date.now();health.crashed=false;const d=defaults();doc.layers=d.layers;doc.ents=[];doc.cur="0";doc.nid=1;doc.hist=[];doc.redo=[];doc.takeoffRates=d.takeoffRates;save();return true}
 if(typeof window!=="undefined"){window.addEventListener("pagehide",closeSession);window.addEventListener("beforeunload",closeSession)}
 load();
 const snapshot=()=>{doc.hist.push(JSON.stringify({layers:doc.layers,ents:doc.ents,cur:doc.cur,nid:doc.nid}));if(doc.hist.length>100)doc.hist.shift();doc.redo=[]};
